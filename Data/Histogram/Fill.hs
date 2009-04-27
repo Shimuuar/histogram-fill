@@ -1,10 +1,15 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
-module Data.Histogram.Fill ( HBuilderCl
+{-# LANGUAGE ScopedTypeVariables #-}
+module Data.Histogram.Fill ( HBuilderCl(..)
                            , HBuilder
                            , HistBuilder
                            , builderList
+
+                           , mkHistogram
+                           , mkHistogram1Dint
+                           , mkHistogram2Dint
 
                            , createHistograms
                            ) where
@@ -54,6 +59,17 @@ data HistBuilder ix v a b = HistBuilder { histRange :: (ix,ix)
                                         , histIn    :: a -> [ix]
                                         , histOut   :: (v,[(ix, v)],v) -> b
                                         }
+
+mkHistogram :: (HBuilderCl (HistBuilder ix v)) => (ix, ix) -> (a -> [ix]) -> ((v, [(ix, v)], v) -> b) -> HBuilder a b
+mkHistogram rng fin fout = MkHBuilder $ HistBuilder rng fin fout
+
+mkHistogram1Dint :: (HBuilderCl (HistBuilder Int Int)) => 
+                  (Int, Int) -> (a -> [Int]) -> ((Int, [(Int, Int)], Int) -> b) -> HBuilder a b
+mkHistogram1Dint = mkHistogram
+
+mkHistogram2Dint :: (HBuilderCl (HistBuilder (Int,Int) Int)) => 
+                   ((Int,Int), (Int,Int)) -> (a -> [(Int,Int)]) -> ((Int, [((Int,Int), Int)], Int) -> b) -> HBuilder a b
+mkHistogram2Dint = mkHistogram
 
 
 modifyInF :: (a' -> a) -> HistBuilder ix v a b -> HistBuilder ix v a' b
