@@ -53,6 +53,18 @@ fillOne (Storage u hist o) i = do
 {-# SPECIALIZE fillOne :: Storage s (Int,Int) Int    -> (Int,Int) -> ST s () #-}
 {-# SPECIALIZE fillOne :: Storage s (Int,Int) Double -> (Int,Int) -> ST s () #-}
 
+{-| Put value into histogram with weight.
+ -}
+fillOneWgh :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => Storage s i v -> (i,v) -> ST s ()
+fillOneWgh (Storage u hist o) (i,w) = do
+  (lo,hi) <- getBounds hist
+  if i < lo then modifySTRef u (+w)
+            else if i > hi then modifySTRef o (+w)
+                           else (writeArray hist i . (+w) =<< readArray hist i)
+{-# SPECIALIZE fillOneWgh :: Storage s Int Int    -> (Int,Int) -> ST s () #-}
+{-# SPECIALIZE fillOneWgh :: Storage s Int Double -> (Int,Double) -> ST s () #-}
+{-# SPECIALIZE fillOneWgh :: Storage s (Int,Int) Int    -> ((Int,Int),Int) -> ST s () #-}
+{-# SPECIALIZE fillOneWgh :: Storage s (Int,Int) Double -> ((Int,Int),Double) -> ST s () #-}
 
 -- | Put list of values into storage
 fillMany :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => Storage s i v -> [i] -> ST s ()
@@ -60,6 +72,9 @@ fillMany h = mapM_ (fillOne h)
 -- FIXME: check effect of INLINE pragma on perfomance
 {-# INLINE fillMany #-}
 
+-- | Put list of values with weight into storage
+fillManyWgh :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => Storage s i v -> [(i,v)] -> ST s ()
+fillManyWgh h = mapM_ (fillOneWgh h)
 
 -- | Convert storage to immutable form.
 freezeStorage :: (Ix i, MArray (STUArray s) v (ST s)) => Storage s i v -> ST s (v, [(i,v)], v)
