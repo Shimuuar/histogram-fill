@@ -2,16 +2,22 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module Data.Histogram.Fill ( HBuilderCl(..)
+module Data.Histogram.Fill ( -- * Typeclasses and existentials 
+                             HBuilderCl(..)
                            , HBuilder
-                           , HistBuilder
                            , builderList
 
+                           -- * Fill routines
+                           , createHistograms
+
+                           -- * Smart constructors
                            , mkHistogram
                            , mkHist1Dint
                            , mkHist2Dint
 
-                           , createHistograms
+                           -- * Internals 
+                           , HistBuilder
+
                            ) where
 
 import Data.Monoid
@@ -110,18 +116,18 @@ mkHistogram fout rng fin = MkHBuilder $ HistBuilder rng fin fout
 
 -- | Create 1D histogram with integer bins. Just a type-specialized version of mkHistogram
 mkHist1Dint :: (HBuilderCl (HistBuilder Int Int)) => 
-               ((Int, [(Int, Int)], Int) -> b) 
-            -> (Int, Int)
-            -> (a -> [Int]) 
+               ((Int, [(Int, Int)], Int) -> b) -- ^ Output function
+            -> (Int, Int)                      -- ^ Histogram range
+            -> (a -> [Int])                    -- ^ Input function
             -> HBuilder a b
 mkHist1Dint = mkHistogram
 
 
--- | Create 2D histogram with intger bins. Just a type-specialized version of mkHistogram
+-- | Create 2D histogram with integer bins. Just a type-specialized version of mkHistogram
 mkHist2Dint :: (HBuilderCl (HistBuilder (Int,Int) Int)) => 
-               ((Int, [((Int,Int), Int)], Int) -> b)
-            -> ((Int,Int), (Int,Int)) 
-            -> (a -> [(Int,Int)]) 
+               ((Int, [((Int,Int), Int)], Int) -> b) -- ^ Output function
+            -> ((Int,Int), (Int,Int))                -- ^ Histogram range
+            -> (a -> [(Int,Int)])                    -- ^ Input function
             -> HBuilder a b
 mkHist2Dint = mkHistogram
 
