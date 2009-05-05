@@ -20,6 +20,7 @@ import Data.Monoid
 import Data.Histogram.Internal.Accumulator
 ----------------------------------------------------------------
 
+-- | Create and fill histogram(s).
 createHistograms :: Monoid b => HBuilder a b -> [a] -> b
 createHistograms h xs = fillHistograms (runBuilder h) xs
 
@@ -28,10 +29,15 @@ createHistograms h xs = fillHistograms (runBuilder h) xs
 -- | Histogram builder typeclass. Value of this type contain instructions
 --   how to build histograms.
 class HBuilderCl h where 
+    -- | Convert input type of histogram from a to a'
     modifyIn  :: (a' -> a) -> h a b -> h a' b 
+    -- | Convert output of histogram 
     modifyOut :: (b -> b') -> h a b -> h a  b'
+    -- | Create stateful histogram from instructions
     runBuilder :: h a b -> HistogramST s a b
 
+
+----------------------------------------------------------------
 
 -- | Existential type. Histogram builder. 
 data HBuilder a b = forall h . HBuilderCl h => MkHBuilder (h a b)
@@ -42,7 +48,9 @@ instance HBuilderCl HBuilder where
     runBuilder (MkHBuilder h)  = runBuilder h
 
 
--- List of histograms 
+----------------------------------------------------------------
+
+-- List of histograms. 
 newtype HBuilderList a b = HBuilderList [HBuilder a b]
 
 -- | Wrap list of histogram builders into HBuilder existential
@@ -54,10 +62,15 @@ instance HBuilderCl HBuilderList where
     modifyOut g (HBuilderList l) = HBuilderList $ map (modifyOut g) l
     runBuilder (HBuilderList l)  = accumList $ map runBuilder l
 
+----------------------------------------------------------------
+
+-- | Generic histogram builder. It's designed to be as general as possible. 
 -- 
-data HistBuilder ix v a b = HistBuilder { histRange :: (ix,ix)
-                                        , histIn    :: a -> [ix]
-                                        , histOut   :: (v,[(ix, v)],v) -> b
+-- ix is supposed to be of Ix typeclass, v of Num.
+data HistBuilder ix v a b = HistBuilder { histRange :: (ix,ix)   -- ^ Range of histogram
+                                        , histIn    :: a -> [ix] -- ^Input function
+                                        -- | Output: (underflows, [(nbin, value)], overflows) 
+                                        , histOut   :: (v,[(ix, v)],v) -> b 
                                         }
 
 mkHistogram :: (HBuilderCl (HistBuilder ix v)) => (ix, ix) -> (a -> [ix]) -> ((v, [(ix, v)], v) -> b) -> HBuilder a b
