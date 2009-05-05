@@ -15,6 +15,7 @@ module Data.Histogram.Internal.Accumulator ( Accumulator(..)
 
                                            , accumList
                                            , accumHist
+                                           , accumHistWgh
 
                                            , fillHistograms
                                            ) where
@@ -83,11 +84,27 @@ instance Accumulator AccumList where
     extract (AccumList l)  = liftM mconcat $ mapM extract l 
 
 
+----------------------------------------
 
-data AccumHist ix v s a b = AccumHist { histStIn      :: a -> [ix]
-                                      , histStOut     :: (v, [(ix,v)], v) -> b
-                                      , histStStorage :: Storage s ix v
-                                      }
+{- Too general histogram.
+
+ * inp - input type. Either `ix' or '(ix,v)'
+ * ix  - index of array. 
+ * v   - values of bin
+ * s   - state variable 
+ * a   - input type
+ * b   - output type
+-}
+data AccumHistGen inp ix v s a b = AccumHistGen { histStIn      :: a -> [inp]
+                                                , histStOut     :: (v, [(ix,v)], v) -> b
+                                                , histStStorage :: Storage s ix v
+                                                }
+
+
+----------------------------------------
+
+-- Histogram with fixed bin weight (1)
+newtype AccumHist ix v s a b = AccumHist (AccumHistGen ix ix v s a b)
 
 -- | Create accumulator histogram
 accumHist :: (MArray (STUArray s) v (ST s), Ix ix, Num v, Accumulator (AccumHist ix v)) 
@@ -96,13 +113,13 @@ accumHist :: (MArray (STUArray s) v (ST s), Ix ix, Num v, Accumulator (AccumHist
           -> (ix, ix) 
           -> HistogramST s a b
 accumHist fi fo rng = do st <- newStorage rng
-                         return . MkAccum $ AccumHist fi fo st
+                         return . MkAccum . AccumHist $ AccumHistGen fi fo st
 
 histPut :: (Num v, Ix ix, MArray (STUArray s) v (ST s)) => AccumHist ix v s a b -> a -> ST s ()
-histPut h x = fillMany (histStStorage h) (histStIn h $ x)
+histPut (AccumHist h) x = fillMany (histStStorage h) (histStIn h $ x)
 
 histExtract :: (Num v, Ix ix, MArray (STUArray s) v (ST s)) => AccumHist ix v s a b -> ST s b
-histExtract h = freezeStorage (histStStorage h) >>= return . (histStOut h)
+histExtract (AccumHist h) = freezeStorage (histStStorage h) >>= return . (histStOut h)
 
 instance Accumulator (AccumHist Int Int) where 
     putOne  = histPut
@@ -116,3 +133,37 @@ instance Accumulator (AccumHist (Int,Int) Int) where
 instance Accumulator (AccumHist (Int,Int) Double) where 
     putOne  = histPut
     extract = histExtract
+
+
+-------------------------------------------------
+
+-- Histogram with variable bin weight
+newtype AccumHistWgh ix v s a b = AccumHistWgh (AccumHistGen (ix,v) ix v s a b)
+
+-- | Create accumulator histogram with weighted bins
+accumHistWgh :: (MArray (STUArray s) v (ST s), Ix ix, Num v, Accumulator (AccumHistWgh ix v)) 
+          => (a -> [(ix,v)]) 
+          -> ((v, [(ix,v)], v) -> b)
+          -> (ix, ix) 
+          -> HistogramST s a b
+accumHistWgh fi fo rng = do st <- newStorage rng
+                            return . MkAccum . AccumHistWgh $ AccumHistGen fi fo st
+
+histPutWgh :: (Num v, Ix ix, MArray (STUArray s) v (ST s)) => AccumHistWgh ix v s a b -> a -> ST s ()
+histPutWgh (AccumHistWgh h) x = fillManyWgh (histStStorage h) (histStIn h $ x)
+
+histExtractWgh :: (Num v, Ix ix, MArray (STUArray s) v (ST s)) => AccumHistWgh ix v s a b -> ST s b
+histExtractWgh (AccumHistWgh h) = freezeStorage (histStStorage h) >>= return . (histStOut h)
+
+instance Accumulator (AccumHistWgh Int Int) where 
+    putOne  = histPutWgh 
+    extract = histExtractWgh 
+instance Accumulator (AccumHistWgh Int Double) where 
+    putOne  = histPutWgh 
+    extract = histExtractWgh 
+instance Accumulator (AccumHistWgh (Int,Int) Int) where 
+    putOne  = histPutWgh 
+    extract = histExtractWgh 
+instance Accumulator (AccumHistWgh (Int,Int) Double) where 
+    putOne  = histPutWgh 
+    extract = histExtractWgh 

@@ -82,20 +82,20 @@ modifyOutF g h = h { histOut = g . histOut h }
 runBuilderF h = accumHist (histIn h) (histOut h) (histRange h)
 
 instance HBuilderCl (HistBuilder Int Int)  where 
-    modifyIn  = modifyInF
-    modifyOut = modifyOutF
+    modifyIn   = modifyInF
+    modifyOut  = modifyOutF
     runBuilder = runBuilderF
 instance HBuilderCl (HistBuilder Int Double)  where 
-    modifyIn  = modifyInF
-    modifyOut = modifyOutF
+    modifyIn   = modifyInF
+    modifyOut  = modifyOutF
     runBuilder = runBuilderF
 instance HBuilderCl (HistBuilder (Int,Int) Int)  where 
-    modifyIn  = modifyInF
-    modifyOut = modifyOutF
+    modifyIn   = modifyInF
+    modifyOut  = modifyOutF
     runBuilder = runBuilderF
 instance HBuilderCl (HistBuilder (Int,Int) Double)  where 
-    modifyIn  = modifyInF
-    modifyOut = modifyOutF
+    modifyIn   = modifyInF
+    modifyOut  = modifyOutF
     runBuilder = runBuilderF
 
 ----------------------------------------------------------------

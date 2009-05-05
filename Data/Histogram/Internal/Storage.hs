@@ -11,7 +11,9 @@
 module Data.Histogram.Internal.Storage ( Storage(..)
                                        , newStorage
                                        , fillOne
+                                       , fillOneWgh
                                        , fillMany
+                                       , fillManyWgh
                                        , freezeStorage
                                        ) where 
 
