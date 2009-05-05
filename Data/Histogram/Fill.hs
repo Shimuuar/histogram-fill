@@ -73,23 +73,13 @@ data HistBuilder ix v a b = HistBuilder { histRange :: (ix,ix)   -- ^ Range of h
                                         , histOut   :: (v,[(ix, v)],v) -> b 
                                         }
 
-mkHistogram :: (HBuilderCl (HistBuilder ix v)) => (ix, ix) -> (a -> [ix]) -> ((v, [(ix, v)], v) -> b) -> HBuilder a b
-mkHistogram rng fin fout = MkHBuilder $ HistBuilder rng fin fout
-
-mkHistogram1Dint :: (HBuilderCl (HistBuilder Int Int)) => 
-                  (Int, Int) -> (a -> [Int]) -> ((Int, [(Int, Int)], Int) -> b) -> HBuilder a b
-mkHistogram1Dint = mkHistogram
-
-mkHistogram2Dint :: (HBuilderCl (HistBuilder (Int,Int) Int)) => 
-                   ((Int,Int), (Int,Int)) -> (a -> [(Int,Int)]) -> ((Int, [((Int,Int), Int)], Int) -> b) -> HBuilder a b
-mkHistogram2Dint = mkHistogram
-
-
 modifyInF :: (a' -> a) -> HistBuilder ix v a b -> HistBuilder ix v a' b
-modifyInF  f h = h { histIn  = histIn h . f }
+modifyInF f h = h { histIn  = histIn h . f }
+
 modifyOutF :: (b -> b') -> HistBuilder ix v a b -> HistBuilder ix v a b'
 modifyOutF g h = h { histOut = g . histOut h }
-runBuilderF  h = accumHist (histIn h) (histOut h) (histRange h)
+
+runBuilderF h = accumHist (histIn h) (histOut h) (histRange h)
 
 instance HBuilderCl (HistBuilder Int Int)  where 
     modifyIn  = modifyInF
@@ -107,3 +97,19 @@ instance HBuilderCl (HistBuilder (Int,Int) Double)  where
     modifyIn  = modifyInF
     modifyOut = modifyOutF
     runBuilder = runBuilderF
+
+----------------------------------------------------------------
+
+mkHistogram :: (HBuilderCl (HistBuilder ix v)) => (ix, ix) -> (a -> [ix]) -> ((v, [(ix, v)], v) -> b) -> HBuilder a b
+mkHistogram rng fin fout = MkHBuilder $ HistBuilder rng fin fout
+
+mkHistogram1Dint :: (HBuilderCl (HistBuilder Int Int)) => 
+                  (Int, Int) -> (a -> [Int]) -> ((Int, [(Int, Int)], Int) -> b) -> HBuilder a b
+mkHistogram1Dint = mkHistogram
+
+mkHistogram2Dint :: (HBuilderCl (HistBuilder (Int,Int) Int)) => 
+                   ((Int,Int), (Int,Int)) -> (a -> [(Int,Int)]) -> ((Int, [((Int,Int), Int)], Int) -> b) -> HBuilder a b
+mkHistogram2Dint = mkHistogram
+
+
+
