@@ -1,15 +1,17 @@
-Name:		histogram-fill
-Version:	0.0.1
+Name:           histogram-fill
+Version:        0.0.1
 Cabal-Version:  >= 1.2
-License:	BSD3
-License-File:	LICENSE
-Author:		Alexey Khudyakov
-Homepage:	
-Category:	Text
-Synopsis:	Tool for creation of histograms.
+License:        BSD3
+License-File:   LICENSE
+Author:         Alexey Khudyakov
+Homepage:       
+Category:       Text
+Synopsis:       Tool for creation of histograms.
 Build-Type:     Simple
 
 Library
-  Build-Depends:	base, array
-  Exposed-modules:	Data.Histogram.Fill
+  Build-Depends:        base, array
+  Exposed-modules:      Data.Histogram.Fill 
+                        Data.Histogram.Internal.Accumulator
+                        Data.Histogram.Internal.Storage
   Extensions:           TypeOperators
