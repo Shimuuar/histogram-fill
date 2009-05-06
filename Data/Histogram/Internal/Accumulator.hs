@@ -73,7 +73,7 @@ instance Accumulator Accum where
 -- Concrete histograms
 ----------------------------------------------------------------
 -- List of histograms
-data AccumList s a b = AccumList [Accum s a b]
+newtype AccumList s a b = AccumList [Accum s a b]
  
 -- | Wrap list of histograms into one 'Accum'
 accumList :: [ST s (Accum s a b)] -> ST s (Accum s a b)
