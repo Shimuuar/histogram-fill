@@ -6,6 +6,7 @@ module Data.Histogram.Fill ( -- * Typeclasses and existentials
                              HBuilderCl(..)
                            , HBuilder
                            , builderList
+                           , builderListWrap
 
                            -- * Fill routines
                            , createHistograms
@@ -62,6 +63,9 @@ newtype HBuilderList a b = HBuilderList [HBuilder a b]
 -- | Wrap list of histogram builders into HBuilder existential
 builderList :: [HBuilder a b] -> HBuilder a b
 builderList = MkHBuilder . HBuilderList
+
+builderListWrap :: [HBuilder a b] -> HBuilder a [b]
+builderListWrap = MkHBuilder . modifyOut (:[]) . HBuilderList
 
 instance HBuilderCl HBuilderList where
     modifyIn  f (HBuilderList l) = HBuilderList $ map (modifyIn f) l
