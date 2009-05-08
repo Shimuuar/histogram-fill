@@ -127,7 +127,7 @@ mkHist1Dint :: (HBuilderCl (HistBuilder Int Int)) =>
 mkHist1Dint = mkHistogram
 
 
--- | Create 2D histogram with integer bins. Just a type-specialized version of mkHistogram
+-- | Create 2D histogram with integer bins. 
 mkHist2Dint :: (HBuilderCl (HistBuilder (Int,Int) Int)) => 
                ((Int, [((Int,Int), Int)], Int) -> b) -- ^ Output function
             -> ((Int,Int), (Int,Int))                -- ^ Histogram range: (xmin,xmax), (ymin,ymax)
