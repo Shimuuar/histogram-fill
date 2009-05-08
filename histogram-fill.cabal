@@ -15,3 +15,4 @@ Library
                         Data.Histogram.Internal.Accumulator
                         Data.Histogram.Internal.Storage
   Extensions:           TypeOperators
+  GHC-Options:     -Wall -O2 -auto-all
