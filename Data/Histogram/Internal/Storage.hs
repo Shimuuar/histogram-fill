@@ -63,9 +63,9 @@ fillOneWgh (Storage u hist o) (i,w) = do
   if i < lo then modifySTRef u (+w)
             else if i > hi then modifySTRef o (+w)
                            else (writeArray hist i . (+w) =<< readArray hist i)
-{-# SPECIALIZE fillOneWgh :: Storage s Int Int    -> (Int,Int) -> ST s () #-}
+{-# SPECIALIZE fillOneWgh :: Storage s Int Int    -> (Int,Int)    -> ST s () #-}
 {-# SPECIALIZE fillOneWgh :: Storage s Int Double -> (Int,Double) -> ST s () #-}
-{-# SPECIALIZE fillOneWgh :: Storage s (Int,Int) Int    -> ((Int,Int),Int) -> ST s () #-}
+{-# SPECIALIZE fillOneWgh :: Storage s (Int,Int) Int    -> ((Int,Int),Int)    -> ST s () #-}
 {-# SPECIALIZE fillOneWgh :: Storage s (Int,Int) Double -> ((Int,Int),Double) -> ST s () #-}
 
 -- | Put list of values into storage

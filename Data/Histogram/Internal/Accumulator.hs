@@ -81,7 +81,7 @@ accumList l = return . MkAccum . AccumList =<< sequence l
 
 instance Accumulator AccumList where
     putOne (AccumList l) x = mapM_ (flip putOne $ x) l 
-    extract (AccumList l)  = liftM mconcat $ mapM extract l 
+    extract (AccumList l)  = mconcat `fmap` mapM extract l 
 
 
 ----------------------------------------
@@ -117,6 +117,10 @@ accumHist fi fo rng = do st <- newStorage rng
 
 histPut :: (Num v, Ix ix, MArray (STUArray s) v (ST s)) => AccumHist ix v s a b -> a -> ST s ()
 histPut (AccumHist h) x = fillMany (histStStorage h) (histStIn h $ x)
+{-# SPECIALIZE histPut :: AccumHist Int Int s a b          -> a -> ST s () #-}
+{-# SPECIALIZE histPut :: AccumHist Int Double s a b       -> a -> ST s () #-}
+{-# SPECIALIZE histPut :: AccumHist (Int,Int) Int s a b    -> a -> ST s () #-}
+{-# SPECIALIZE histPut :: AccumHist (Int,Int) Double s a b -> a -> ST s () #-}
 
 histExtract :: (Num v, Ix ix, MArray (STUArray s) v (ST s)) => AccumHist ix v s a b -> ST s b
 histExtract (AccumHist h) = freezeStorage (histStStorage h) >>= return . (histStOut h)
@@ -151,6 +155,10 @@ accumHistWgh fi fo rng = do st <- newStorage rng
 
 histPutWgh :: (Num v, Ix ix, MArray (STUArray s) v (ST s)) => AccumHistWgh ix v s a b -> a -> ST s ()
 histPutWgh (AccumHistWgh h) x = fillManyWgh (histStStorage h) (histStIn h $ x)
+{-# SPECIALIZE histPutWgh :: AccumHistWgh Int Int s a b          -> a -> ST s () #-}
+{-# SPECIALIZE histPutWgh :: AccumHistWgh Int Double s a b       -> a -> ST s () #-}
+{-# SPECIALIZE histPutWgh :: AccumHistWgh (Int,Int) Int s a b    -> a -> ST s () #-}
+{-# SPECIALIZE histPutWgh :: AccumHistWgh (Int,Int) Double s a b -> a -> ST s () #-}
 
 histExtractWgh :: (Num v, Ix ix, MArray (STUArray s) v (ST s)) => AccumHistWgh ix v s a b -> ST s b
 histExtractWgh (AccumHistWgh h) = freezeStorage (histStStorage h) >>= return . (histStOut h)
