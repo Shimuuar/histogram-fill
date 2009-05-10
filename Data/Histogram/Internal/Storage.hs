@@ -19,7 +19,6 @@ module Data.Histogram.Internal.Storage ( Storage(..)
 
 import Control.Monad.ST
 
-import Data.Array.Unboxed
 import Data.Array.ST
 import Data.STRef
 
