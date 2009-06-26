@@ -107,7 +107,7 @@ data AccumHistGen inp ix v s a b = AccumHistGen { histStIn      :: a -> [inp]
 newtype AccumHist ix v s a b = AccumHist (AccumHistGen ix ix v s a b)
 
 -- | Create accumulator histogram
-accumHist :: (MArray (STUArray s) v (ST s), Ix ix, Num v, Accumulator (AccumHist ix v)) 
+accumHist :: (MArray (STUArray s) v (ST s), Ix ix, Num v)
           => (a -> [ix]) 
           -> ((v, [(ix,v)], v) -> b)
           -> (ix, ix) 
@@ -126,7 +126,7 @@ instance Accumulator (AccumHist i v) where
 newtype AccumHistWgh ix v s a b = AccumHistWgh (AccumHistGen (ix,v) ix v s a b)
 
 -- | Create accumulator histogram with weighted bins
-accumHistWgh :: (MArray (STUArray s) v (ST s), Ix ix, Num v, Accumulator (AccumHistWgh ix v)) 
+accumHistWgh :: (MArray (STUArray s) v (ST s), Ix ix, Num v)
           => (a -> [(ix,v)]) 
           -> ((v, [(ix,v)], v) -> b)
           -> (ix, ix) 
