@@ -115,25 +115,10 @@ accumHist :: (MArray (STUArray s) v (ST s), Ix ix, Num v, Accumulator (AccumHist
 accumHist fi fo rng = do st <- newStorage rng
                          return . MkAccum . AccumHist $ AccumHistGen fi fo st
 
-histPut :: AccumHist ix v s a b -> a -> ST s ()
-histPut (AccumHist h) x = fillMany (histStStorage h) (histStIn h $ x)
-{-# INLINE histPut #-}
-
-histExtract :: AccumHist ix v s a b -> ST s b
-histExtract (AccumHist h) = freezeStorage (histStStorage h) >>= return . (histStOut h)
-
-instance Accumulator (AccumHist Int Int) where 
-    putOne  = histPut
-    extract = histExtract 
-instance Accumulator (AccumHist Int Double) where 
-    putOne  = histPut
-    extract = histExtract 
-instance Accumulator (AccumHist (Int,Int) Int) where 
-    putOne  = histPut
-    extract = histExtract 
-instance Accumulator (AccumHist (Int,Int) Double) where 
-    putOne  = histPut
-    extract = histExtract
+instance Accumulator (AccumHist i v) where 
+    putOne  (AccumHist h) x = fillMany (histStStorage h) (histStIn h $ x)
+    {-# INLINE putOne #-}
+    extract (AccumHist h)   = freezeStorage (histStStorage h) >>= return . (histStOut h)
 
 
 ----------------------------------------------------------------
@@ -149,22 +134,8 @@ accumHistWgh :: (MArray (STUArray s) v (ST s), Ix ix, Num v, Accumulator (AccumH
 accumHistWgh fi fo rng = do st <- newStorage rng
                             return . MkAccum . AccumHistWgh $ AccumHistGen fi fo st
 
-histPutWgh :: AccumHistWgh ix v s a b -> a -> ST s ()
-histPutWgh (AccumHistWgh h) x = fillManyWgh (histStStorage h) (histStIn h $ x)
-{-# INLINE histPutWgh #-}
+instance Accumulator (AccumHistWgh i v) where 
+    putOne  (AccumHistWgh h) x = fillManyWgh (histStStorage h) (histStIn h $ x)
+    {-# INLINE putOne #-}
+    extract (AccumHistWgh h)   = freezeStorage (histStStorage h) >>= return . (histStOut h)
 
-histExtractWgh :: AccumHistWgh ix v s a b -> ST s b
-histExtractWgh (AccumHistWgh h) = freezeStorage (histStStorage h) >>= return . (histStOut h)
-
-instance Accumulator (AccumHistWgh Int Int) where 
-    putOne  = histPutWgh 
-    extract = histExtractWgh 
-instance Accumulator (AccumHistWgh Int Double) where 
-    putOne  = histPutWgh 
-    extract = histExtractWgh 
-instance Accumulator (AccumHistWgh (Int,Int) Int) where 
-    putOne  = histPutWgh 
-    extract = histExtractWgh 
-instance Accumulator (AccumHistWgh (Int,Int) Double) where 
-    putOne  = histPutWgh 
-    extract = histExtractWgh 
