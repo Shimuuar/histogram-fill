@@ -47,7 +47,7 @@ fillOne :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => Storage s i v -> i -> 
 fillOne (Storage u hist o) i = do
   (lo,hi) <- getBounds hist
   if i < lo then modifySTRef u (+1)
-            else if i > hi then modifySTRef o (+1)
+            else if i > hi then modifySTRef o ((+1) $! )
                            else (writeArray hist i . (+1) =<< readArray hist i)
 {-# SPECIALIZE fillOne :: Storage s Int Int    -> Int -> ST s () #-}
 {-# SPECIALIZE fillOne :: Storage s Int Double -> Int -> ST s () #-}
@@ -59,7 +59,7 @@ fillOne (Storage u hist o) i = do
 fillOneWgh :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => Storage s i v -> (i,v) -> ST s ()
 fillOneWgh (Storage u hist o) (i,w) = do
   (lo,hi) <- getBounds hist
-  if i < lo then modifySTRef u (+w)
+  if i < lo then modifySTRef u ((+w) $!)
             else if i > hi then modifySTRef o (+w)
                            else (writeArray hist i . (+w) =<< readArray hist i)
 {-# SPECIALIZE fillOneWgh :: Storage s Int Int    -> (Int,Int)    -> ST s () #-}
