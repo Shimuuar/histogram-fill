@@ -42,7 +42,6 @@ fillHistograms h xs = runST $ do h' <- h
 ----------------------------------------------------------------
 -- Accumulator typeclass
 ----------------------------------------------------------------
-
 -- | Typeclass which reperesent fillable histogram.
 class Accumulator h where
     -- | Put one element into accumulator
@@ -58,7 +57,6 @@ class Accumulator h where
 ----------------------------------------------------------------
 -- Existential wrapper 
 ----------------------------------------------------------------
-
 -- | GATDed wrapper for histogram builders
 data Accum s a b where
     MkAccum :: Accumulator h => h s a b -> Accum s a b
@@ -70,10 +68,11 @@ instance Accumulator Accum where
     putOne  (MkAccum h) x = putOne h x 
     extract (MkAccum h)   = extract h
 
-----------------------------------------------------------------
--- Concrete histograms
+
+
 ----------------------------------------------------------------
 -- List of histograms
+----------------------------------------------------------------
 newtype AccumList s a b = AccumList [Accum s a b]
  
 -- | Wrap list of histograms into one 'Accum'
@@ -85,25 +84,25 @@ instance Accumulator AccumList where
     extract (AccumList l)  = mconcat `fmap` mapM extract l 
 
 
-----------------------------------------
 
-{- Too general histogram.
+----------------------------------------------------------------
+-- Numeric histograms 
+----------------------------------------------------------------
 
- * inp - input type. Either `ix' or '(ix,v)'
- * ix  - index of array. 
- * v   - values of bin
- * s   - state variable 
- * a   - input type
- * b   - output type
--}
+-- Too general histogram.
+--
+-- * inp - input type. Either `ix' or '(ix,v)'
+-- * ix  - index of array. 
+-- * v   - values of bin
+-- * s   - state variable 
+-- * a   - input type
+-- * b   - output type
 data AccumHistGen inp ix v s a b = AccumHistGen { histStIn      :: a -> [inp]
                                                 , histStOut     :: (v, [(ix,v)], v) -> b
                                                 , histStStorage :: Storage s ix v
                                                 }
 
-
-----------------------------------------
-
+----------------------------------------------------------------
 -- Histogram with fixed bin weight (1)
 newtype AccumHist ix v s a b = AccumHist (AccumHistGen ix ix v s a b)
 
@@ -140,8 +139,7 @@ instance Accumulator (AccumHist (Int,Int) Double) where
     extract = histExtract
 
 
--------------------------------------------------
-
+----------------------------------------------------------------
 -- Histogram with variable bin weight
 newtype AccumHistWgh ix v s a b = AccumHistWgh (AccumHistGen (ix,v) ix v s a b)
 
