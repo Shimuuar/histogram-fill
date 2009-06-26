@@ -21,6 +21,10 @@ module Data.Histogram.Fill ( -- * Typeclasses and existentials
 
                            ) where
 
+import Control.Monad.ST (ST)
+import Data.Array.ST    (STUArray,MArray)
+import Data.Ix          (Ix)
+
 import Data.Monoid
 
 
@@ -90,21 +94,14 @@ modifyInF f h = h { histIn  = histIn h . f }
 modifyOutF :: (b -> b') -> HistBuilder ix v a b -> HistBuilder ix v a b'
 modifyOutF g h = h { histOut = g . histOut h }
 
+runBuilderF :: (Ix ix, Num v, MArray (STUArray s) v (ST s)) => HistBuilder ix v a b -> HistogramST s a b
 runBuilderF h = accumHist (histIn h) (histOut h) (histRange h)
 
-instance HBuilderCl (HistBuilder Int Int)  where 
+instance Ix i => HBuilderCl (HistBuilder i Int)  where 
     modifyIn   = modifyInF
     modifyOut  = modifyOutF
     runBuilder = runBuilderF
-instance HBuilderCl (HistBuilder Int Double)  where 
-    modifyIn   = modifyInF
-    modifyOut  = modifyOutF
-    runBuilder = runBuilderF
-instance HBuilderCl (HistBuilder (Int,Int) Int)  where 
-    modifyIn   = modifyInF
-    modifyOut  = modifyOutF
-    runBuilder = runBuilderF
-instance HBuilderCl (HistBuilder (Int,Int) Double)  where 
+instance Ix i => HBuilderCl (HistBuilder i  Double)  where 
     modifyIn   = modifyInF
     modifyOut  = modifyOutF
     runBuilder = runBuilderF
