@@ -46,7 +46,7 @@ class HBuilderCl h where
 
 ----------------------------------------------------------------
 
--- | Existential type. Histogram builder. 
+-- | Abstract histogram builder.
 data HBuilder a b where
     MkHBuilder :: HBuilderCl h => h a b -> HBuilder a b
 

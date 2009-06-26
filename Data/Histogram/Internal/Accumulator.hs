@@ -32,7 +32,7 @@ import Data.Histogram.Internal.Storage
 
 ----------------------------------------------------------------
 
--- | Convinience function for multiple histogram creation
+-- | Put all values into histogram and return result
 fillHistograms :: Monoid b => (forall s . ST s (Accum s a b)) -> [a] -> b
 fillHistograms h xs = runST $ do h' <- h
                                  putMany h' xs
