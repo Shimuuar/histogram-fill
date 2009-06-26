@@ -115,14 +115,11 @@ accumHist :: (MArray (STUArray s) v (ST s), Ix ix, Num v, Accumulator (AccumHist
 accumHist fi fo rng = do st <- newStorage rng
                          return . MkAccum . AccumHist $ AccumHistGen fi fo st
 
-histPut :: (Num v, Ix ix, MArray (STUArray s) v (ST s)) => AccumHist ix v s a b -> a -> ST s ()
+histPut :: AccumHist ix v s a b -> a -> ST s ()
 histPut (AccumHist h) x = fillMany (histStStorage h) (histStIn h $ x)
-{-# SPECIALIZE histPut :: AccumHist Int Int s a b          -> a -> ST s () #-}
-{-# SPECIALIZE histPut :: AccumHist Int Double s a b       -> a -> ST s () #-}
-{-# SPECIALIZE histPut :: AccumHist (Int,Int) Int s a b    -> a -> ST s () #-}
-{-# SPECIALIZE histPut :: AccumHist (Int,Int) Double s a b -> a -> ST s () #-}
+{-# INLINE histPut #-}
 
-histExtract :: (Num v, Ix ix, MArray (STUArray s) v (ST s)) => AccumHist ix v s a b -> ST s b
+histExtract :: AccumHist ix v s a b -> ST s b
 histExtract (AccumHist h) = freezeStorage (histStStorage h) >>= return . (histStOut h)
 
 instance Accumulator (AccumHist Int Int) where 
@@ -152,14 +149,11 @@ accumHistWgh :: (MArray (STUArray s) v (ST s), Ix ix, Num v, Accumulator (AccumH
 accumHistWgh fi fo rng = do st <- newStorage rng
                             return . MkAccum . AccumHistWgh $ AccumHistGen fi fo st
 
-histPutWgh :: (Num v, Ix ix, MArray (STUArray s) v (ST s)) => AccumHistWgh ix v s a b -> a -> ST s ()
+histPutWgh :: AccumHistWgh ix v s a b -> a -> ST s ()
 histPutWgh (AccumHistWgh h) x = fillManyWgh (histStStorage h) (histStIn h $ x)
-{-# SPECIALIZE histPutWgh :: AccumHistWgh Int Int s a b          -> a -> ST s () #-}
-{-# SPECIALIZE histPutWgh :: AccumHistWgh Int Double s a b       -> a -> ST s () #-}
-{-# SPECIALIZE histPutWgh :: AccumHistWgh (Int,Int) Int s a b    -> a -> ST s () #-}
-{-# SPECIALIZE histPutWgh :: AccumHistWgh (Int,Int) Double s a b -> a -> ST s () #-}
+{-# INLINE histPutWgh #-}
 
-histExtractWgh :: (Num v, Ix ix, MArray (STUArray s) v (ST s)) => AccumHistWgh ix v s a b -> ST s b
+histExtractWgh :: AccumHistWgh ix v s a b -> ST s b
 histExtractWgh (AccumHistWgh h) = freezeStorage (histStStorage h) >>= return . (histStOut h)
 
 instance Accumulator (AccumHistWgh Int Int) where 
