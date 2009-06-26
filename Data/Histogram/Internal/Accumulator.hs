@@ -1,7 +1,7 @@
-{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE GADTs #-}
 -- |
 -- Module     : Text.Flat
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -59,8 +59,9 @@ class Accumulator h where
 -- Existential wrapper 
 ----------------------------------------------------------------
 
--- | Existestial wrapper for all types of histogram
-data Accum s a b = forall h . Accumulator h => MkAccum (h s a b)
+-- | GATDed wrapper for histogram builders
+data Accum s a b where
+    MkAccum :: Accumulator h => h s a b -> Accum s a b
 
 -- | Synonym for @ST s (Accum s a)@
 type HistogramST s a b = ST s (Accum s a b)

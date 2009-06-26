@@ -1,7 +1,7 @@
-{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE GADTs #-}
 module Data.Histogram.Fill ( -- * Typeclasses and existentials 
                              HBuilderCl(..)
                            , HBuilder
@@ -47,7 +47,8 @@ class HBuilderCl h where
 ----------------------------------------------------------------
 
 -- | Existential type. Histogram builder. 
-data HBuilder a b = forall h . HBuilderCl h => MkHBuilder (h a b)
+data HBuilder a b where
+    MkHBuilder :: HBuilderCl h => h a b -> HBuilder a b
 
 instance HBuilderCl HBuilder where 
     modifyIn  f (MkHBuilder h) = MkHBuilder $ modifyIn f h
