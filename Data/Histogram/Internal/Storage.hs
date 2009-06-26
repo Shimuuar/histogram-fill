@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs            #-}
 -- |
 -- Module     : Text.Flat
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -23,11 +24,12 @@ import Data.Array.ST
 import Data.STRef
 
 -- | Mutable storage for histograms. 
-data Storage s i v = Storage { underflowsST :: STRef s v
-                             , histDataST   :: STUArray s i v
-                             , overflowsST  :: STRef s v
-                             }
-
+data Storage s i v where
+    Storage :: (Num v, Ix i, MArray (STUArray s) v (ST s)) 
+            => STRef s v
+            -> STUArray s i v 
+            -> STRef s v 
+            -> Storage s i v
 
 -- | Create empty mutable storage. Everything is filled with zeroes
 newStorage :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => (i,i) -> ST s (Storage s i v) 
@@ -37,13 +39,9 @@ newStorage r = do arr <- newArray r 0
                   return $ Storage u arr o
 
 
-{-| Put value into storage with checking for under/overflows. It is
-  specialized for Int and Double for perfomance. 
-  
-  FIXME: there is strictness problem with STRefs. If there is too
-  many modifcations it cause stack overflow on evaluating
-  -}
-fillOne :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => Storage s i v -> i -> ST s ()
+-- | Put value into storage with checking for under/overflows. It is
+--   specialized for Int and Double for perfomance. 
+fillOne :: Storage s i v -> i -> ST s ()
 fillOne (Storage u hist o) i = do
   (lo,hi) <- getBounds hist
   if i < lo then modifySTRef u (+1)
@@ -56,7 +54,7 @@ fillOne (Storage u hist o) i = do
 
 {-| Put value into histogram with weight.
  -}
-fillOneWgh :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => Storage s i v -> (i,v) -> ST s ()
+fillOneWgh :: Storage s i v -> (i,v) -> ST s ()
 fillOneWgh (Storage u hist o) (i,w) = do
   (lo,hi) <- getBounds hist
   if i < lo then modifySTRef u ((+w) $!)
@@ -68,18 +66,19 @@ fillOneWgh (Storage u hist o) (i,w) = do
 {-# SPECIALIZE fillOneWgh :: Storage s (Int,Int) Double -> ((Int,Int),Double) -> ST s () #-}
 
 -- | Put list of values into storage
-fillMany :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => Storage s i v -> [i] -> ST s ()
+fillMany :: Storage s i v -> [i] -> ST s ()
 fillMany h = mapM_ (fillOne h)
 -- FIXME: check effect of INLINE pragma on perfomance
 {-# INLINE fillMany #-}
 
 -- | Put list of values with weight into storage
-fillManyWgh :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => Storage s i v -> [(i,v)] -> ST s ()
+fillManyWgh :: Storage s i v -> [(i,v)] -> ST s ()
 fillManyWgh h = mapM_ (fillOneWgh h)
 
 -- | Convert storage to immutable form.
-freezeStorage :: (Ix i, MArray (STUArray s) v (ST s)) => Storage s i v -> ST s (v, [(i,v)], v)
-freezeStorage st = do u <- readSTRef $ underflowsST st
-                      o <- readSTRef $ overflowsST st
-                      a <- getAssocs $ histDataST st
-                      return (u,a,o)
+freezeStorage :: Storage s i v -> ST s (v, [(i,v)], v)
+freezeStorage (Storage uST histST oST) = do
+  u <- readSTRef uST
+  o <- readSTRef oST
+  a <- getAssocs histST
+  return (u,a,o)
