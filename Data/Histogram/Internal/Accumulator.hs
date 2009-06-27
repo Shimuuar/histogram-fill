@@ -16,6 +16,7 @@ module Data.Histogram.Internal.Accumulator ( Accumulator(..)
                                            , accumList
                                            , accumHist
                                            , accumHistWgh
+                                           , accumGeneric
 
                                            , fillHistograms
                                            ) where
@@ -23,6 +24,7 @@ module Data.Histogram.Internal.Accumulator ( Accumulator(..)
 import Control.Monad
 import Control.Monad.ST
 
+import Data.Array
 import Data.Array.ST
 import Data.Ix
 import Data.Monoid
@@ -139,3 +141,25 @@ instance Accumulator (AccumHistWgh i v) where
     {-# INLINE putOne #-}
     extract (AccumHistWgh h)   = freezeStorage (histStStorage h) >>= return . (histStOut h)
 
+
+----------------------------------------------------------------
+-- Histogram with generic bin contents
+data AccumGeneric i v s a b = AccumGeneric { genericStIn      :: a -> [(i,v)]
+                                           , genericStOut     :: [(i,v)] -> b
+                                           , genericStCombine   :: v -> v -> v
+                                           , genericStStorage :: STArray s i v
+                                           }
+
+
+accumGeneric :: Ix i => (a -> [(i,v)]) -> ([(i,v)] -> b) -> (v -> v -> v) -> (i,i) -> v -> HistogramST s a b
+accumGeneric inp out cmb r def = do st <- newArray r def
+                                    return . MkAccum $ AccumGeneric inp out cmb st
+
+instance Ix i => Accumulator (AccumGeneric i v) where
+    putOne h x = do
+      forM_ (genericStIn h $ x) $ \(i,v) -> do
+        let arr = genericStStorage h
+            cmb = genericStCombine h
+        rng <- getBounds arr
+        when (inRange rng i) $ readArray arr i >>= writeArray arr i . cmb v
+    extract h  = (genericStOut h . assocs) `fmap` freeze (genericStStorage h)
