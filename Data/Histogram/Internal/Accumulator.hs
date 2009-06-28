@@ -22,9 +22,6 @@ module Data.Histogram.Internal.Accumulator ( Accumulator(..)
 import Control.Monad
 import Control.Monad.ST
 
-import Data.Array
-import Data.Array.ST
-import Data.Ix
 import Data.Monoid
 
 import Data.Histogram.Internal.Storage

@@ -15,9 +15,11 @@ module Data.Histogram.Fill ( -- * Typeclasses and existentials
                            -- * 1D histograms
                            , mkHist1Dint1
                            , mkHist1Dint
+                           , mkHist1DintList
                            -- * 2D histograms
                            , mkHist2Dint1
                            , mkHist2Dint
+                           , mkHist2DintList
 
                            -- * Internals 
                            , HistBuilder
@@ -25,8 +27,6 @@ module Data.Histogram.Fill ( -- * Typeclasses and existentials
                            ) where
 
 import Control.Monad.ST (ST)
-import Data.Array.ST    (STUArray,MArray)
-import Data.Ix          (Ix)
 import Data.Monoid      (Monoid)
 
 import Data.Histogram.Internal.Accumulator
@@ -105,7 +105,8 @@ mkHist1Dint1 :: ((Int,[(Int,Int)],Int) -> b) -- ^ Output function
             -> (a -> Int)                    -- ^ Input function
             -> HBuilder a b
 mkHist1Dint1 out rng inp = 
-    MkHBuilder $ HistBuilder inp out (newStorageUOne rng :: ST s (StorageUOne Int Int s))
+    let storage = newStorageUOne rng :: ST s (StorageUOne Int Int s)
+    in  MkHBuilder $ HistBuilder inp out storage
 
 -- | 1D histogram with ineteger bins 
 mkHist1Dint :: ((Int,[(Int,Int)],Int) -> b) -- ^ Output function
@@ -116,6 +117,16 @@ mkHist1Dint out rng inp =
     let storage = newStorageUMany rng :: ST s (StorageUMany Int Int s)
     in  MkHBuilder $ HistBuilder inp out storage
 
+-- | 1D histogram with int bins and list contents
+mkHist1DintList :: ([(Int,[v])] -> b)
+                -> (Int, Int) 
+                -> (a -> (Int,v)) 
+                -> HBuilder a b
+mkHist1DintList out rng inp = 
+    let storage = newGenericStorage (:) [] rng :: ST s (GenericStorage v Int [v] s)
+    in  MkHBuilder $ HistBuilder inp out storage
+ 
+----------------
 
 -- | 2D historam with inetegr bins 
 mkHist2Dint1 :: ((Int, [((Int,Int), Int)], Int) -> b) -- ^ Output function
@@ -135,3 +146,12 @@ mkHist2Dint :: ((Int, [((Int,Int), Int)], Int) -> b) -- ^ Output function
 mkHist2Dint out ((xmin,xmax), (ymin,ymax)) inp = 
     let storage = newStorageUMany ((xmin,ymin),(xmax,ymax)) :: ST s (StorageUMany (Int,Int) Int s)
     in MkHBuilder $ HistBuilder inp out storage 
+
+-- | 1D histogram with int bins and list contents
+mkHist2DintList :: ([((Int,Int), [v])] -> b)
+                -> ((Int,Int), (Int,Int)) 
+                -> (a -> ((Int,Int),v)) 
+                -> HBuilder a b
+mkHist2DintList out rng inp = 
+    let storage = newGenericStorage (:) [] rng :: ST s (GenericStorage v (Int,Int) [v] s)
+    in  MkHBuilder $ HistBuilder inp out storage

@@ -28,7 +28,6 @@ module Data.Histogram.Internal.Storage ( Storage(..)
 import Control.Monad.ST
 
 import Data.Array.ST
-import Data.Array.IArray (IArray, Array)
 import Data.STRef
 
 ----------------------------------------------------------------
