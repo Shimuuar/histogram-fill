@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs            #-}
 {-# LANGUAGE TypeFamilies     #-}
@@ -15,25 +16,19 @@ module Data.Histogram.Internal.Storage ( Storage(..)
                                        , newStorageUMany
                                        , newStorageUOneW
                                        , newStorageUManyW
+                                       , newGenericStorage
 
                                        , StorageUOne
                                        , StorageUMany
                                        , StorageUOneW
                                        , StorageUManyW
+                                       , GenericStorage
                                        ) where
-{- ( Storage(..)
-                                       , newStorage
-                                       , fillOne
-                                       , fillOneWgh
-                                       , fillMany
-                                       , fillManyWgh
-                                       , freezeStorage
-                                       ) -}
--- where 
 
 import Control.Monad.ST
 
 import Data.Array.ST
+import Data.Array.IArray (IArray, Array)
 import Data.STRef
 
 ----------------------------------------------------------------
@@ -168,3 +163,22 @@ freezeStorageUbox (StorageUbox uST histST oST) = do
   o <- readSTRef oST
   a <- getAssocs histST
   return (u,a,o)
+
+
+----------------------------------------------------------------
+-- Generic storage
+----------------------------------------------------------------
+
+data GenericStorage x i v s where
+    GenericStorage :: Ix i => (x -> v -> v) -> (STArray s i v) -> GenericStorage x i v s
+
+newGenericStorage :: Ix i => (x -> v -> v) -> v -> (i,i) -> ST s (GenericStorage x i v s)
+newGenericStorage cmb def rng = do arr <- newArray rng def 
+                                   return $ GenericStorage cmb arr
+
+instance Storage (GenericStorage x i v) where
+    type Input (GenericStorage x i v) = (i,x)
+    type Output (GenericStorage x i v) = [(i,v)]
+    putItem (GenericStorage f arr) (i,x) = do v <- readArray arr i
+                                              writeArray arr i (f x v)
+    freezeStorage (GenericStorage _ arr) = getAssocs arr
