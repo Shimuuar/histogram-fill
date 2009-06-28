@@ -15,8 +15,6 @@ module Data.Histogram.Internal.Accumulator ( Accumulator(..)
 
                                            , accumList
                                            , accumHist
-                                           , accumHistWgh
-                                           , accumGeneric
 
                                            , fillHistograms
                                            ) where
@@ -57,7 +55,7 @@ class Accumulator h where
 
 
 ----------------------------------------------------------------
--- Existential wrapper 
+-- GADT wrapper 
 ----------------------------------------------------------------
 -- | GATDed wrapper for histogram builders
 data Accum s a b where
@@ -88,78 +86,14 @@ instance Accumulator AccumList where
 
 
 ----------------------------------------------------------------
--- Numeric histograms 
+-- Generic histogram 
 ----------------------------------------------------------------
+data AccumHist st s a b where
+    AccumHist :: Storage st => (a -> Input st) -> (Output st -> b) -> st s -> AccumHist st s a b
 
--- Too general histogram.
---
--- * inp - input type. Either `ix' or '(ix,v)'
--- * ix  - index of array. 
--- * v   - values of bin
--- * s   - state variable 
--- * a   - input type
--- * b   - output type
-data AccumHistGen inp ix v s a b = AccumHistGen { histStIn      :: a -> [inp]
-                                                , histStOut     :: (v, [(ix,v)], v) -> b
-                                                , histStStorage :: Storage s ix v
-                                                }
+accumHist :: Storage st => (a -> Input st) -> (Output st -> b) -> st s -> HistogramST s a b
+accumHist inp out st = return . MkAccum $ AccumHist inp out st
 
-----------------------------------------------------------------
--- Histogram with fixed bin weight (1)
-newtype AccumHist ix v s a b = AccumHist (AccumHistGen ix ix v s a b)
-
--- | Create accumulator histogram
-accumHist :: (MArray (STUArray s) v (ST s), Ix ix, Num v)
-          => (a -> [ix]) 
-          -> ((v, [(ix,v)], v) -> b)
-          -> (ix, ix) 
-          -> HistogramST s a b
-accumHist fi fo rng = do st <- newStorage rng
-                         return . MkAccum . AccumHist $ AccumHistGen fi fo st
-
-instance Accumulator (AccumHist i v) where 
-    putOne  (AccumHist h) x = fillMany (histStStorage h) (histStIn h $ x)
-    {-# INLINE putOne #-}
-    extract (AccumHist h)   = freezeStorage (histStStorage h) >>= return . (histStOut h)
-
-
-----------------------------------------------------------------
--- Histogram with variable bin weight
-newtype AccumHistWgh ix v s a b = AccumHistWgh (AccumHistGen (ix,v) ix v s a b)
-
--- | Create accumulator histogram with weighted bins
-accumHistWgh :: (MArray (STUArray s) v (ST s), Ix ix, Num v)
-          => (a -> [(ix,v)]) 
-          -> ((v, [(ix,v)], v) -> b)
-          -> (ix, ix) 
-          -> HistogramST s a b
-accumHistWgh fi fo rng = do st <- newStorage rng
-                            return . MkAccum . AccumHistWgh $ AccumHistGen fi fo st
-
-instance Accumulator (AccumHistWgh i v) where 
-    putOne  (AccumHistWgh h) x = fillManyWgh (histStStorage h) (histStIn h $ x)
-    {-# INLINE putOne #-}
-    extract (AccumHistWgh h)   = freezeStorage (histStStorage h) >>= return . (histStOut h)
-
-
-----------------------------------------------------------------
--- Histogram with generic bin contents
-data AccumGeneric i v s a b = AccumGeneric { genericStIn      :: a -> [(i,v)]
-                                           , genericStOut     :: [(i,v)] -> b
-                                           , genericStCombine   :: v -> v -> v
-                                           , genericStStorage :: STArray s i v
-                                           }
-
-
-accumGeneric :: Ix i => (a -> [(i,v)]) -> ([(i,v)] -> b) -> (v -> v -> v) -> (i,i) -> v -> HistogramST s a b
-accumGeneric inp out cmb r def = do st <- newArray r def
-                                    return . MkAccum $ AccumGeneric inp out cmb st
-
-instance Ix i => Accumulator (AccumGeneric i v) where
-    putOne h x = do
-      forM_ (genericStIn h $ x) $ \(i,v) -> do
-        let arr = genericStStorage h
-            cmb = genericStCombine h
-        rng <- getBounds arr
-        when (inRange rng i) $ readArray arr i >>= writeArray arr i . cmb v
-    extract h  = (genericStOut h . assocs) `fmap` freeze (genericStStorage h)
+instance Accumulator (AccumHist st) where
+    putOne  (AccumHist inp _ st) x = putItem st (inp x)
+    extract (AccumHist _ out st)   = out `fmap` freezeStorage st

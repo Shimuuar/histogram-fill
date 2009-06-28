@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE Rank2Types #-}
 module Data.Histogram.Fill ( -- * Typeclasses and existentials 
                              HBuilderCl(..)
                            , HBuilder
@@ -11,9 +12,11 @@ module Data.Histogram.Fill ( -- * Typeclasses and existentials
                            -- * Fill routines
                            , createHistograms
 
-                           -- * Smart constructors
-                           , mkHistogram
+                           -- * 1D histograms
+                           , mkHist1Dint1
                            , mkHist1Dint
+                           -- * 2D histograms
+                           , mkHist2Dint1
                            , mkHist2Dint
 
                            -- * Internals 
@@ -24,11 +27,11 @@ module Data.Histogram.Fill ( -- * Typeclasses and existentials
 import Control.Monad.ST (ST)
 import Data.Array.ST    (STUArray,MArray)
 import Data.Ix          (Ix)
-
-import Data.Monoid
-
+import Data.Monoid      (Monoid)
 
 import Data.Histogram.Internal.Accumulator
+import Data.Histogram.Internal.Storage
+
 ----------------------------------------------------------------
 
 -- | Create and fill histogram(s).
@@ -57,7 +60,7 @@ data HBuilder a b where
 instance HBuilderCl HBuilder where 
     modifyIn  f (MkHBuilder h) = MkHBuilder $ modifyIn f h
     modifyOut g (MkHBuilder h) = MkHBuilder $ modifyOut g h 
-    runBuilder (MkHBuilder h)  = runBuilder h
+    runBuilder  (MkHBuilder h) = runBuilder h
 
 
 ----------------------------------------------------------------
@@ -82,53 +85,53 @@ instance HBuilderCl HBuilderList where
 -- | Generic histogram builder. It's designed to be as general as possible. 
 -- 
 -- ix is supposed to be of Ix typeclass, v of Num.
-data HistBuilder ix v a b = HistBuilder { histRange :: (ix,ix)   -- ^ Range of histogram
-                                        , histIn    :: a -> [ix] -- ^Input function
-                                        -- | Output: (underflows, [(nbin, value)], overflows) 
-                                        , histOut   :: (v,[(ix, v)],v) -> b 
-                                        }
+data HistBuilder st a b where
+    HistBuilder :: Storage st => (a -> Input st) -> (Output st -> b) -> (forall s . ST s (st s)) -> HistBuilder st a b
 
-modifyInF :: (a' -> a) -> HistBuilder ix v a b -> HistBuilder ix v a' b
-modifyInF f h = h { histIn  = histIn h . f }
+instance HBuilderCl (HistBuilder st) where
+    modifyIn  f (HistBuilder inp out x) = HistBuilder (inp . f) out     x  
+    modifyOut g (HistBuilder inp out x) = HistBuilder inp      (g .out) x  
+    runBuilder  (HistBuilder inp out x) = do s <- x
+                                             accumHist inp out s
 
-modifyOutF :: (b -> b') -> HistBuilder ix v a b -> HistBuilder ix v a b'
-modifyOutF g h = h { histOut = g . histOut h }
-
-runBuilderF :: (Ix ix, Num v, MArray (STUArray s) v (ST s)) => HistBuilder ix v a b -> HistogramST s a b
-runBuilderF h = accumHist (histIn h) (histOut h) (histRange h)
-
-instance Ix i => HBuilderCl (HistBuilder i Int)  where 
-    modifyIn   = modifyInF
-    modifyOut  = modifyOutF
-    runBuilder = runBuilderF
-instance Ix i => HBuilderCl (HistBuilder i  Double)  where 
-    modifyIn   = modifyInF
-    modifyOut  = modifyOutF
-    runBuilder = runBuilderF
 
 ----------------------------------------------------------------
+-- Histogram constructors 
+----------------------------------------------------------------
 
--- | Generic function to create histogram builder. 
-mkHistogram :: (HBuilderCl (HistBuilder ix v)) =>
-               ((v, [(ix, v)], v) -> b) -- ^ Output function 
-            -> (ix, ix)                 -- ^ Histogram range
-            -> (a -> [ix])              -- ^ Input function
+-- | 1D histogram with integer bins
+mkHist1Dint1 :: ((Int,[(Int,Int)],Int) -> b) -- ^ Output function
+            -> (Int, Int)                    -- ^ Histogram range 
+            -> (a -> Int)                    -- ^ Input function
             -> HBuilder a b
-mkHistogram fout rng fin = MkHBuilder $ HistBuilder rng fin fout
+mkHist1Dint1 out rng inp = 
+    MkHBuilder $ HistBuilder inp out (newStorageUOne rng :: ST s (StorageUOne Int Int s))
 
--- | Create 1D histogram with integer bins. Just a type-specialized version of mkHistogram
-mkHist1Dint :: (HBuilderCl (HistBuilder Int Int)) => 
-               ((Int, [(Int, Int)], Int) -> b) -- ^ Output function
-            -> (Int, Int)                      -- ^ Histogram range
-            -> (a -> [Int])                    -- ^ Input function
+-- | 1D histogram with ineteger bins 
+mkHist1Dint :: ((Int,[(Int,Int)],Int) -> b) -- ^ Output function
+            -> (Int, Int)                   -- ^ Histogram range 
+            -> (a -> [Int])                 -- ^ Input function
             -> HBuilder a b
-mkHist1Dint = mkHistogram
+mkHist1Dint out rng inp = 
+    let storage = newStorageUMany rng :: ST s (StorageUMany Int Int s)
+    in  MkHBuilder $ HistBuilder inp out storage
 
 
--- | Create 2D histogram with integer bins. 
-mkHist2Dint :: (HBuilderCl (HistBuilder (Int,Int) Int)) => 
-               ((Int, [((Int,Int), Int)], Int) -> b) -- ^ Output function
+-- | 2D historam with inetegr bins 
+mkHist2Dint1 :: ((Int, [((Int,Int), Int)], Int) -> b) -- ^ Output function
+             -> ((Int,Int), (Int,Int))                -- ^ Histogram range: (xmin,xmax), (ymin,ymax)
+             -> (a -> (Int,Int))                      -- ^ Input function
+             -> HBuilder a b
+mkHist2Dint1 out ((xmin,xmax), (ymin,ymax)) inp = 
+    let storage = newStorageUOne ((xmin,ymin),(xmax,ymax)) :: ST s (StorageUOne (Int,Int) Int s)
+    in MkHBuilder $ HistBuilder inp out storage 
+
+
+-- | 2D histogram with ineteger bins 
+mkHist2Dint :: ((Int, [((Int,Int), Int)], Int) -> b) -- ^ Output function
             -> ((Int,Int), (Int,Int))                -- ^ Histogram range: (xmin,xmax), (ymin,ymax)
             -> (a -> [(Int,Int)])                    -- ^ Input function
             -> HBuilder a b
-mkHist2Dint o ((xmin,xmax), (ymin,ymax)) = mkHistogram o ((xmin,ymin), (xmax,ymax))
+mkHist2Dint out ((xmin,xmax), (ymin,ymax)) inp = 
+    let storage = newStorageUMany ((xmin,ymin),(xmax,ymax)) :: ST s (StorageUMany (Int,Int) Int s)
+    in MkHBuilder $ HistBuilder inp out storage 
