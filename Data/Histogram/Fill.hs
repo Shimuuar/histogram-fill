@@ -16,11 +16,12 @@ module Data.Histogram.Fill ( -- * Typeclasses and existentials
                            , mkHist1Dint1
                            , mkHist1Dint
                            , mkHist1DintList
+                           , mkHist1DintListMany
                            -- * 2D histograms
                            , mkHist2Dint1
                            , mkHist2Dint
                            , mkHist2DintList
-
+                           , mkHist2DintListMany
                            -- * Internals 
                            , HistBuilder
 
@@ -126,6 +127,14 @@ mkHist1DintList out rng inp =
     let storage = newGenericStorage (:) [] rng :: ST s (GenericStorage v Int [v] s)
     in  MkHBuilder $ HistBuilder inp out storage
  
+-- | 1D histogram with int bins and list contents
+mkHist1DintListMany :: ([(Int,[v])] -> b)
+                -> (Int, Int) 
+                -> (a -> [(Int,v)]) 
+                -> HBuilder a b
+mkHist1DintListMany out rng inp = 
+    let storage = newGenericStorageMany (:) [] rng :: ST s (GenericStorageMany v Int [v] s)
+    in  MkHBuilder $ HistBuilder inp out storage
 ----------------
 
 -- | 2D historam with inetegr bins 
@@ -147,11 +156,20 @@ mkHist2Dint out ((xmin,xmax), (ymin,ymax)) inp =
     let storage = newStorageUMany ((xmin,ymin),(xmax,ymax)) :: ST s (StorageUMany (Int,Int) Int s)
     in MkHBuilder $ HistBuilder inp out storage 
 
--- | 1D histogram with int bins and list contents
+-- | 2D histogram with int bins and list contents
 mkHist2DintList :: ([((Int,Int), [v])] -> b)
                 -> ((Int,Int), (Int,Int)) 
                 -> (a -> ((Int,Int),v)) 
                 -> HBuilder a b
 mkHist2DintList out rng inp = 
     let storage = newGenericStorage (:) [] rng :: ST s (GenericStorage v (Int,Int) [v] s)
+    in  MkHBuilder $ HistBuilder inp out storage
+
+-- | 2D histogram with int bins and list contents
+mkHist2DintListMany :: ([((Int,Int), [v])] -> b)
+                    -> ((Int,Int), (Int,Int)) 
+                    -> (a -> [((Int,Int),v)]) 
+                    -> HBuilder a b
+mkHist2DintListMany out rng inp = 
+    let storage = newGenericStorageMany (:) [] rng :: ST s (GenericStorageMany v (Int,Int) [v] s)
     in  MkHBuilder $ HistBuilder inp out storage
