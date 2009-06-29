@@ -17,14 +17,17 @@ module Data.Histogram.Internal.Storage ( Storage(..)
                                        , newStorageUOneW
                                        , newStorageUManyW
                                        , newGenericStorage
+                                       , newGenericStorageMany
 
                                        , StorageUOne
                                        , StorageUMany
                                        , StorageUOneW
                                        , StorageUManyW
                                        , GenericStorage
+                                       , GenericStorageMany
                                        ) where
 
+import Control.Monad (forM_)
 import Control.Monad.ST
 
 import Data.Array.ST
@@ -178,6 +181,20 @@ newGenericStorage cmb def rng = do arr <- newArray rng def
 instance Storage (GenericStorage x i v) where
     type Input (GenericStorage x i v) = (i,x)
     type Output (GenericStorage x i v) = [(i,v)]
-    putItem (GenericStorage f arr) (i,x) = do v <- readArray arr i
-                                              writeArray arr i (f x v)
+    putItem (GenericStorage f arr) (i,x) = readArray arr i >>= writeArray arr i . f x
     freezeStorage (GenericStorage _ arr) = getAssocs arr
+
+
+newtype GenericStorageMany x i v s = GenericStorageMany (GenericStorage x i v s)
+
+newGenericStorageMany :: Ix i => (x -> v -> v) -> v -> (i,i) -> ST s (GenericStorageMany x i v s)
+newGenericStorageMany cmb def rng = do arr <- newArray rng def 
+                                       return $ GenericStorageMany (GenericStorage cmb arr)
+
+instance Storage (GenericStorageMany x i v) where
+    type Input   (GenericStorageMany x i v) = [(i,x)]
+    type Output  (GenericStorageMany x i v) = [(i,v)]
+    putItem (GenericStorageMany (GenericStorage f arr)) xs = 
+        forM_ xs (\(i,x) -> readArray arr i >>= writeArray arr i . f x)
+    freezeStorage (GenericStorageMany (GenericStorage _ arr)) =
+        getAssocs arr
