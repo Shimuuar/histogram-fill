@@ -137,13 +137,16 @@ mkHist1DintListMany out rng inp =
     in  MkHBuilder $ HistBuilder inp out storage
 ----------------
 
+mk2Drange :: ((a,a), (a,a)) -> ((a,a), (a,a))
+mk2Drange ((xmin,xmax), (ymin,ymax)) = ((xmin,ymin), (xmax, ymax))
+
 -- | 2D historam with inetegr bins 
 mkHist2Dint1 :: ((Int, [((Int,Int), Int)], Int) -> b) -- ^ Output function
              -> ((Int,Int), (Int,Int))                -- ^ Histogram range: (xmin,xmax), (ymin,ymax)
              -> (a -> (Int,Int))                      -- ^ Input function
              -> HBuilder a b
-mkHist2Dint1 out ((xmin,xmax), (ymin,ymax)) inp = 
-    let storage = newStorageUOne ((xmin,ymin),(xmax,ymax)) :: ST s (StorageUOne (Int,Int) Int s)
+mkHist2Dint1 out rng inp = 
+    let storage = newStorageUOne (mk2Drange rng) :: ST s (StorageUOne (Int,Int) Int s)
     in MkHBuilder $ HistBuilder inp out storage 
 
 
@@ -152,8 +155,8 @@ mkHist2Dint :: ((Int, [((Int,Int), Int)], Int) -> b) -- ^ Output function
             -> ((Int,Int), (Int,Int))                -- ^ Histogram range: (xmin,xmax), (ymin,ymax)
             -> (a -> [(Int,Int)])                    -- ^ Input function
             -> HBuilder a b
-mkHist2Dint out ((xmin,xmax), (ymin,ymax)) inp = 
-    let storage = newStorageUMany ((xmin,ymin),(xmax,ymax)) :: ST s (StorageUMany (Int,Int) Int s)
+mkHist2Dint out rng inp = 
+    let storage = newStorageUMany (mk2Drange rng) :: ST s (StorageUMany (Int,Int) Int s)
     in MkHBuilder $ HistBuilder inp out storage 
 
 -- | 2D histogram with int bins and list contents
@@ -162,7 +165,7 @@ mkHist2DintList :: ([((Int,Int), [v])] -> b)
                 -> (a -> ((Int,Int),v)) 
                 -> HBuilder a b
 mkHist2DintList out rng inp = 
-    let storage = newGenericStorage (:) [] rng :: ST s (GenericStorage v (Int,Int) [v] s)
+    let storage = newGenericStorage (:) [] (mk2Drange rng) :: ST s (GenericStorage v (Int,Int) [v] s)
     in  MkHBuilder $ HistBuilder inp out storage
 
 -- | 2D histogram with int bins and list contents
@@ -171,5 +174,5 @@ mkHist2DintListMany :: ([((Int,Int), [v])] -> b)
                     -> (a -> [((Int,Int),v)]) 
                     -> HBuilder a b
 mkHist2DintListMany out rng inp = 
-    let storage = newGenericStorageMany (:) [] rng :: ST s (GenericStorageMany v (Int,Int) [v] s)
+    let storage = newGenericStorageMany (:) [] (mk2Drange rng) :: ST s (GenericStorageMany v (Int,Int) [v] s)
     in  MkHBuilder $ HistBuilder inp out storage
