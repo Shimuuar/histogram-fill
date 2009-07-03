@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE Rank2Types #-}
 module Data.Histogram.Fill ( -- * Typeclasses and existentials 
@@ -11,25 +12,22 @@ module Data.Histogram.Fill ( -- * Typeclasses and existentials
 
                            -- * Fill routines
                            , createHistograms
+                           -- * Histogram constructors 
+                           , mkHist
+                           , mkHist1
 
-                           -- * 1D histograms
-                           , mkHist1Dint1
-                           , mkHist1Dint
-                           , mkHist1DintList
-                           , mkHist1DintListMany
-                           -- * 2D histograms
-                           , mkHist2Dint1
-                           , mkHist2Dint
-                           , mkHist2DintList
-                           , mkHist2DintListMany
-                           -- * Internals 
                            , HistBuilder
 
+                           , module Data.Histogram.Bin
                            ) where
 
+import Control.Arrow    (first)
 import Control.Monad.ST (ST)
+-- import Data.Array.ST    (STUArray, MArray)
+import Data.Ix          (Ix)
 import Data.Monoid      (Monoid)
 
+import Data.Histogram.Bin
 import Data.Histogram.Internal.Accumulator
 import Data.Histogram.Internal.Storage
 
@@ -100,79 +98,26 @@ instance HBuilderCl (HistBuilder st) where
 -- Histogram constructors 
 ----------------------------------------------------------------
 
--- | 1D histogram with integer bins
-mkHist1Dint1 :: ((Int,[(Int,Int)],Int) -> b) -- ^ Output function
-            -> (Int, Int)                    -- ^ Histogram range 
-            -> (a -> Int)                    -- ^ Input function
-            -> HBuilder a b
-mkHist1Dint1 out rng inp = 
-    let storage = newStorageUOne rng :: ST s (StorageUOne Int Int s)
-    in  MkHBuilder $ HistBuilder inp out storage
+-- Convert from index to bin value
+convert :: Bin bin => bin -> (a,[(BinIndex bin,a)],a) -> (a,[(BinValue bin,a)],a)
+convert bin (u,xs,o) = (u, map (first $ fromIndex bin) xs, o)
 
--- | 1D histogram with ineteger bins 
-mkHist1Dint :: ((Int,[(Int,Int)],Int) -> b) -- ^ Output function
-            -> (Int, Int)                   -- ^ Histogram range 
-            -> (a -> [Int])                 -- ^ Input function
-            -> HBuilder a b
-mkHist1Dint out rng inp = 
-    let storage = newStorageUMany rng :: ST s (StorageUMany Int Int s)
-    in  MkHBuilder $ HistBuilder inp out storage
+-- | Create histogram builder which take single item as input. Each item has weight 1.
+mkHist1 :: (Bin bin, Ix (BinIndex bin)) => 
+           ( (Int, [(BinValue bin, Int)], Int) -> b)
+        -> bin
+        -> (a -> BinValue bin) 
+        -> HBuilder a b
+mkHist1 out bin inp = 
+    let storage = newStorageUOne (getRange bin) (0 :: Int)
+    in  MkHBuilder $ HistBuilder (toIndex bin . inp) (out . convert bin) storage
 
--- | 1D histogram with int bins and list contents
-mkHist1DintList :: ([(Int,[v])] -> b)
-                -> (Int, Int) 
-                -> (a -> (Int,v)) 
-                -> HBuilder a b
-mkHist1DintList out rng inp = 
-    let storage = newGenericStorage (:) [] rng :: ST s (GenericStorage v Int [v] s)
-    in  MkHBuilder $ HistBuilder inp out storage
- 
--- | 1D histogram with int bins and list contents
-mkHist1DintListMany :: ([(Int,[v])] -> b)
-                -> (Int, Int) 
-                -> (a -> [(Int,v)]) 
-                -> HBuilder a b
-mkHist1DintListMany out rng inp = 
-    let storage = newGenericStorageMany (:) [] rng :: ST s (GenericStorageMany v Int [v] s)
-    in  MkHBuilder $ HistBuilder inp out storage
-----------------
-
-mk2Drange :: ((a,a), (a,a)) -> ((a,a), (a,a))
-mk2Drange ((xmin,xmax), (ymin,ymax)) = ((xmin,ymin), (xmax, ymax))
-
--- | 2D historam with inetegr bins 
-mkHist2Dint1 :: ((Int, [((Int,Int), Int)], Int) -> b) -- ^ Output function
-             -> ((Int,Int), (Int,Int))                -- ^ Histogram range: (xmin,xmax), (ymin,ymax)
-             -> (a -> (Int,Int))                      -- ^ Input function
-             -> HBuilder a b
-mkHist2Dint1 out rng inp = 
-    let storage = newStorageUOne (mk2Drange rng) :: ST s (StorageUOne (Int,Int) Int s)
-    in MkHBuilder $ HistBuilder inp out storage 
-
-
--- | 2D histogram with ineteger bins 
-mkHist2Dint :: ((Int, [((Int,Int), Int)], Int) -> b) -- ^ Output function
-            -> ((Int,Int), (Int,Int))                -- ^ Histogram range: (xmin,xmax), (ymin,ymax)
-            -> (a -> [(Int,Int)])                    -- ^ Input function
-            -> HBuilder a b
-mkHist2Dint out rng inp = 
-    let storage = newStorageUMany (mk2Drange rng) :: ST s (StorageUMany (Int,Int) Int s)
-    in MkHBuilder $ HistBuilder inp out storage 
-
--- | 2D histogram with int bins and list contents
-mkHist2DintList :: ([((Int,Int), [v])] -> b)
-                -> ((Int,Int), (Int,Int)) 
-                -> (a -> ((Int,Int),v)) 
-                -> HBuilder a b
-mkHist2DintList out rng inp = 
-    let storage = newGenericStorage (:) [] (mk2Drange rng) :: ST s (GenericStorage v (Int,Int) [v] s)
-    in  MkHBuilder $ HistBuilder inp out storage
-
--- | 2D histogram with int bins and list contents
-mkHist2DintListMany :: ([((Int,Int), [v])] -> b)
-                    -> ((Int,Int), (Int,Int)) 
-                    -> (a -> [((Int,Int),v)]) 
-                    -> HBuilder a b
-mkHist2DintListMany out rng inp = 
-    let storage = newGenericStorageMany (:) [] (mk2Drange rng) :: ST s (GenericStorageMany v (Int,Int) [v] s)
-    in  MkHBuilder $ HistBuilder inp out storage
+-- | Create histogram builder which take many items as input. Each item has weight 1.
+mkHist :: (Bin bin, Ix (BinIndex bin)) => 
+          ( (Int, [(BinValue bin, Int)], Int) -> b)
+       -> bin
+       -> (a -> [BinValue bin]) 
+       -> HBuilder a b
+mkHist out bin inp = 
+    let storage = newStorageUMany (getRange bin) (0 :: Int)
+    in  MkHBuilder $ HistBuilder (map (toIndex bin) . inp) (out . convert bin) storage

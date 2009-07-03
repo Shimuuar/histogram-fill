@@ -12,6 +12,7 @@ Build-Type:     Simple
 Library
   Build-Depends:        base, array
   Exposed-modules:      Data.Histogram.Fill 
+                        Data.Histogram.Bin
                         Data.Histogram.Internal.Accumulator
                         Data.Histogram.Internal.Storage
   Extensions:           TypeOperators
