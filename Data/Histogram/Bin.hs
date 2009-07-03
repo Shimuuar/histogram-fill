@@ -15,14 +15,21 @@ module Data.Histogram.Bin ( Bin(..)
                           ) where
 
 
+-- | Abstract binning algorithm
 class Bin b where
+    -- | Value of bin 
     type BinValue b
+    -- | Number of bin (should be of Ix type class). 
+    -- In future should be simply converted to Int 
     type BinIndex b 
+    -- | Convert from value to index. To bound checking performed
     toIndex   :: b -> BinValue b -> BinIndex b
+    -- | Convert from index to value. 
     fromIndex :: b -> BinIndex b -> BinValue b 
+    -- | Range of bin indices (inclusive). 
     getRange  :: b -> (BinIndex b, BinIndex b)
 
--- Integer bins
+-- | Integer bins
 data BinI = BinI (Int,Int)
 
 instance Bin BinI where
