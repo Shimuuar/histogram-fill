@@ -23,7 +23,6 @@ module Data.Histogram.Fill ( -- * Typeclasses and existentials
 
 import Control.Arrow    (first)
 import Control.Monad.ST (ST)
--- import Data.Array.ST    (STUArray, MArray)
 import Data.Ix          (Ix)
 import Data.Monoid      (Monoid)
 
