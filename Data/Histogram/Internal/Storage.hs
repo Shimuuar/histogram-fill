@@ -52,8 +52,8 @@ class Storage a where
 -- | Unboxed storage for numeric histograms.
 newtype StorageUOne i v s = StorageUOne (StorageUbox s i v)
 -- | Create new storage 
-newStorageUOne :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => (i,i) -> ST s (StorageUOne i v s) 
-newStorageUOne = fmap StorageUOne . newStorageUbox 
+newStorageUOne :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => (i,i) -> v -> ST s (StorageUOne i v s) 
+newStorageUOne r x = fmap StorageUOne $ newStorageUbox r x
 
 instance Storage (StorageUOne i v) where
     type Input   (StorageUOne i v) = i
@@ -65,8 +65,8 @@ instance Storage (StorageUOne i v) where
 -- | Unboxed storage for numeric histograms.
 newtype StorageUMany i v s = StorageUMany (StorageUbox s i v)
 -- | Create new storage 
-newStorageUMany :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => (i,i) -> ST s (StorageUMany i v s) 
-newStorageUMany = fmap StorageUMany . newStorageUbox 
+newStorageUMany :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => (i,i) -> v -> ST s (StorageUMany i v s) 
+newStorageUMany r x = fmap StorageUMany $ newStorageUbox r x
 
 instance Storage (StorageUMany i v) where
     type Input   (StorageUMany i v) = [i]
@@ -78,8 +78,8 @@ instance Storage (StorageUMany i v) where
 -- | Unboxed storage for numeric histograms.
 newtype StorageUOneW i v s = StorageUOneW (StorageUbox s i v)
 -- | Create new storage 
-newStorageUOneW :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => (i,i) -> ST s (StorageUOneW i v s) 
-newStorageUOneW = fmap StorageUOneW . newStorageUbox 
+newStorageUOneW :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => (i,i) -> v -> ST s (StorageUOneW i v s) 
+newStorageUOneW r x = fmap StorageUOneW $ newStorageUbox r x
 
 instance Storage (StorageUOneW i v) where
     type Input   (StorageUOneW i v) = (i,v)
@@ -91,8 +91,8 @@ instance Storage (StorageUOneW i v) where
 -- | Unboxed storage for numeric histograms.
 newtype StorageUManyW i v s = StorageUManyW (StorageUbox s i v)
 -- | Create new storage 
-newStorageUManyW :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => (i,i) -> ST s (StorageUManyW i v s) 
-newStorageUManyW = fmap StorageUManyW . newStorageUbox 
+newStorageUManyW :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => (i,i) -> v -> ST s (StorageUManyW i v s) 
+newStorageUManyW r x = fmap StorageUManyW $ newStorageUbox r x
 
 instance Storage (StorageUManyW i v) where
     type Input   (StorageUManyW i v) = [(i,v)]
@@ -115,11 +115,11 @@ data StorageUbox s i v where
             -> StorageUbox s i v
 
 -- | Create empty mutable storage. Everything is filled with zeroes
-newStorageUbox :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => (i,i) -> ST s (StorageUbox s i v) 
-newStorageUbox r = do arr <- newArray r 0
-                      u   <- newSTRef 0
-                      o   <- newSTRef 0
-                      return $ StorageUbox u arr o
+newStorageUbox :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => (i,i) -> v -> ST s (StorageUbox s i v) 
+newStorageUbox r x = do arr <- newArray r x
+                        u   <- newSTRef x
+                        o   <- newSTRef x
+                        return $ StorageUbox u arr o
 
 
 -- | Put value into storage with checking for under/overflows. It is
