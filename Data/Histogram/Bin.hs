@@ -31,14 +31,14 @@ class Bin b where
 
 
 -- | Integer bins
-data BinI = BinI (Int,Int)
+data BinI = BinI Int Int
 
 instance Bin BinI where
     type BinValue BinI = Int
     type BinIndex BinI = Int 
     toIndex   _ = id
     fromIndex _ = id
-    getRange (BinI r) = r
+    getRange (BinI x y) = (x,y)
 
 
 -- | 2D bins 
