@@ -98,11 +98,11 @@ instance HBuilderCl (HistBuilder st) where
 ----------------------------------------------------------------
 
 -- Convert from index to bin value
-convert :: Bin bin => bin -> (a,[(BinIndex bin,a)],a) -> (a,[(BinValue bin,a)],a)
+convert :: Bin bin => bin -> (a,[(Int,a)],a) -> (a,[(BinValue bin,a)],a)
 convert bin (u,xs,o) = (u, map (first $ fromIndex bin) xs, o)
 
 -- | Create histogram builder which take single item as input. Each item has weight 1.
-mkHist1 :: (Bin bin, Ix (BinIndex bin)) => bin
+mkHist1 :: (Bin bin) => bin
         -> ( (Int, [(BinValue bin, Int)], Int) -> b)
         -> (a -> BinValue bin) 
         -> HBuilder a b
@@ -111,7 +111,7 @@ mkHist1 bin out inp =
     in  MkHBuilder $ HistBuilder (toIndex bin . inp) (out . convert bin) storage
 
 -- | Create histogram builder which take many items as input. Each item has weight 1.
-mkHist :: (Bin bin, Ix (BinIndex bin)) => bin
+mkHist :: (Bin bin) => bin
        -> ( (Int, [(BinValue bin, Int)], Int) -> b)
        -> (a -> [BinValue bin]) 
        -> HBuilder a b
