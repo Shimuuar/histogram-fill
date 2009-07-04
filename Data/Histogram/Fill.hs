@@ -84,7 +84,11 @@ instance HBuilderCl HBuilderList where
 -- 
 -- ix is supposed to be of Ix typeclass, v of Num.
 data HistBuilder st a b where
-    HistBuilder :: Storage st => (a -> Input st) -> (Output st -> b) -> (forall s . ST s (st s)) -> HistBuilder st a b
+    HistBuilder :: Storage st => 
+                   (a -> Input st) 
+                -> (Output st -> b) 
+                -> (forall s . ST s (st s))
+                -> HistBuilder st a b
 
 instance HBuilderCl (HistBuilder st) where
     modifyIn  f (HistBuilder inp out x) = HistBuilder (inp . f) out     x  
