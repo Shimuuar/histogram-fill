@@ -17,6 +17,7 @@ module Data.Histogram.Fill ( -- * Typeclasses and existentials
                            , mkHist1
                            , mkHistWgh
                            , mkHistWgh1
+                           , mkHistList1
 
                            , HistBuilder
 
@@ -25,7 +26,6 @@ module Data.Histogram.Fill ( -- * Typeclasses and existentials
 
 import Control.Arrow    (first)
 import Control.Monad.ST (ST)
-import Data.Ix          (Ix)
 import Data.Monoid      (Monoid)
 
 import Data.Histogram.Bin
@@ -142,3 +142,12 @@ mkHistWgh :: (Bin bin) => bin
 mkHistWgh bin out inp = 
     let storage = newStorageUManyW (getRange bin) (0 :: Double)
     in  MkHBuilder $ HistBuilder ((map $ first $ toIndex bin) . inp) (out . convert bin) storage
+
+-- | Create histogram with list attached to each bin 
+mkHistList1 :: Bin bin => bin
+            -> ([(BinValue bin, [t])] -> b)
+            -> (a -> (BinValue bin, t))
+            -> HBuilder a b
+mkHistList1 bin out inp =
+    let storage = newGenericStorage (:) ([]) (getRange bin) 
+    in  MkHBuilder $ HistBuilder (first (toIndex bin) . inp) (out . map (first $ fromIndex bin)) storage
