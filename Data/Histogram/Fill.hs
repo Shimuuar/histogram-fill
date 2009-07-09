@@ -15,6 +15,8 @@ module Data.Histogram.Fill ( -- * Typeclasses and existentials
                            -- * Histogram constructors 
                            , mkHist
                            , mkHist1
+                           , mkHistWgh
+                           , mkHistWgh1
 
                            , HistBuilder
 
@@ -122,3 +124,21 @@ mkHist :: (Bin bin) => bin
 mkHist bin out inp = 
     let storage = newStorageUMany (getRange bin) (0 :: Int)
     in  MkHBuilder $ HistBuilder (map (toIndex bin) . inp) (out . convert bin) storage
+
+-- | Create histogram with weighted bin 
+mkHistWgh1 :: (Bin bin) => bin
+          -> ( (Double, [(BinValue bin, Double)], Double) -> b)
+          -> (a -> (BinValue bin, Double)) 
+          -> HBuilder a b
+mkHistWgh1 bin out inp = 
+    let storage = newStorageUOneW (getRange bin) (0 :: Double)
+    in  MkHBuilder $ HistBuilder (first (toIndex bin) . inp) (out . convert bin) storage
+
+-- | Create histogram with weighted bin 
+mkHistWgh :: (Bin bin) => bin
+          -> ( (Double, [(BinValue bin, Double)], Double) -> b)
+          -> (a -> [(BinValue bin, Double)]) 
+          -> HBuilder a b
+mkHistWgh bin out inp = 
+    let storage = newStorageUManyW (getRange bin) (0 :: Double)
+    in  MkHBuilder $ HistBuilder ((map $ first $ toIndex bin) . inp) (out . convert bin) storage
