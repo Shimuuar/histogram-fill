@@ -109,18 +109,18 @@ convert :: Bin bin => bin -> (a,[(Int,a)],a) -> (a,[(BinValue bin,a)],a)
 convert bin (u,xs,o) = (u, map (first $ fromIndex bin) xs, o)
 
 -- | Create histogram builder which take single item as input. Each item has weight 1.
-mkHist1 :: (Bin bin) => bin
-        -> ( (Int, [(BinValue bin, Int)], Int) -> b)
-        -> (a -> BinValue bin) 
-        -> HBuilder a b
+mkHist1 :: (Bin bin) => bin                          -- ^ Bin type
+        -> ( (Int, [(BinValue bin, Int)], Int) -> b) -- ^ Output function 
+        -> (a -> BinValue bin)                       -- ^ Input function
+        -> HBuilder a b                              
 mkHist1 bin out inp = 
     let storage = newStorageUOne (getRange bin) (0 :: Int)
     in  MkHBuilder $ HistBuilder (toIndex bin . inp) (out . convert bin) storage
 
 -- | Create histogram builder which take many items as input. Each item has weight 1.
-mkHist :: (Bin bin) => bin
-       -> ( (Int, [(BinValue bin, Int)], Int) -> b)
-       -> (a -> [BinValue bin]) 
+mkHist :: (Bin bin) => bin                          -- ^ Bin type
+       -> ( (Int, [(BinValue bin, Int)], Int) -> b) -- ^ Output function
+       -> (a -> [BinValue bin])                     -- ^ Input function 
        -> HBuilder a b
 mkHist bin out inp = 
     let storage = newStorageUMany (getRange bin) (0 :: Int)
