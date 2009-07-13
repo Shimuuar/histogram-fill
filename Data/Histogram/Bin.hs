@@ -1,6 +1,6 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE GADTs            #-}
-{-# LANGUAGE TypeFamilies     #-}
+{-# LANGUAGE GADTs        #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE BangPatterns #-}
 -- |
 -- Module     : Text.Flat
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -35,18 +35,18 @@ class Bin b where
 
 
 -- | Integer bins
-data BinI = BinI Int Int
+data BinI = BinI !Int !Int
 
 instance Bin BinI where
     type BinValue BinI = Int
     toIndex   _ = id
     fromIndex _ = id
-    getRange (BinI x y) = (x,y)
+    getRange !(BinI x y) = (x,y)
 
 
 -- | Bins with 
 data BinF f where
-    BinF :: RealFrac f => f -> f -> Int -> BinF f 
+    BinF :: RealFrac f => !f -> !f -> !Int -> BinF f 
 
 binF :: RealFrac f => f -> Int -> f -> BinF f
 binF from n to = BinF from ((to - from) / fromIntegral n) n
@@ -57,9 +57,9 @@ binFn from step to = BinF from step (round $ (to - from) / step)
 
 instance Bin (BinF f) where
     type BinValue (BinF f) = f 
-    toIndex   (BinF from step _) x = floor $ (x-from) / step
-    fromIndex (BinF from step _) i = (step/2) + (fromIntegral i * step) + from 
-    getRange  (BinF _ _ n) = (0,n-1)
+    toIndex   !(BinF from step _) !x = floor $ (x-from) / step
+    fromIndex !(BinF from step _) !i = (step/2) + (fromIntegral i * step) + from 
+    getRange  !(BinF _ _ n) = (0,n-1)
     {-# SPECIALIZE instance Bin (BinF Double) #-}
     {-# SPECIALIZE instance Bin (BinF Float) #-}
 

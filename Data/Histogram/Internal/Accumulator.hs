@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE BangPatterns #-}
 -- |
 -- Module     : Text.Flat
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -45,7 +46,7 @@ class Accumulator h where
     putOne  :: h s a b -> a   -> ST s () 
     -- | Put many elements at once 
     putMany :: h s a b -> [a] -> ST s () 
-    putMany h = mapM_ (putOne h) 
+    putMany !h = mapM_ (putOne h) 
     -- | Extract data from historam 
     extract :: Monoid b => (h s a b) -> ST s b
     
@@ -62,8 +63,8 @@ data Accum s a b where
 type HistogramST s a b = ST s (Accum s a b)
 
 instance Accumulator Accum where
-    putOne  (MkAccum h) x = putOne h x 
-    extract (MkAccum h)   = extract h
+    putOne  !(MkAccum h) !x = putOne h x 
+    extract !(MkAccum h)    = extract h
 
 
 
@@ -77,8 +78,8 @@ accumList :: [ST s (Accum s a b)] -> ST s (Accum s a b)
 accumList l = return . MkAccum . AccumList =<< sequence l
 
 instance Accumulator AccumList where
-    putOne (AccumList l) x = mapM_ (flip putOne $ x) l 
-    extract (AccumList l)  = mconcat `fmap` mapM extract l 
+    putOne  !(AccumList l) !x = mapM_ (flip putOne $ x) l 
+    extract !(AccumList l)    = mconcat `fmap` mapM extract l 
 
 
 
@@ -92,5 +93,5 @@ accumHist :: Storage st => (a -> Input st) -> (Output st -> b) -> st s -> Histog
 accumHist inp out st = return . MkAccum $ AccumHist inp out st
 
 instance Accumulator (AccumHist st) where
-    putOne  (AccumHist inp _ st) x = putItem st (inp x)
-    extract (AccumHist _ out st)   = out `fmap` freezeStorage st
+    putOne  !(AccumHist inp _ st) !x = putItem st (inp x)
+    extract !(AccumHist _ out st)    = out `fmap` freezeStorage st
