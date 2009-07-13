@@ -12,6 +12,9 @@
 
 module Data.Histogram.Bin ( Bin(..)
                           , BinI(..)
+                          , BinF
+                          , binF
+                          , binFn
                           , Bin2D(..)
                           ) where
 
@@ -39,6 +42,24 @@ instance Bin BinI where
     fromIndex _ = id
     getRange (BinI x y) = (x,y)
 
+
+-- | Bins with 
+data BinF f where
+    BinF :: RealFrac f => f -> f -> Int -> BinF f 
+
+binF :: RealFrac f => f -> Int -> f -> BinF f
+binF from n to = BinF from ((to - from) / fromIntegral n) n
+
+binFn :: RealFrac f => f -> f -> f -> BinF f 
+binFn from step to = BinF from step (round $ (to - from) / step)
+
+
+instance Bin (BinF f) where
+    type BinValue (BinF f) = f 
+    toIndex   (BinF from step _) x = floor $ (x-from) / step
+    fromIndex (BinF from step _) i = (step/2) + (fromIntegral i * step) + from 
+    getRange  (BinF _ _ n) = (0,n-1)
+    {-# SPECIALIZE instance Bin (BinF Double) #-}
 
 -- | 2D bins 
 data Bin2D bin1 bin2 = Bin2D bin1 bin2
