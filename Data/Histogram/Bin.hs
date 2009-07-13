@@ -27,6 +27,7 @@ class Bin b where
     type BinValue b
     -- | Convert from value to index. To bound checking performed
     toIndex   :: b -> BinValue b -> Int
+    {-# INLINE toIndex #-}
     -- | Convert from index to value. 
     fromIndex :: b -> Int -> BinValue b 
     -- | Range of bin indices (inclusive). 
@@ -60,6 +61,8 @@ instance Bin (BinF f) where
     fromIndex (BinF from step _) i = (step/2) + (fromIntegral i * step) + from 
     getRange  (BinF _ _ n) = (0,n-1)
     {-# SPECIALIZE instance Bin (BinF Double) #-}
+    {-# SPECIALIZE instance Bin (BinF Float) #-}
+
 
 -- | 2D bins 
 data Bin2D bin1 bin2 = Bin2D bin1 bin2
