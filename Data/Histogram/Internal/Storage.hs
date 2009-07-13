@@ -50,53 +50,53 @@ class Storage a where
 ----------------------------------------------------------------
 
 -- | Unboxed storage for numeric histograms.
-newtype StorageUOne i v s = StorageUOne (StorageUbox s i v)
+newtype StorageUOne v s = StorageUOne (StorageUbox s v)
 -- | Create new storage 
-newStorageUOne :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => (i,i) -> v -> ST s (StorageUOne i v s) 
+newStorageUOne :: (Num v, MArray (STUArray s) v (ST s)) => (Int,Int) -> v -> ST s (StorageUOne v s) 
 newStorageUOne r x = fmap StorageUOne $ newStorageUbox r x
 
-instance Storage (StorageUOne i v) where
-    type Input   (StorageUOne i v) = i
-    type Output  (StorageUOne i v) = (v,[(i,v)],v)
+instance Storage (StorageUOne v) where
+    type Input   (StorageUOne v) = Int
+    type Output  (StorageUOne v) = (v,[(Int,v)],v)
     putItem       (StorageUOne st) i = fillOne st i
     freezeStorage (StorageUOne st)   = freezeStorageUbox st
 
 
 -- | Unboxed storage for numeric histograms.
-newtype StorageUMany i v s = StorageUMany (StorageUbox s i v)
+newtype StorageUMany v s = StorageUMany (StorageUbox s v)
 -- | Create new storage 
-newStorageUMany :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => (i,i) -> v -> ST s (StorageUMany i v s) 
+newStorageUMany :: (Num v, MArray (STUArray s) v (ST s)) => (Int,Int) -> v -> ST s (StorageUMany v s) 
 newStorageUMany r x = fmap StorageUMany $ newStorageUbox r x
 
-instance Storage (StorageUMany i v) where
-    type Input   (StorageUMany i v) = [i]
-    type Output  (StorageUMany i v) = (v,[(i,v)],v)
+instance Storage (StorageUMany v) where
+    type Input   (StorageUMany v) = [Int]
+    type Output  (StorageUMany v) = (v,[(Int,v)],v)
     putItem       (StorageUMany st) i = fillMany st i
     freezeStorage (StorageUMany st)   = freezeStorageUbox st
 
 
 -- | Unboxed storage for numeric histograms.
-newtype StorageUOneW i v s = StorageUOneW (StorageUbox s i v)
+newtype StorageUOneW v s = StorageUOneW (StorageUbox s v)
 -- | Create new storage 
-newStorageUOneW :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => (i,i) -> v -> ST s (StorageUOneW i v s) 
+newStorageUOneW :: (Num v, MArray (STUArray s) v (ST s)) => (Int,Int) -> v -> ST s (StorageUOneW v s) 
 newStorageUOneW r x = fmap StorageUOneW $ newStorageUbox r x
 
-instance Storage (StorageUOneW i v) where
-    type Input   (StorageUOneW i v) = (i,v)
-    type Output  (StorageUOneW i v) = (v,[(i,v)],v)
+instance Storage (StorageUOneW v) where
+    type Input   (StorageUOneW v) = (Int,v)
+    type Output  (StorageUOneW v) = (v,[(Int,v)],v)
     putItem       (StorageUOneW st) i = fillOneWgh st i
     freezeStorage (StorageUOneW st)   = freezeStorageUbox st
 
 
 -- | Unboxed storage for numeric histograms.
-newtype StorageUManyW i v s = StorageUManyW (StorageUbox s i v)
+newtype StorageUManyW v s = StorageUManyW (StorageUbox s v)
 -- | Create new storage 
-newStorageUManyW :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => (i,i) -> v -> ST s (StorageUManyW i v s) 
+newStorageUManyW :: (Num v, MArray (STUArray s) v (ST s)) => (Int,Int) -> v -> ST s (StorageUManyW v s) 
 newStorageUManyW r x = fmap StorageUManyW $ newStorageUbox r x
 
-instance Storage (StorageUManyW i v) where
-    type Input   (StorageUManyW i v) = [(i,v)]
-    type Output  (StorageUManyW i v) = (v,[(i,v)],v)
+instance Storage (StorageUManyW v) where
+    type Input   (StorageUManyW v) = [(Int,v)]
+    type Output  (StorageUManyW v) = (v,[(Int,v)],v)
     putItem       (StorageUManyW st) i = fillManyWgh st i
     freezeStorage (StorageUManyW st)   = freezeStorageUbox st
 
@@ -107,15 +107,15 @@ instance Storage (StorageUManyW i v) where
 ----------------------------------------------------------------
 
 -- | Mutable storage for histograms. 
-data StorageUbox s i v where
-    StorageUbox :: (Num v, Ix i, MArray (STUArray s) v (ST s)) 
+data StorageUbox s v where
+    StorageUbox :: (Num v, MArray (STUArray s) v (ST s)) 
             => STRef s v
-            -> STUArray s i v 
+            -> STUArray s Int v 
             -> STRef s v 
-            -> StorageUbox s i v
+            -> StorageUbox s v
 
 -- | Create empty mutable storage. Everything is filled with zeroes
-newStorageUbox :: (Num v, Ix i, MArray (STUArray s) v (ST s)) => (i,i) -> v -> ST s (StorageUbox s i v) 
+newStorageUbox :: (Num v, MArray (STUArray s) v (ST s)) => (Int,Int) -> v -> ST s (StorageUbox s v) 
 newStorageUbox r x = do arr <- newArray r x
                         u   <- newSTRef x
                         o   <- newSTRef x
@@ -124,42 +124,38 @@ newStorageUbox r x = do arr <- newArray r x
 
 -- | Put value into storage with checking for under/overflows. It is
 --   specialized for Int and Double for perfomance. 
-fillOne :: StorageUbox s i v -> i -> ST s ()
+fillOne :: StorageUbox s v -> Int -> ST s ()
 fillOne (StorageUbox u hist o) i = do
   (lo,hi) <- getBounds hist
   if i < lo then modifySTRef u (+1)
             else if i > hi then modifySTRef o ((+1) $! )
                            else (writeArray hist i . (+1) =<< readArray hist i)
-{-# SPECIALIZE fillOne :: StorageUbox s Int Int    -> Int -> ST s () #-}
-{-# SPECIALIZE fillOne :: StorageUbox s Int Double -> Int -> ST s () #-}
-{-# SPECIALIZE fillOne :: StorageUbox s (Int,Int) Int    -> (Int,Int) -> ST s () #-}
-{-# SPECIALIZE fillOne :: StorageUbox s (Int,Int) Double -> (Int,Int) -> ST s () #-}
+{-# SPECIALIZE fillOne :: StorageUbox s Int    -> Int -> ST s () #-}
+{-# SPECIALIZE fillOne :: StorageUbox s Double -> Int -> ST s () #-}
 
 {-| Put value into histogram with weight.
  -}
-fillOneWgh :: StorageUbox s i v -> (i,v) -> ST s ()
+fillOneWgh :: StorageUbox s v -> (Int,v) -> ST s ()
 fillOneWgh (StorageUbox u hist o) (i,w) = do
   (lo,hi) <- getBounds hist
   if i < lo then modifySTRef u ((+w) $!)
             else if i > hi then modifySTRef o (+w)
                            else (writeArray hist i . (+w) =<< readArray hist i)
-{-# SPECIALIZE fillOneWgh :: StorageUbox s Int Int    -> (Int,Int)    -> ST s () #-}
-{-# SPECIALIZE fillOneWgh :: StorageUbox s Int Double -> (Int,Double) -> ST s () #-}
-{-# SPECIALIZE fillOneWgh :: StorageUbox s (Int,Int) Int    -> ((Int,Int),Int)    -> ST s () #-}
-{-# SPECIALIZE fillOneWgh :: StorageUbox s (Int,Int) Double -> ((Int,Int),Double) -> ST s () #-}
+{-# SPECIALIZE fillOneWgh :: StorageUbox s Int    -> (Int,Int)    -> ST s () #-}
+{-# SPECIALIZE fillOneWgh :: StorageUbox s Double -> (Int,Double) -> ST s () #-}
 
 -- | Put list of values into storage
-fillMany :: StorageUbox s i v -> [i] -> ST s ()
+fillMany :: StorageUbox s v -> [Int] -> ST s ()
 fillMany h = mapM_ (fillOne h)
 -- FIXME: check effect of INLINE pragma on perfomance
 {-# INLINE fillMany #-}
 
 -- | Put list of values with weight into storage
-fillManyWgh :: StorageUbox s i v -> [(i,v)] -> ST s ()
+fillManyWgh :: StorageUbox s v -> [(Int,v)] -> ST s ()
 fillManyWgh h = mapM_ (fillOneWgh h)
 
 -- | Convert storage to immutable form.
-freezeStorageUbox :: StorageUbox s i v -> ST s (v, [(i,v)], v)
+freezeStorageUbox :: StorageUbox s v -> ST s (v, [(Int,v)], v)
 freezeStorageUbox (StorageUbox uST histST oST) = do
   u <- readSTRef uST
   o <- readSTRef oST
@@ -171,29 +167,29 @@ freezeStorageUbox (StorageUbox uST histST oST) = do
 -- Generic storage
 ----------------------------------------------------------------
 
-data GenericStorage x i v s where
-    GenericStorage :: Ix i => (x -> v -> v) -> (STArray s i v) -> GenericStorage x i v s
+data GenericStorage x v s where
+    GenericStorage :: (x -> v -> v) -> (STArray s Int v) -> GenericStorage x v s
 
-newGenericStorage :: Ix i => (x -> v -> v) -> v -> (i,i) -> ST s (GenericStorage x i v s)
+newGenericStorage :: (x -> v -> v) -> v -> (Int,Int) -> ST s (GenericStorage x v s)
 newGenericStorage cmb def rng = do arr <- newArray rng def 
                                    return $ GenericStorage cmb arr
 
-instance Storage (GenericStorage x i v) where
-    type Input (GenericStorage x i v) = (i,x)
-    type Output (GenericStorage x i v) = [(i,v)]
+instance Storage (GenericStorage x v) where
+    type Input (GenericStorage x v) = (Int,x)
+    type Output (GenericStorage x v) = [(Int,v)]
     putItem (GenericStorage f arr) (i,x) = readArray arr i >>= writeArray arr i . f x
     freezeStorage (GenericStorage _ arr) = getAssocs arr
 
 
-newtype GenericStorageMany x i v s = GenericStorageMany (GenericStorage x i v s)
+newtype GenericStorageMany x v s = GenericStorageMany (GenericStorage x v s)
 
-newGenericStorageMany :: Ix i => (x -> v -> v) -> v -> (i,i) -> ST s (GenericStorageMany x i v s)
+newGenericStorageMany :: (x -> v -> v) -> v -> (Int,Int) -> ST s (GenericStorageMany x v s)
 newGenericStorageMany cmb def rng = do arr <- newArray rng def 
                                        return $ GenericStorageMany (GenericStorage cmb arr)
 
-instance Storage (GenericStorageMany x i v) where
-    type Input   (GenericStorageMany x i v) = [(i,x)]
-    type Output  (GenericStorageMany x i v) = [(i,v)]
+instance Storage (GenericStorageMany x v) where
+    type Input   (GenericStorageMany x v) = [(Int,x)]
+    type Output  (GenericStorageMany x v) = [(Int,v)]
     putItem (GenericStorageMany (GenericStorage f arr)) xs = 
         forM_ xs (\(i,x) -> readArray arr i >>= writeArray arr i . f x)
     freezeStorage (GenericStorageMany (GenericStorage _ arr)) =
