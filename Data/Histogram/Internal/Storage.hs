@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs            #-}
 {-# LANGUAGE TypeFamilies     #-}
+{-# LANGUAGE BangPatterns     #-}
 -- |
 -- Module     : Text.Flat
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -125,7 +126,7 @@ newStorageUbox r x = do arr <- newArray r x
 -- | Put value into storage with checking for under/overflows. It is
 --   specialized for Int and Double for perfomance. 
 fillOne :: StorageUbox s v -> Int -> ST s ()
-fillOne (StorageUbox u hist o) i = do
+fillOne !(StorageUbox u hist o) !i = do
   (lo,hi) <- getBounds hist
   if i < lo then modifySTRef u (+1)
             else if i > hi then modifySTRef o ((+1) $! )
@@ -136,7 +137,7 @@ fillOne (StorageUbox u hist o) i = do
 {-| Put value into histogram with weight.
  -}
 fillOneWgh :: StorageUbox s v -> (Int,v) -> ST s ()
-fillOneWgh (StorageUbox u hist o) (i,w) = do
+fillOneWgh !(StorageUbox u hist o) !(i,w) = do
   (lo,hi) <- getBounds hist
   if i < lo then modifySTRef u ((+w) $!)
             else if i > hi then modifySTRef o (+w)
