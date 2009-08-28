@@ -4,7 +4,7 @@
 {-# LANGUAGE TypeFamilies     #-}
 {-# LANGUAGE BangPatterns     #-}
 -- |
--- Module     : Text.Flat
+-- Module     : Data.Histogram.Storage
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- License    : BSD3
 -- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -134,8 +134,7 @@ fillOne !(StorageUbox u hist o) !i = do
 {-# SPECIALIZE fillOne :: StorageUbox s Int    -> Int -> ST s () #-}
 {-# SPECIALIZE fillOne :: StorageUbox s Double -> Int -> ST s () #-}
 
-{-| Put value into histogram with weight.
- -}
+-- | Put value into histogram with weight.
 fillOneWgh :: StorageUbox s v -> (Int,v) -> ST s ()
 fillOneWgh !(StorageUbox u hist o) !(i,w) = do
   (lo,hi) <- getBounds hist

@@ -2,30 +2,36 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE BangPatterns #-}
 -- |
--- Module     : Text.Flat
+-- Module     : Data.Histogram.Bin
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- License    : BSD3
 -- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- Stability  : experimental
 -- 
--- Mutable storage for filling histograms. 
+-- Bins for histograms.
 
-module Data.Histogram.Bin ( Bin(..)
+module Data.Histogram.Bin ( -- * Type class
+                            Bin(..)
+                          -- * Integer bins
                           , BinI(..)
+                          -- * Floating point bins
                           , BinF
                           , binF
                           , binFn
+                          -- * 2D bins
                           , Bin2D(..)
                           ) where
 
 import Data.Ix (rangeSize)
 
 
--- | Abstract binning algorithm
+-- | Abstract binning algorithm. Following invariant is expected to hold: 
+-- 
+-- > toIndex . fromIndex == id
 class Bin b where
-    -- | Value of bin 
+    -- | Type of value to bin
     type BinValue b
-    -- | Convert from value to index. To bound checking performed
+    -- | Convert from value to index. No bound checking performed
     toIndex   :: b -> BinValue b -> Int
     {-# INLINE toIndex #-}
     -- | Convert from index to value. 
@@ -34,7 +40,7 @@ class Bin b where
     getRange  :: b -> (Int, Int)
 
 
--- | Integer bins
+-- | Integer bins. 
 data BinI = BinI !Int !Int
 
 instance Bin BinI where
@@ -44,16 +50,25 @@ instance Bin BinI where
     getRange !(BinI x y) = (x,y)
 
 
--- | Bins with 
+-- | Floaintg point bins with equal sizes.
 data BinF f where
     BinF :: RealFrac f => !f -> !f -> !Int -> BinF f 
 
-binF :: RealFrac f => f -> Int -> f -> BinF f
+-- | Create bins 
+binF :: RealFrac f => 
+        f   -- ^ Lower bound of range
+     -> Int -- ^ Number of bins
+     -> f   -- ^ Upper bound of range
+     -> BinF f
 binF from n to = BinF from ((to - from) / fromIntegral n) n
 
-binFn :: RealFrac f => f -> f -> f -> BinF f 
+-- | Create bins. Note that actual upper bound can differ from specified.
+binFn :: RealFrac f =>
+         f -- ^ Begin of range
+      -> f -- ^ Size of step
+      -> f -- ^ Approximation of end of range
+      -> BinF f 
 binFn from step to = BinF from step (round $ (to - from) / step)
-
 
 instance Bin (BinF f) where
     type BinValue (BinF f) = f 

@@ -4,6 +4,13 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE Rank2Types #-}
+-- |
+-- Module     : Data.Histogram.Fill
+-- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
+-- License    : BSD3
+-- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
+-- Stability  : experimental
+-- 
 module Data.Histogram.Fill ( -- * Type classes & wrappers
                              HBuilderCl(..)
                            , HBuilder

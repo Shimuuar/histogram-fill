@@ -4,7 +4,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE BangPatterns #-}
 -- |
--- Module     : Text.Flat
+-- Module     : Data.Histogram.Internal.Accumulator
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- License    : BSD3
 -- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
