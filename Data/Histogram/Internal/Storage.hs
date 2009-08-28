@@ -11,6 +11,10 @@
 -- Stability  : experimental
 -- 
 -- Mutable storage for filling histograms. 
+--
+-- All storages return lists instead of array because array subscripts
+-- has little meaning. They should be converted into bin values which
+-- can be of any type and not suitable as array index.
 
 module Data.Histogram.Internal.Storage ( Storage(..)
                                        , newStorageUOne
@@ -19,7 +23,7 @@ module Data.Histogram.Internal.Storage ( Storage(..)
                                        , newStorageUManyW
                                        , newGenericStorage
                                        , newGenericStorageMany
-
+                                       -- * Storage types
                                        , StorageUOne
                                        , StorageUMany
                                        , StorageUOneW
