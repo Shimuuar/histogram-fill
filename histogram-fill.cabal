@@ -1,18 +1,22 @@
 Name:           histogram-fill
-Version:        0.0.1
+Version:        0.1.0
 Cabal-Version:  >= 1.2
 License:        BSD3
 License-File:   LICENSE
 Author:         Alexey Khudyakov
+Maintainer:     Alexey Khudyakov <alexey.skladnoy@gmail.com>
 Homepage:       
 Category:       Data
 Build-Type:     Simple
 Synopsis:       Tool for creation of histograms.
+Description:
+  This is library for filling histograms. It's aim to provide
+  convenient way to create and fill histograms. This is very much work
+  in progress so expect API breakage in future relesases.
 
 Library
-  Build-Depends:        base, array
+  Build-Depends:        base >=3 && <5, array
   Exposed-modules:      Data.Histogram.Fill 
                         Data.Histogram.Bin
                         Data.Histogram.Internal.Accumulator
                         Data.Histogram.Internal.Storage
-  GHC-Options:     -Wall -O2 -auto-all
