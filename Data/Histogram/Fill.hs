@@ -43,7 +43,10 @@ import Data.Histogram.Internal.Storage
 ----------------------------------------------------------------
 
 -- | Create and fill histogram(s).
-createHistograms :: Monoid b => HBuilder a b -> [a] -> b
+createHistograms :: Monoid b =>
+                    HBuilder a b -- ^ Instructions how to fill histograms
+                 -> [a]          -- ^ List of data to fill histogram with
+                 -> b            -- ^ Result
 createHistograms h xs = fillHistograms (runBuilder h) xs
 
 ----------------------------------------------------------------
@@ -55,13 +58,15 @@ class HBuilderCl h where
     modifyIn  :: (a' -> a) -> h a b -> h a' b 
     -- | Convert output of histogram 
     modifyOut :: (b -> b') -> h a b -> h a  b'
-    -- | Create stateful histogram from instructions
+    -- | Create stateful histogram from instructions. Histograms could
+    --   be filled either in the ST monad or with createHistograms
     runBuilder :: h a b -> HistogramST s a b
 
 
 ----------------------------------------------------------------
 
--- | Abstract histogram builder. 
+-- | Abstract histogram builder. All real builders should be wrapper
+--   in this type
 data HBuilder a b where
     MkHBuilder :: HBuilderCl h => h a b -> HBuilder a b
 
