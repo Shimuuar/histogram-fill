@@ -15,4 +15,4 @@ Library
                         Data.Histogram.Bin
                         Data.Histogram.Internal.Accumulator
                         Data.Histogram.Internal.Storage
-  GHC-Options:     -Wall -O2 -auto-all
+  GHC-Options:     -Wall -auto-all

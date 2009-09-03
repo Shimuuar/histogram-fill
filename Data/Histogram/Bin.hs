@@ -45,9 +45,9 @@ data BinI = BinI !Int !Int
 
 instance Bin BinI where
     type BinValue BinI = Int
-    toIndex   _ = id
-    fromIndex _ = id
-    getRange !(BinI x y) = (x,y)
+    toIndex   !(BinI base _) !x = x - base
+    fromIndex !(BinI base _) !x = x + base
+    getRange  !(BinI x y) = (0,y-x)
 
 
 -- | Floaintg point bins with equal sizes.
@@ -85,11 +85,18 @@ data Bin2D bin1 bin2 = Bin2D bin1 bin2
 instance (Bin bin1, Bin bin2) => Bin (Bin2D bin1 bin2) where
     type BinValue (Bin2D bin1 bin2) = (BinValue bin1, BinValue bin2)
 
-    toIndex   (Bin2D b1 b2) (x,y) = toIndex b1 x + (toIndex b2 y * (rangeSize $ getRange b1))
+    toIndex   (Bin2D bx by) (x,y) 
+        | ix < 0 || ix >= rx || iy < 0 || iy >= ry = maxBound
+        | otherwise                                = ix + iy*rx
+        where
+          ix = toIndex bx x
+          iy = toIndex by y
+          rx = rangeSize $ getRange bx
+          ry = rangeSize $ getRange by
 
-    fromIndex (Bin2D b1 b2) i = let (ix,iy) = divMod i (rangeSize $ getRange b1)
-                                in  (fromIndex b1 ix, fromIndex b2 iy)
+    fromIndex (Bin2D bx by) i = let (iy,ix) = divMod i (rangeSize $ getRange bx)
+                                in  (fromIndex bx ix, fromIndex by iy)
 
     getRange  (Bin2D b1 b2) = let r1 = rangeSize $ getRange b1
                                   r2 = rangeSize $ getRange b2
-                              in (0, r1*r2)
+                              in (0, r1*r2-1)
