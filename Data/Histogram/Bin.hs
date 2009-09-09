@@ -8,7 +8,8 @@
 -- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- Stability  : experimental
 -- 
--- Bins for histograms.
+-- Binning algorithms. This is mapping from set of interest to integer
+-- indices and approximate reverse. 
 
 module Data.Histogram.Bin ( -- * Type class
                             Bin(..)
@@ -22,32 +23,32 @@ module Data.Histogram.Bin ( -- * Type class
                           , Bin2D(..)
                           ) where
 
-import Data.Ix (rangeSize)
-
 
 -- | Abstract binning algorithm. Following invariant is expected to hold: 
 -- 
 -- > toIndex . fromIndex == id
+-- 
+-- Reverse is not nessearily true. 
 class Bin b where
     -- | Type of value to bin
     type BinValue b
     -- | Convert from value to index. No bound checking performed
-    toIndex   :: b -> BinValue b -> Int
+    toIndex :: b -> BinValue b -> Int
     {-# INLINE toIndex #-}
     -- | Convert from index to value. 
     fromIndex :: b -> Int -> BinValue b 
-    -- | Range of bin indices (inclusive). 
-    getRange  :: b -> (Int, Int)
+    -- | Total number of bins
+    nBins :: b -> Int
 
 
--- | Integer bins. 
+-- | Integer bins. This is inclusive interval [from,to]
 data BinI = BinI !Int !Int
 
 instance Bin BinI where
     type BinValue BinI = Int
     toIndex   !(BinI base _) !x = x - base
     fromIndex !(BinI base _) !x = x + base
-    getRange  !(BinI x y) = (0,y-x)
+    nBins     !(BinI x y) = y - x + 1
 
 
 -- | Floaintg point bins with equal sizes.
@@ -74,12 +75,12 @@ instance Bin (BinF f) where
     type BinValue (BinF f) = f 
     toIndex   !(BinF from step _) !x = floor $ (x-from) / step
     fromIndex !(BinF from step _) !i = (step/2) + (fromIntegral i * step) + from 
-    getRange  !(BinF _ _ n) = (0,n-1)
+    nBins     !(BinF _ _ n) = n
     {-# SPECIALIZE instance Bin (BinF Double) #-}
     {-# SPECIALIZE instance Bin (BinF Float) #-}
 
 
--- | 2D bins 
+-- | 2D bins. bin1 is binning along X axis and bin2 is one along Y axis. 
 data Bin2D bin1 bin2 = Bin2D bin1 bin2
 
 instance (Bin bin1, Bin bin2) => Bin (Bin2D bin1 bin2) where
@@ -91,12 +92,10 @@ instance (Bin bin1, Bin bin2) => Bin (Bin2D bin1 bin2) where
         where
           ix = toIndex bx x
           iy = toIndex by y
-          rx = rangeSize $ getRange bx
-          ry = rangeSize $ getRange by
+          rx = nBins bx
+          ry = nBins by
 
-    fromIndex (Bin2D bx by) i = let (iy,ix) = divMod i (rangeSize $ getRange bx)
+    fromIndex (Bin2D bx by) i = let (iy,ix) = divMod i (nBins bx)
                                 in  (fromIndex bx ix, fromIndex by iy)
 
-    getRange  (Bin2D b1 b2) = let r1 = rangeSize $ getRange b1
-                                  r2 = rangeSize $ getRange b2
-                              in (0, r1*r2-1)
+    nBins (Bin2D b1 b2) = (nBins b1) * (nBins b2)
