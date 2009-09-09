@@ -1,9 +1,6 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE GADTs        #-}
+{-# LANGUAGE Rank2Types   #-}
 -- |
 -- Module     : Data.Histogram.Fill
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -26,19 +23,19 @@ module Data.Histogram.Fill ( -- * Type classes & wrappers
                            , mkHist1
                            , mkHistWgh
                            , mkHistWgh1
-                           , mkHistList
-                           , mkHistList1
+                           , forceInt
+                           , forceDouble
                            -- * Internals
                            , HistBuilder
                            ) where
 
-import Control.Arrow    (first)
 import Control.Monad.ST (ST)
 import Data.Monoid      (Monoid)
 
+import Data.Array.Vector
+import Data.Histogram
 import Data.Histogram.Bin
-import Data.Histogram.Internal.Accumulator
-import Data.Histogram.Internal.Storage
+import Data.Histogram.ST
 
 ----------------------------------------------------------------
 
@@ -60,7 +57,7 @@ class HBuilderCl h where
     modifyOut :: (b -> b') -> h a b -> h a  b'
     -- | Create stateful histogram from instructions. Histograms could
     --   be filled either in the ST monad or with createHistograms
-    runBuilder :: h a b -> HistogramST s a b
+    runBuilder :: h a b -> ST s (Accum s a b)
 
 
 ----------------------------------------------------------------
@@ -97,78 +94,58 @@ instance HBuilderCl HBuilderList where
 ----------------------------------------------------------------
 
 -- | Generic histogram builder. 
-data HistBuilder st a b where
-    HistBuilder :: Storage st => 
-                   (a -> Input st) 
-                -> (Output st -> b) 
-                -> (forall s . ST s (st s))
-                -> HistBuilder st a b
+data HistBuilder a b where
+    HistBuilder :: (Bin bin, UA val, Num val) =>
+                   bin
+                -> (forall s . a -> HistogramST s bin val -> ST s ())
+                -> (Histogram bin val -> b)
+                -> HistBuilder a b
 
-instance HBuilderCl (HistBuilder st) where
-    modifyIn  f (HistBuilder inp out x) = HistBuilder (inp . f) out     x  
-    modifyOut g (HistBuilder inp out x) = HistBuilder inp      (g .out) x  
-    runBuilder  (HistBuilder inp out x) = do s <- x
-                                             accumHist inp out s
+instance HBuilderCl HistBuilder where
+    modifyIn  f (HistBuilder bin inp out) = HistBuilder bin (inp . f) out
+    modifyOut g (HistBuilder bin inp out) = HistBuilder bin  inp (g . out)
+    runBuilder  (HistBuilder bin inp out) = do h <- newHistogramST bin
+                                               accumHist inp out h
 
 
 ----------------------------------------------------------------
 -- Histogram constructors 
 ----------------------------------------------------------------
 
--- Convert from index to bin value
-convert :: Bin bin => bin -> (a,[(Int,a)],a) -> (a,[(BinValue bin,a)],a)
-convert bin (u,xs,o) = (u, map (first $ fromIndex bin) xs, o)
+forceInt :: Histogram bin Int -> Histogram bin Int
+forceInt = id
+
+forceDouble :: Histogram bin Double -> Histogram bin Double
+forceDouble = id
 
 -- | Create histogram builder which take single item as input. Each item has weight 1.
-mkHist1 :: (Bin bin) => bin                          -- ^ Bin information
-        -> ( (Int, [(BinValue bin, Int)], Int) -> b) -- ^ Output function 
-        -> (a -> BinValue bin)                       -- ^ Input function
-        -> HBuilder a b                              
-mkHist1 bin out inp = 
-    let storage = newStorageUOne (getRange bin) (0 :: Int)
-    in  MkHBuilder $ HistBuilder (toIndex bin . inp) (out . convert bin) storage
+mkHist1 :: (Bin bin, UA val, Num val) =>
+           bin                      -- ^ Bin information
+        -> (Histogram bin val -> b) -- ^ Output function 
+        -> (a -> BinValue bin)      -- ^ Input function
+        -> HBuilder a b
+mkHist1 bin out inp = MkHBuilder $ HistBuilder bin (flip fillOne . inp) out
 
 -- | Create histogram builder which take many items as input. Each item has weight 1.
-mkHist :: (Bin bin) => bin                          -- ^ Bin information
-       -> ( (Int, [(BinValue bin, Int)], Int) -> b) -- ^ Output function
-       -> (a -> [BinValue bin])                     -- ^ Input function 
+mkHist :: (Bin bin, UA val, Num val) =>
+          bin                      -- ^ Bin information
+       -> (Histogram bin val -> b) -- ^ Output function
+       -> (a -> [BinValue bin])    -- ^ Input function 
        -> HBuilder a b
-mkHist bin out inp = 
-    let storage = newStorageUMany (getRange bin) (0 :: Int)
-    in  MkHBuilder $ HistBuilder (map (toIndex bin) . inp) (out . convert bin) storage
+mkHist bin out inp = MkHBuilder $ HistBuilder bin (flip fillMany . inp) out
 
 -- | Create histogram with weighted bin. Takes one item at time. 
-mkHistWgh1 :: (Bin bin) => bin                                  -- ^ Bin information
-          -> ( (Double, [(BinValue bin, Double)], Double) -> b) -- ^ Output function
-          -> (a -> (BinValue bin, Double))                      -- ^ Input function
+mkHistWgh1 :: (Bin bin, UA val, Num val) =>
+              bin                        -- ^ Bin information
+          -> (Histogram bin val -> b)    -- ^ Output function
+          -> (a -> (BinValue bin, val))  -- ^ Input function
           -> HBuilder a b
-mkHistWgh1 bin out inp = 
-    let storage = newStorageUOneW (getRange bin) (0 :: Double)
-    in  MkHBuilder $ HistBuilder (first (toIndex bin) . inp) (out . convert bin) storage
+mkHistWgh1 bin out inp = MkHBuilder $ HistBuilder bin (flip fillOneW . inp) out
 
 -- | Create histogram with weighted bin. Takes many items at time.
-mkHistWgh :: (Bin bin) => bin                                   -- ^ Bin information
-          -> ( (Double, [(BinValue bin, Double)], Double) -> b) -- ^ Output function
-          -> (a -> [(BinValue bin, Double)])                    -- ^ Input function
+mkHistWgh :: (Bin bin, UA val, Num val) => 
+             bin                          -- ^ Bin information
+          -> (Histogram bin val  -> b)    -- ^ Output function
+          -> (a -> [(BinValue bin, val)]) -- ^ Input function
           -> HBuilder a b
-mkHistWgh bin out inp = 
-    let storage = newStorageUManyW (getRange bin) (0 :: Double)
-    in  MkHBuilder $ HistBuilder ((map $ first $ toIndex bin) . inp) (out . convert bin) storage
-
--- | Create histogram with list attached to each bin 
-mkHistList1 :: Bin bin => bin               -- ^ Bin information
-            -> ([(BinValue bin, [t])] -> b) -- ^ Output function
-            -> (a -> (BinValue bin, t))     -- ^ Input function
-            -> HBuilder a b
-mkHistList1 bin out inp =
-    let storage = newGenericStorage (:) ([]) (getRange bin) 
-    in  MkHBuilder $ HistBuilder (first (toIndex bin) . inp) (out . map (first $ fromIndex bin)) storage
-
--- | Create histogram with list attached to each bin 
-mkHistList :: Bin bin => bin                -- ^ Bin information
-            -> ([(BinValue bin, [t])] -> b) -- ^ Output function
-            -> (a -> [(BinValue bin, t)])   -- ^ Input function 
-            -> HBuilder a b
-mkHistList bin out inp =
-    let storage = newGenericStorageMany (:) ([]) (getRange bin) 
-    in  MkHBuilder $ HistBuilder ((map $ first $ toIndex bin) . inp) (out . map (first $ fromIndex bin)) storage
+mkHistWgh bin out inp = MkHBuilder $ HistBuilder bin (flip fillManyW . inp) out

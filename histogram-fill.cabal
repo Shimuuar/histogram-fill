@@ -15,8 +15,9 @@ Description:
   in progress so expect API breakage in future relesases.
 
 Library
-  Build-Depends:        base >=3 && <5, array
-  Exposed-modules:      Data.Histogram.Fill 
+  Build-Depends:        base >=3 && <5, uvector >=0.1 && <0.2
+  Exposed-modules:      Data.Histogram
+                        Data.Histogram.Fill 
                         Data.Histogram.Bin
-                        Data.Histogram.Internal.Accumulator
-                        Data.Histogram.Internal.Storage
+                        Data.Histogram.ST
+  Ghc-options:          -O2 -Wall -auto-all
