@@ -24,6 +24,14 @@ module Data.Histogram.Bin ( -- * Type class
                           ) where
 
 
+import Text.Read (Read(..))
+import Text.ParserCombinators.ReadP
+import Text.ParserCombinators.ReadPrec (ReadPrec, lift)
+
+
+----------------------------------------------------------------
+
+
 -- | Abstract binning algorithm. Following invariant is expected to hold: 
 -- 
 -- > toIndex . fromIndex == id
@@ -41,6 +49,9 @@ class Bin b where
     nBins :: b -> Int
 
 
+----------------------------------------------------------------
+-- Integer bin
+
 -- | Integer bins. This is inclusive interval [from,to]
 data BinI = BinI !Int !Int
 
@@ -50,6 +61,22 @@ instance Bin BinI where
     fromIndex !(BinI base _) !x = x + base
     nBins     !(BinI x y) = y - x + 1
 
+instance Show BinI where
+    show (BinI lo hi) = unlines [ "# BinI"
+                                , "# Low  = " ++ show lo
+                                , "# High = " ++ show hi
+                                ]
+
+instance Read BinI where
+    readPrec = do
+      keyword "BinI"
+      l <- value "Low"
+      h <- value "High"
+      return $ BinI l h
+
+
+----------------------------------------------------------------
+-- Floating point bin
 
 -- | Floaintg point bins with equal sizes.
 data BinF f where
@@ -79,6 +106,24 @@ instance Bin (BinF f) where
     {-# SPECIALIZE instance Bin (BinF Double) #-}
     {-# SPECIALIZE instance Bin (BinF Float) #-}
 
+instance Show f => Show (BinF f) where
+    show (BinF base step n) = unlines [ "# BinF"
+                                  , "# Base = " ++ show base
+                                  , "# Step = " ++ show step
+                                  , "# N    = " ++ show n
+                                  ]
+
+instance (Read f, RealFrac f) => Read (BinF f) where
+    readPrec = do
+      keyword "BinF"
+      base <- value "Base"
+      step <- value "Step"
+      n    <- value "N"
+      return $ BinF base step n
+
+
+----------------------------------------------------------------
+-- 2D bin
 
 -- | 2D bins. bin1 is binning along X axis and bin2 is one along Y axis. 
 data Bin2D bin1 bin2 = Bin2D bin1 bin2
@@ -99,3 +144,50 @@ instance (Bin bin1, Bin bin2) => Bin (Bin2D bin1 bin2) where
                                 in  (fromIndex bx ix, fromIndex by iy)
 
     nBins (Bin2D b1 b2) = (nBins b1) * (nBins b2)
+
+instance (Show b1, Show b2) => Show (Bin2D b1 b2) where
+    show (Bin2D b1 b2) = unlines [ "# Bin2D"
+                                 , "# X"
+                                 , show b1
+                                 , "# Y"
+                                 , show b2
+                                 ]
+instance (Read b1, Read b2) => Read (Bin2D b1 b2) where
+    readPrec = do
+      keyword "Bin2D"
+      keyword "X"
+      b1 <- readPrec
+      keyword "Y"
+      b2 <- readPrec
+      return $ Bin2D b1 b2
+
+----------------------------------------------------------------
+-- Utils
+
+-- Whitespaces
+ws :: ReadP String
+ws = many $ satisfy (`elem` " \t")
+
+-- End of line
+eol :: ReadP Char
+eol = char '\n'
+
+-- Equal sign
+eq :: ReadP ()
+eq = ws >> char '=' >> return ()
+
+-- Key
+key :: String -> ReadP String
+key s = char '#' >> ws >> string s 
+
+-- Key value pair
+value :: Read a => String -> ReadPrec a
+value str = do 
+  lift $ key str >> eq
+  x <- readPrec
+  lift $ eol
+  return x
+
+-- Keyword
+keyword :: String -> ReadPrec ()
+keyword str = lift $ key str >> ws >> eol >> return ()
