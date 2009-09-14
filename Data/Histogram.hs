@@ -16,8 +16,15 @@ module Data.Histogram ( -- * Immutable histogram
                       -- * Slicing
                       ) where
 
+import Control.Monad (unless)
 import Data.Array.Vector
+import Text.Read
+import Text.ParserCombinators.ReadP    (many, satisfy)
+import Text.ParserCombinators.ReadPrec (lift)
+
 import Data.Histogram.Bin
+import Data.Histogram.Parse
+
 
 -- | Immutable histogram
 data Histogram bin a where
@@ -28,13 +35,28 @@ data Histogram bin a where
               -> Histogram bin a
 
 instance (Show a, Show (BinValue bin), Show bin) => Show (Histogram bin a) where
-    show h@(Histogram bin (u,o) a) = "# Histogram\n" ++
+    show h@(Histogram bin (u,o) _) = "# Histogram\n" ++
                                      "# Underflows = " ++ show u ++ "\n" ++
                                      "# Overflows  = " ++ show o ++ "\n" ++
                                      show bin ++
                                      (unlines $ map showT $ asList h)
         where
           showT (x,y) = show x ++ "\t" ++ show y
+
+instance (Read a, Num a, UA a, Read bin, Bin bin) => Read (Histogram bin a) where
+    readPrec = do
+      keyword "Histogram"
+      u   <- value "Underflows"
+      o   <- value "Overflows"
+      bin <- readPrec
+      xs  <- (map last . filter (not . null) . map words . lines) `fmap` look
+      -- Devour everything
+      lift $ many $ satisfy (const True)
+      rest <- look
+      unless (null rest) $ pfail 
+      -- Done
+      return $ Histogram bin (u,o) (toU $ map read xs)
+
 
 -- | Histogram bins
 histBin :: Histogram bin a -> bin
