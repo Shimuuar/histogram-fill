@@ -1,12 +1,19 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
-module Data.Histogram ( Histogram(..)
+{-# LANGUAGE TypeOperators #-}
+module Data.Histogram ( -- * Immutable histogram
+                        Histogram(..)
+                      , module Data.Histogram.Bin
                       , histBin
+                      , histData
                       , underflows
                       , overflows
                       , outOfRange
+                      -- * Conversion
                       , asList
-                      , module Data.Histogram.Bin
+                      , asPairVector
+                      , asVectorPairs
+                      -- * Slicing
                       ) where
 
 import Data.Array.Vector
@@ -29,6 +36,10 @@ instance (Show a, Show (BinValue bin)) => Show (Histogram bin a) where
 histBin :: Histogram bin a -> bin
 histBin (Histogram bin _ _) = bin
 
+-- | Histogram data as vector
+histData :: Histogram bin a -> UArr a
+histData (Histogram _ _ a) = a
+
 -- | Number of underflows
 underflows :: Histogram bin a -> a
 underflows (Histogram _ (u,_) _) = u
@@ -41,6 +52,15 @@ overflows (Histogram _ (u,_) _) = u
 outOfRange :: Histogram bin a -> (a,a)
 outOfRange (Histogram _ r _) = r
 
+
 -- | Convert histogram to list
 asList :: Histogram bin a -> [(BinValue bin, a)]
 asList (Histogram bin _ arr) = map (fromIndex bin) [0..] `zip` fromU arr
+
+-- | Convert to pair of vectors
+asPairVector :: UA (BinValue bin) => Histogram bin a -> (UArr (BinValue bin), UArr a)
+asPairVector (Histogram bin _ a) = (toU $ map (fromIndex bin) [0 .. nBins bin], a)
+
+-- | Convert to vector of pairs
+asVectorPairs :: UA (BinValue bin) => Histogram bin a -> UArr ((BinValue bin) :*: a)
+asVectorPairs h@(Histogram _ _ _) = uncurry zipU . asPairVector $ h
