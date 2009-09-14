@@ -23,13 +23,9 @@ module Data.Histogram.Bin ( -- * Type class
                           , Bin2D(..)
                           ) where
 
-
+import Data.Histogram.Parse
 import Text.Read (Read(..))
-import Text.ParserCombinators.ReadP
-import Text.ParserCombinators.ReadPrec (ReadPrec, lift)
 
-
-----------------------------------------------------------------
 
 
 -- | Abstract binning algorithm. Following invariant is expected to hold: 
@@ -146,12 +142,11 @@ instance (Bin bin1, Bin bin2) => Bin (Bin2D bin1 bin2) where
     nBins (Bin2D b1 b2) = (nBins b1) * (nBins b2)
 
 instance (Show b1, Show b2) => Show (Bin2D b1 b2) where
-    show (Bin2D b1 b2) = unlines [ "# Bin2D"
-                                 , "# X"
-                                 , show b1
-                                 , "# Y"
-                                 , show b2
-                                 ]
+    show (Bin2D b1 b2) = "# Bin2D\n" ++
+                         "# X\n" ++ 
+                         show b1 ++
+                         "# Y\n" ++
+                         show b2
 instance (Read b1, Read b2) => Read (Bin2D b1 b2) where
     readPrec = do
       keyword "Bin2D"
@@ -160,34 +155,3 @@ instance (Read b1, Read b2) => Read (Bin2D b1 b2) where
       keyword "Y"
       b2 <- readPrec
       return $ Bin2D b1 b2
-
-----------------------------------------------------------------
--- Utils
-
--- Whitespaces
-ws :: ReadP String
-ws = many $ satisfy (`elem` " \t")
-
--- End of line
-eol :: ReadP Char
-eol = char '\n'
-
--- Equal sign
-eq :: ReadP ()
-eq = ws >> char '=' >> return ()
-
--- Key
-key :: String -> ReadP String
-key s = char '#' >> ws >> string s 
-
--- Key value pair
-value :: Read a => String -> ReadPrec a
-value str = do 
-  lift $ key str >> eq
-  x <- readPrec
-  lift $ eol
-  return x
-
--- Keyword
-keyword :: String -> ReadPrec ()
-keyword str = lift $ key str >> ws >> eol >> return ()

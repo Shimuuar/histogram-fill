@@ -27,8 +27,12 @@ data Histogram bin a where
               -> UArr a
               -> Histogram bin a
 
-instance (Show a, Show (BinValue bin)) => Show (Histogram bin a) where
-    show h@(Histogram bin (u,o) a) = unlines $ map showT $ asList h
+instance (Show a, Show (BinValue bin), Show bin) => Show (Histogram bin a) where
+    show h@(Histogram bin (u,o) a) = "# Histogram\n" ++
+                                     "# Underflows = " ++ show u ++ "\n" ++
+                                     "# Overflows  = " ++ show o ++ "\n" ++
+                                     show bin ++
+                                     (unlines $ map showT $ asList h)
         where
           showT (x,y) = show x ++ "\t" ++ show y
 
