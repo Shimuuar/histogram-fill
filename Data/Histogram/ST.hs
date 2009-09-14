@@ -86,7 +86,7 @@ freezeHist (HistogramST bin und over arr) = do
   -- Copy array
   let len = lengthMU arr
   tmp  <- newMU len
-  memcpyOffMU arr tmp 0 0 3
+  memcpyOffMU arr tmp 0 0 len
   a    <- unsafeFreezeAllMU tmp
   return $ Histogram bin (u,o) a
 
