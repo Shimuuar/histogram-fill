@@ -44,12 +44,13 @@ data HistogramST s bin a where
                 -> HistogramST s bin a
 
 -- | Create new mutable histogram. All bins are set to zero.
-newHistogramST :: (Bin bin, UA a, Num a) => bin -> ST s (HistogramST s bin a)
-newHistogramST bin = do u <- newSTRef 0
-                        o <- newSTRef 0
-                        a <- newMU (nBins bin)
-                        mapM_ (\i -> writeMU a i 0) [0 .. (lengthMU a) - 1]
-                        return $ HistogramST bin u o a
+newHistogramST :: (Bin bin, UA a) => a -> bin -> ST s (HistogramST s bin a)
+newHistogramST zero bin = do
+  u <- newSTRef zero
+  o <- newSTRef zero
+  a <- newMU (nBins bin)
+  mapM_ (\i -> writeMU a i zero) [0 .. (lengthMU a) - 1]
+  return $ HistogramST bin u o a
 
 -- | Put one value into histogram
 fillOne :: Num a => HistogramST s bin a -> BinValue bin -> ST s ()

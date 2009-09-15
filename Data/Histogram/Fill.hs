@@ -104,7 +104,7 @@ data HistBuilder a b where
 instance HBuilderCl HistBuilder where
     modifyIn  f (HistBuilder bin inp out) = HistBuilder bin (inp . f) out
     modifyOut g (HistBuilder bin inp out) = HistBuilder bin  inp (g . out)
-    runBuilder  (HistBuilder bin inp out) = do h <- newHistogramST bin
+    runBuilder  (HistBuilder bin inp out) = do h <- newHistogramST 0 bin
                                                accumHist inp out h
 
 
