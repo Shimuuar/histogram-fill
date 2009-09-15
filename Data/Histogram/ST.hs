@@ -6,6 +6,7 @@ module Data.Histogram.ST ( -- * Mutable histograms
                          , newHistogramST
                          , fillOne
                          , fillOneW
+                         , fillMonoid
                          , freezeHist
 
                          -- * Accumulators
@@ -65,6 +66,15 @@ fillOneW (HistogramST bin u o arr) (x,w)
     | i < 0             = modifySTRef u ((+w) $!)
     | i >= lengthMU arr = modifySTRef o ((+w) $!)
     | otherwise         = writeMU arr i . (+w)  =<< readMU arr i
+    where
+      i = toIndex bin x
+
+-- | Put one monoidal element
+fillMonoid :: Monoid a => HistogramST s bin a -> (BinValue bin, a) -> ST s ()
+fillMonoid (HistogramST bin u o arr) (x,m)
+    | i < 0             = modifySTRef u ((flip mappend m) $!)
+    | i >= lengthMU arr = modifySTRef o ((flip mappend m) $!)
+    | otherwise         = writeMU arr i . (flip mappend m)  =<< readMU arr i
     where
       i = toIndex bin x
 
