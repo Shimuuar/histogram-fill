@@ -95,17 +95,18 @@ instance HBuilderCl HBuilderList where
 
 -- | Generic histogram builder. 
 data HistBuilder a b where
-    HistBuilder :: (Bin bin, UA val, Num val) =>
-                   bin
-                -> (forall s . a -> HistogramST s bin val -> ST s ())
-                -> (Histogram bin val -> b)
+    HistBuilder :: (Bin bin, UA val) =>
+                   bin                                                -- ^ Bin type
+                -> val                                                -- ^ Zero element
+                -> (forall s . a -> HistogramST s bin val -> ST s ()) -- ^ Input function
+                -> (Histogram bin val -> b)                           -- ^ Output function
                 -> HistBuilder a b
 
 instance HBuilderCl HistBuilder where
-    modifyIn  f (HistBuilder bin inp out) = HistBuilder bin (inp . f) out
-    modifyOut g (HistBuilder bin inp out) = HistBuilder bin  inp (g . out)
-    runBuilder  (HistBuilder bin inp out) = do h <- newHistogramST 0 bin
-                                               accumHist inp out h
+    modifyIn  f (HistBuilder bin z inp out) = HistBuilder bin z (inp . f) out
+    modifyOut g (HistBuilder bin z inp out) = HistBuilder bin z  inp (g . out)
+    runBuilder  (HistBuilder bin z inp out) = do h <- newHistogramST z bin
+                                                 accumHist inp out h
 
 
 ----------------------------------------------------------------
@@ -124,7 +125,7 @@ mkHist1 :: (Bin bin, UA val, Num val) =>
         -> (Histogram bin val -> b) -- ^ Output function 
         -> (a -> BinValue bin)      -- ^ Input function
         -> HBuilder a b
-mkHist1 bin out inp = MkHBuilder $ HistBuilder bin (flip fillOne . inp) out
+mkHist1 bin out inp = MkHBuilder $ HistBuilder bin 0 (flip fillOne . inp) out
 
 -- | Create histogram builder which take many items as input. Each item has weight 1.
 mkHist :: (Bin bin, UA val, Num val) =>
@@ -132,7 +133,7 @@ mkHist :: (Bin bin, UA val, Num val) =>
        -> (Histogram bin val -> b) -- ^ Output function
        -> (a -> [BinValue bin])    -- ^ Input function 
        -> HBuilder a b
-mkHist bin out inp = MkHBuilder $ HistBuilder bin fill out
+mkHist bin out inp = MkHBuilder $ HistBuilder bin 0 fill out
     where
       fill a h = mapM_ (fillOne h) $ inp a
 
@@ -142,7 +143,7 @@ mkHistWgh1 :: (Bin bin, UA val, Num val) =>
           -> (Histogram bin val -> b)    -- ^ Output function
           -> (a -> (BinValue bin, val))  -- ^ Input function
           -> HBuilder a b
-mkHistWgh1 bin out inp = MkHBuilder $ HistBuilder bin (flip fillOneW . inp) out
+mkHistWgh1 bin out inp = MkHBuilder $ HistBuilder bin 0 (flip fillOneW . inp) out
 
 -- | Create histogram with weighted bin. Takes many items at time.
 mkHistWgh :: (Bin bin, UA val, Num val) => 
@@ -150,6 +151,6 @@ mkHistWgh :: (Bin bin, UA val, Num val) =>
           -> (Histogram bin val  -> b)    -- ^ Output function
           -> (a -> [(BinValue bin, val)]) -- ^ Input function
           -> HBuilder a b
-mkHistWgh bin out inp = MkHBuilder $ HistBuilder bin fill out
+mkHistWgh bin out inp = MkHBuilder $ HistBuilder bin 0 fill out
     where
       fill a h = mapM_ (fillOneW h) $ inp a
