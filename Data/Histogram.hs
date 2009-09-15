@@ -30,7 +30,7 @@ import Data.Histogram.Parse
 
 -- | Immutable histogram
 data Histogram bin a where
-    Histogram :: (Bin bin, UA a, Num a) => 
+    Histogram :: (Bin bin, UA a) => 
                  bin
               -> (a,a)
               -> UArr a
@@ -93,19 +93,19 @@ asPairVector (Histogram bin _ a) = (toU $ map (fromIndex bin) [0 .. nBins bin], 
 asVectorPairs :: UA (BinValue bin) => Histogram bin a -> UArr ((BinValue bin) :*: a)
 asVectorPairs h@(Histogram _ _ _) = uncurry zipU . asPairVector $ h
 
+-- FIXME: range must be discarded.
 -- | Slice 2D histogram along Y axis
 sliceY :: (Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bY, Histogram bX a)]
-sliceY (Histogram b@(Bin2D bX _) _ a) = map mkHist $ init [0, nBins bX .. nBins b]
+sliceY (Histogram b@(Bin2D bX _) r a) = map mkHist $ init [0, nBins bX .. nBins b]
     where
       mkHist i = ( snd $ fromIndex b i
-                 , Histogram bX (0,0) (sliceU a i (nBins bX)) )
+                 , Histogram bX r (sliceU a i (nBins bX)) )
 
 -- | Slice 2D histogram along X axis
 sliceX :: (Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bX, Histogram bY a)]
-sliceX (Histogram b@(Bin2D bX bY) _ a) = map mkHist $ init [0 .. nx]
+sliceX (Histogram b@(Bin2D bX bY) r a) = map mkHist $ init [0 .. nx]
     where
       nx = nBins bX
       n  = nBins b
-     
       mkHist i = ( fst $ fromIndex b i
-                 , Histogram bY (0,0) (toU $ map (indexU a) [i,i+nx .. n-1]) )
+                 , Histogram bY r (toU $ map (indexU a) [i,i+nx .. n-1]) )
