@@ -4,6 +4,7 @@
 module Data.Histogram ( -- * Immutable histogram
                         Histogram(..)
                       , module Data.Histogram.Bin
+                      , mapHist
                       , histBin
                       , histData
                       , underflows
@@ -59,6 +60,9 @@ instance (Read a, Num a, UA a, Read bin, Bin bin) => Read (Histogram bin a) wher
       -- Done
       return $ Histogram bin (u,o) (toU $ map read xs)
 
+-- | fmap lookalike. 
+mapHist :: UA b => (a -> b) -> Histogram bin a -> Histogram bin b
+mapHist f (Histogram bin (u,o) a) = Histogram bin (f u, f o) (mapU f a)
 
 -- | Histogram bins
 histBin :: Histogram bin a -> bin
