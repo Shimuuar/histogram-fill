@@ -23,6 +23,8 @@ module Data.Histogram.Fill ( -- * Type classes & wrappers
                            , mkHist1
                            , mkHistWgh
                            , mkHistWgh1
+                           , mkHistMonoid
+                           , mkHistMonoid1
                            , forceInt
                            , forceDouble
                            -- * Internals
@@ -30,7 +32,7 @@ module Data.Histogram.Fill ( -- * Type classes & wrappers
                            ) where
 
 import Control.Monad.ST (ST)
-import Data.Monoid      (Monoid)
+import Data.Monoid      (Monoid, mempty)
 
 import Data.Array.Vector
 import Data.Histogram
@@ -154,3 +156,21 @@ mkHistWgh :: (Bin bin, UA val, Num val) =>
 mkHistWgh bin out inp = MkHBuilder $ HistBuilder bin 0 fill out
     where
       fill a h = mapM_ (fillOneW h) $ inp a
+
+-- | Create histogram with monoidal bins
+mkHistMonoid1 :: (Bin bin, UA val, Monoid val) =>
+              bin                         -- ^ Bin information
+          -> (Histogram bin val -> b)     -- ^ Output function
+          -> (a -> (BinValue bin, val))   -- ^ Input function
+          -> HBuilder a b
+mkHistMonoid1 bin out inp = MkHBuilder $ HistBuilder bin mempty (flip fillMonoid . inp) out
+
+-- | Create histogram with monoidal bins. Takes many items at time.
+mkHistMonoid :: (Bin bin, UA val, Monoid val) =>
+              bin                         -- ^ Bin information
+          -> (Histogram bin val -> b)     -- ^ Output function
+          -> (a -> [(BinValue bin, val)]) -- ^ Input function
+          -> HBuilder a b
+mkHistMonoid bin out inp = MkHBuilder $ HistBuilder bin mempty fill out
+    where
+      fill a h = mapM_ (fillMonoid h) $ inp a
