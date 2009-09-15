@@ -38,52 +38,50 @@ import Data.Histogram.Bin
 data HistogramST s bin a where
     HistogramST :: (Bin bin, UA a) => 
                    bin
-                -> STRef s a
-                -> STRef s a
-                -> MUArr a s
+                -> MUArr a s -- Over/underflows
+                -> MUArr a s -- Data
                 -> HistogramST s bin a
 
 -- | Create new mutable histogram. All bins are set to zero.
 newHistogramST :: (Bin bin, UA a) => a -> bin -> ST s (HistogramST s bin a)
 newHistogramST zero bin = do
-  u <- newSTRef zero
-  o <- newSTRef zero
+  uo <- newMU 2
+  writeMU uo 0 zero >> writeMU uo 1 zero
   a <- newMU (nBins bin)
   mapM_ (\i -> writeMU a i zero) [0 .. (lengthMU a) - 1]
-  return $ HistogramST bin u o a
+  return $ HistogramST bin uo a
 
 -- | Put one value into histogram
 fillOne :: Num a => HistogramST s bin a -> BinValue bin -> ST s ()
-fillOne (HistogramST bin u o arr) x
-    | i < 0             = modifySTRef u ((+1) $!)
-    | i >= lengthMU arr = modifySTRef o ((+1) $!)
+fillOne (HistogramST bin uo arr) x
+    | i < 0             = writeMU uo  0 . (+1)  =<< readMU uo 0
+    | i >= lengthMU arr = writeMU uo  1 . (+1)  =<< readMU uo 1
     | otherwise         = writeMU arr i . (+1)  =<< readMU arr i
     where
       i = toIndex bin x
 
 -- | Put one value into histogram with weight
 fillOneW :: Num a => HistogramST s bin a -> (BinValue bin, a) -> ST s ()
-fillOneW (HistogramST bin u o arr) (x,w)
-    | i < 0             = modifySTRef u ((+w) $!)
-    | i >= lengthMU arr = modifySTRef o ((+w) $!)
+fillOneW (HistogramST bin uo arr) (x,w)
+    | i < 0             = writeMU uo  0 . (+w)  =<< readMU uo 0
+    | i >= lengthMU arr = writeMU uo  1 . (+w)  =<< readMU uo 1
     | otherwise         = writeMU arr i . (+w)  =<< readMU arr i
     where
       i = toIndex bin x
 
 -- | Put one monoidal element
 fillMonoid :: Monoid a => HistogramST s bin a -> (BinValue bin, a) -> ST s ()
-fillMonoid (HistogramST bin u o arr) (x,m)
-    | i < 0             = modifySTRef u ((flip mappend m) $!)
-    | i >= lengthMU arr = modifySTRef o ((flip mappend m) $!)
+fillMonoid (HistogramST bin uo arr) (x,m)
+    | i < 0             = writeMU uo  1 . (flip mappend m)  =<< readMU uo  0
+    | i >= lengthMU arr = writeMU uo  1 . (flip mappend m)  =<< readMU uo  1
     | otherwise         = writeMU arr i . (flip mappend m)  =<< readMU arr i
     where
       i = toIndex bin x
 
 -- | Create immutable histogram from mutable one. This operation involve copying.
 freezeHist :: HistogramST s bin a -> ST s (Histogram bin a)
-freezeHist (HistogramST bin und over arr) = do
-  u <- readSTRef und
-  o <- readSTRef over
+freezeHist (HistogramST bin uo arr) = do
+  [u,o] <- fromU `fmap` unsafeFreezeAllMU uo -- Is it safe???
   -- Copy array
   let len = lengthMU arr
   tmp  <- newMU len
