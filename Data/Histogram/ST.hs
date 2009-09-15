@@ -35,7 +35,7 @@ import Data.Histogram.Bin
 
 -- | Mutable histogram
 data HistogramST s bin a where
-    HistogramST :: (Bin bin, UA a, Num a) => 
+    HistogramST :: (Bin bin, UA a) => 
                    bin
                 -> STRef s a
                 -> STRef s a
@@ -51,7 +51,7 @@ newHistogramST bin = do u <- newSTRef 0
                         return $ HistogramST bin u o a
 
 -- | Put one value into histogram
-fillOne :: HistogramST s bin a -> BinValue bin -> ST s ()
+fillOne :: Num a => HistogramST s bin a -> BinValue bin -> ST s ()
 fillOne (HistogramST bin u o arr) x
     | i < 0             = modifySTRef u ((+1) $!)
     | i >= lengthMU arr = modifySTRef o ((+1) $!)
@@ -60,7 +60,7 @@ fillOne (HistogramST bin u o arr) x
       i = toIndex bin x
 
 -- | Put one value into histogram with weight
-fillOneW :: HistogramST s bin a -> (BinValue bin, a) -> ST s ()
+fillOneW :: Num a => HistogramST s bin a -> (BinValue bin, a) -> ST s ()
 fillOneW (HistogramST bin u o arr) (x,w)
     | i < 0             = modifySTRef u ((+w) $!)
     | i >= lengthMU arr = modifySTRef o ((+w) $!)
