@@ -20,11 +20,9 @@ module Data.Histogram ( -- * Immutable histogram
                       , sliceX
                       ) where
 
-import Control.Monad (unless)
 import Data.Array.Vector
 import Text.Read
-import Text.ParserCombinators.ReadP    (many, satisfy)
-import Text.ParserCombinators.ReadPrec (lift, readPrec_to_S)
+import Text.ParserCombinators.ReadPrec (readPrec_to_S)
 
 import Data.Histogram.Bin
 import Data.Histogram.Parse

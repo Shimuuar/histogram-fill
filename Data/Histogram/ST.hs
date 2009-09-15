@@ -22,7 +22,6 @@ module Data.Histogram.ST ( -- * Mutable histograms
 
 import Control.Monad.ST
 
-import Data.STRef
 import Data.Array.Vector
 import Data.Monoid
 

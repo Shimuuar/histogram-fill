@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GADTs        #-}
 {-# LANGUAGE Rank2Types   #-}
 -- |
