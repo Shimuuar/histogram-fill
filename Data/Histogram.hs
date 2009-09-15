@@ -10,6 +10,7 @@ module Data.Histogram ( -- * Immutable histogram
                       , underflows
                       , overflows
                       , outOfRange
+                      , readHistogram
                       -- * Conversion
                       , asList
                       , asPairVector
@@ -23,7 +24,7 @@ import Control.Monad (unless)
 import Data.Array.Vector
 import Text.Read
 import Text.ParserCombinators.ReadP    (many, satisfy)
-import Text.ParserCombinators.ReadPrec (lift)
+import Text.ParserCombinators.ReadPrec (lift, readPrec_to_S)
 
 import Data.Histogram.Bin
 import Data.Histogram.Parse
@@ -46,19 +47,20 @@ instance (Show a, Show (BinValue bin), Show bin) => Show (Histogram bin a) where
         where
           showT (x,y) = show x ++ "\t" ++ show y
 
-instance (Read a, Num a, UA a, Read bin, Bin bin) => Read (Histogram bin a) where
-    readPrec = do
-      keyword "Histogram"
-      u   <- value "Underflows"
-      o   <- value "Overflows"
-      bin <- readPrec
-      xs  <- (map last . filter (not . null) . map words . lines) `fmap` look
-      -- Devour everything
-      lift $ many $ satisfy (const True)
-      rest <- look
-      unless (null rest) $ pfail 
-      -- Done
-      return $ Histogram bin (u,o) (toU $ map read xs)
+histHeader :: (Read bin, Read a, Bin bin, UA a) => ReadPrec (UArr a -> Histogram bin a)
+histHeader = do
+  keyword "Histogram"
+  u   <- value "Underflows"
+  o   <- value "Overflows"
+  bin <- readPrec
+  return $ Histogram bin (u,o)
+
+readHistogram :: (Read bin, Read a, Bin bin, UA a) => String -> Histogram bin a
+readHistogram str = 
+    let [(h,rest)] = readPrec_to_S histHeader 0 str 
+        xs = map last . filter (not . null) . map words . lines $ rest
+    in h (toU $ map read xs)
+
 
 -- | fmap lookalike. 
 mapHist :: UA b => (a -> b) -> Histogram bin a -> Histogram bin b
