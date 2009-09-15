@@ -132,7 +132,9 @@ mkHist :: (Bin bin, UA val, Num val) =>
        -> (Histogram bin val -> b) -- ^ Output function
        -> (a -> [BinValue bin])    -- ^ Input function 
        -> HBuilder a b
-mkHist bin out inp = MkHBuilder $ HistBuilder bin (flip fillMany . inp) out
+mkHist bin out inp = MkHBuilder $ HistBuilder bin fill out
+    where
+      fill a h = mapM_ (fillOne h) $ inp a
 
 -- | Create histogram with weighted bin. Takes one item at time. 
 mkHistWgh1 :: (Bin bin, UA val, Num val) =>
@@ -148,4 +150,6 @@ mkHistWgh :: (Bin bin, UA val, Num val) =>
           -> (Histogram bin val  -> b)    -- ^ Output function
           -> (a -> [(BinValue bin, val)]) -- ^ Input function
           -> HBuilder a b
-mkHistWgh bin out inp = MkHBuilder $ HistBuilder bin (flip fillManyW . inp) out
+mkHistWgh bin out inp = MkHBuilder $ HistBuilder bin fill out
+    where
+      fill a h = mapM_ (fillOneW h) $ inp a

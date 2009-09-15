@@ -6,8 +6,6 @@ module Data.Histogram.ST ( -- * Mutable histograms
                          , newHistogramST
                          , fillOne
                          , fillOneW
-                         , fillMany
-                         , fillManyW
                          , freezeHist
 
                          -- * Accumulators
@@ -69,14 +67,6 @@ fillOneW (HistogramST bin u o arr) (x,w)
     | otherwise         = writeMU arr i . (+w)  =<< readMU arr i
     where
       i = toIndex bin x
-
--- | Put many values into histogram
-fillMany :: HistogramST s bin a -> [BinValue bin] -> ST s ()
-fillMany hist = mapM_ (fillOne hist)
-
--- | Put many values into histogram with weight
-fillManyW :: HistogramST s bin a -> [(BinValue bin, a)] -> ST s ()
-fillManyW hist = mapM_ (fillOneW hist)
 
 -- | Create immutable histogram from mutable one. This operation involve copying.
 freezeHist :: HistogramST s bin a -> ST s (Histogram bin a)
