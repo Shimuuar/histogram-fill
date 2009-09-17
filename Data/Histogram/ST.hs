@@ -1,6 +1,15 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE Rank2Types #-}
+-- |
+-- Module     : Data.Histogram.Bin
+-- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
+-- License    : BSD3
+-- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
+-- Stability  : experimental
+-- 
+-- Mutable histograms.
+
 module Data.Histogram.ST ( -- * Mutable histograms
                            HistogramST(..)
                          , newHistogramST
@@ -86,7 +95,7 @@ freezeHist (HistogramST bin uo arr) = do
   tmp  <- newMU len
   memcpyOffMU arr tmp 0 0 len
   a    <- unsafeFreezeAllMU tmp
-  return $ Histogram bin (u,o) a
+  return $ Histogram bin (Just (u,o)) a
 
 
 
