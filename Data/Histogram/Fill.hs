@@ -97,10 +97,10 @@ instance HBuilderCl HBuilderList where
 -- | Generic histogram builder. 
 data HistBuilder a b where
     HistBuilder :: (Bin bin, UA val) =>
-                   bin                                                -- ^ Bin type
-                -> val                                                -- ^ Zero element
-                -> (forall s . a -> HistogramST s bin val -> ST s ()) -- ^ Input function
-                -> (Histogram bin val -> b)                           -- ^ Output function
+                   bin                                                -- Bin type
+                -> val                                                -- Zero element
+                -> (forall s . a -> HistogramST s bin val -> ST s ()) -- Input function
+                -> (Histogram bin val -> b)                           -- Output function
                 -> HistBuilder a b
 
 instance HBuilderCl HistBuilder where
