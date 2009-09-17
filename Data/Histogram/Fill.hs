@@ -7,6 +7,9 @@
 -- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- Stability  : experimental
 -- 
+-- Module with algorithms for histogram filling. This is pure wrapper
+-- around stateful histograms.
+-- 
 module Data.Histogram.Fill ( -- * Type classes & wrappers
                              HBuilderCl(..)
                            , HBuilder
@@ -26,6 +29,7 @@ module Data.Histogram.Fill ( -- * Type classes & wrappers
                            , mkHistMonoid1
                            , forceInt
                            , forceDouble
+                           , forceFloat
                            -- * Internals
                            , HistBuilder
                            ) where
@@ -80,12 +84,12 @@ instance HBuilderCl HBuilder where
 newtype HBuilderList a b = HBuilderList [HBuilder a b]
 
 -- | Wrap list of histogram builders into HBuilder.
-builderList :: [HBuilder a b] -> HBuilder a b
-builderList = MkHBuilder . HBuilderList
+builderList :: [HBuilder a b] -> HBuilder a [b]
+builderList = MkHBuilder . modifyOut (:[]) . HBuilderList
 
--- | Wrap list of histogram builders into HBuilder and change they return type 
-builderListWrap :: [HBuilder a b] -> HBuilder a [b]
-builderListWrap = MkHBuilder . modifyOut (:[]) . HBuilderList
+-- | Wrap list of histogram builders into HBuilder and do not change return type.
+builderListWrap :: [HBuilder a b] -> HBuilder a b
+builderListWrap = MkHBuilder . HBuilderList
 
 instance HBuilderCl HBuilderList where
     modifyIn  f (HBuilderList l) = HBuilderList $ map (modifyIn f) l
@@ -106,21 +110,28 @@ data HistBuilder a b where
 instance HBuilderCl HistBuilder where
     modifyIn  f (HistBuilder bin z inp out) = HistBuilder bin z (inp . f) out
     modifyOut g (HistBuilder bin z inp out) = HistBuilder bin z  inp (g . out)
-    runBuilder  (HistBuilder bin z inp out) = do h <- newHistogramST z bin
-                                                 accumHist inp out h
+    runBuilder  (HistBuilder bin z inp out) = accumHist inp out =<< newHistogramST z bin
+
 
 
 ----------------------------------------------------------------
 -- Histogram constructors 
 ----------------------------------------------------------------
 
+-- | Function used to restrict type of histrogram.
 forceInt :: Histogram bin Int -> Histogram bin Int
 forceInt = id
 
+-- | Function used to restrict type of histrogram.
 forceDouble :: Histogram bin Double -> Histogram bin Double
 forceDouble = id
 
--- | Create histogram builder which take single item as input. Each item has weight 1.
+-- | Function used to restrict type of histrogram.
+forceFloat :: Histogram bin Float -> Histogram bin Float
+forceFloat = id
+
+-- | Create histogram builder which take single item as input. Each
+--   item has weight 1. To set type of bin 'force*' function could be used.
 mkHist1 :: (Bin bin, UA val, Num val) =>
            bin                      -- ^ Bin information
         -> (Histogram bin val -> b) -- ^ Output function 
@@ -128,7 +139,9 @@ mkHist1 :: (Bin bin, UA val, Num val) =>
         -> HBuilder a b
 mkHist1 bin out inp = MkHBuilder $ HistBuilder bin 0 (flip fillOne . inp) out
 
--- | Create histogram builder which take many items as input. Each item has weight 1.
+-- | Create histogram builder which take many items as input. Each
+--   item has weight 1. To set type of bin 'force*' function could be
+--   used.
 mkHist :: (Bin bin, UA val, Num val) =>
           bin                      -- ^ Bin information
        -> (Histogram bin val -> b) -- ^ Output function

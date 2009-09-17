@@ -8,7 +8,7 @@
 -- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- Stability  : experimental
 -- 
--- Immutable histograms
+-- Immutable histograms. 
 
 module Data.Histogram ( -- * Immutable histogram
                         Histogram(..)
@@ -38,7 +38,8 @@ import Data.Histogram.Bin
 import Data.Histogram.Parse
 
 
--- | Immutable histogram
+-- | Immutable histogram. Histogram consists of binning algorithm,
+--   optional number of under and overflows, and data. 
 data Histogram bin a where
     Histogram :: (Bin bin, UA a) => 
                  bin
@@ -65,14 +66,16 @@ histHeader = do
   bin <- readPrec
   return $ Histogram bin (Just (u,o))
 
+-- | Convert String to histogram. Histogram do not have Read instance
+--   because of slowness of ReadP
 readHistogram :: (Read bin, Read a, Bin bin, UA a) => String -> Histogram bin a
 readHistogram str = 
     let [(h,rest)] = readPrec_to_S histHeader 0 str 
         xs = map last . filter (not . null) . map words . lines $ rest
     in h (toU $ map read xs)
 
-
--- | fmap lookalike. 
+-- | fmap lookalike. It's not possible to create Functor instance
+--   because of UA restriction.
 mapHist :: UA b => (a -> b) -> Histogram bin a -> Histogram bin b
 mapHist f (Histogram bin uo a) = Histogram bin (fmap (f *** f) uo) (mapU f a)
 
@@ -92,12 +95,11 @@ underflows (Histogram _ uo _) = fmap fst uo
 overflows :: Histogram bin a -> Maybe a
 overflows (Histogram _ uo _) = fmap snd uo
 
--- | Under and overflows
+-- | Underflows and overflows
 outOfRange :: Histogram bin a -> Maybe (a,a)
 outOfRange (Histogram _ uo _) = uo
 
-
--- | Convert histogram to list
+-- | Convert histogram to list.
 asList :: Histogram bin a -> [(BinValue bin, a)]
 asList (Histogram bin _ arr) = map (fromIndex bin) [0..] `zip` fromU arr
 
@@ -109,14 +111,14 @@ asPairVector (Histogram bin _ a) = (toU $ map (fromIndex bin) [0 .. nBins bin], 
 asVectorPairs :: UA (BinValue bin) => Histogram bin a -> UArr ((BinValue bin) :*: a)
 asVectorPairs h@(Histogram _ _ _) = uncurry zipU . asPairVector $ h
 
--- | Slice 2D histogram along Y axis
+-- | Slice 2D histogram along Y axis. This function is fast because it does not require reallocations.
 sliceY :: (Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bY, Histogram bX a)]
 sliceY (Histogram b@(Bin2D bX _) _ a) = map mkHist $ init [0, nBins bX .. nBins b]
     where
       mkHist i = ( snd $ fromIndex b i
                  , Histogram bX Nothing (sliceU a i (nBins bX)) )
 
--- | Slice 2D histogram along X axis
+-- | Slice 2D histogram along X axis.
 sliceX :: (Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bX, Histogram bY a)]
 sliceX (Histogram b@(Bin2D bX bY) _ a) = map mkHist $ init [0 .. nx]
     where
