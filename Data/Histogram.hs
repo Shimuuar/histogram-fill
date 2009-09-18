@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeOperators #-}
 -- |
--- Module     : Data.Histogram.Bin
+-- Module     : Data.Histogram
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- License    : BSD3
 -- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>

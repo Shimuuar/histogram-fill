@@ -2,7 +2,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE Rank2Types #-}
 -- |
--- Module     : Data.Histogram.Bin
+-- Module     : Data.Histogram.ST
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- License    : BSD3
 -- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -42,7 +42,7 @@ import Data.Histogram.Bin
 -- Mutable histograms
 ----------------------------------------------------------------
 
--- | Mutable histogram
+-- | Mutable histogram.
 data HistogramST s bin a where
     HistogramST :: (Bin bin, UA a) => 
                    bin
@@ -50,7 +50,8 @@ data HistogramST s bin a where
                 -> MUArr a s -- Data
                 -> HistogramST s bin a
 
--- | Create new mutable histogram. All bins are set to zero.
+-- | Create new mutable histogram. All bins are set to zero element as
+--   passed to function.
 newHistogramST :: (Bin bin, UA a) => a -> bin -> ST s (HistogramST s bin a)
 newHistogramST zero bin = do
   uo <- newMU 2
@@ -103,7 +104,7 @@ freezeHist (HistogramST bin uo arr) = do
 -- Accumulator typeclass
 ----------------------------------------------------------------
 -- | This is class with accumulation semantics. It's used to fill many
--- histogram at once. It accept values of type a and return data of type b.
+--   histogram at once. It accept values of type a and return data of type b.
 class Accumulator h where
     -- | Put one element into accumulator
     putOne  :: h s a b -> a   -> ST s () 
