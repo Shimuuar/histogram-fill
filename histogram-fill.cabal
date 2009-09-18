@@ -5,7 +5,7 @@ License:        BSD3
 License-File:   LICENSE
 Author:         Alexey Khudyakov
 Maintainer:     Alexey Khudyakov <alexey.skladnoy@gmail.com>
-Homepage:       
+Homepage:       http://bitbucket.org/Shimuuar/histogram-fill/
 Category:       Data
 Build-Type:     Simple
 Synopsis:       Tool for creation of histograms.
