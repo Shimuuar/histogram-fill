@@ -21,6 +21,7 @@ module Data.Histogram.Bin ( -- * Type class
                           , binFn
                           -- * 2D bins
                           , Bin2D(..)
+                          , (><)
                           ) where
 
 import Data.Histogram.Parse
@@ -123,6 +124,10 @@ instance (Read f, RealFrac f) => Read (BinF f) where
 
 -- | 2D bins. bin1 is binning along X axis and bin2 is one along Y axis. 
 data Bin2D bin1 bin2 = Bin2D bin1 bin2
+
+-- | Alias for 'Bin2D'.
+(><) :: bin1 -> bin2 -> Bin2D bin1 bin2
+(><) = Bin2D
 
 instance (Bin bin1, Bin bin2) => Bin (Bin2D bin1 bin2) where
     type BinValue (Bin2D bin1 bin2) = (BinValue bin1, BinValue bin2)
