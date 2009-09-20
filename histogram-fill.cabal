@@ -8,11 +8,13 @@ Maintainer:     Alexey Khudyakov <alexey.skladnoy@gmail.com>
 Homepage:       http://bitbucket.org/Shimuuar/histogram-fill/
 Category:       Data
 Build-Type:     Simple
-Synopsis:       Tool for creation of histograms.
-Description:
-  This is library for filling histograms. It's aim to provide
-  convenient way to create and fill histograms. This is very much work
-  in progress so expect API breakage in future relesases.
+Synopsis:       Library for histograms creation.
+Description:    
+  This is library for histograms filling. Its aim to provide
+  convenient way to create and fill histograms. 
+  .
+  This is very much work in progress so expect API breakage in future relesases.
+
 
 Library
   Build-Depends:        base >=3 && <5, uvector >=0.1 && <0.2
