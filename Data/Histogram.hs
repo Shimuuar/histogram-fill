@@ -30,6 +30,7 @@ module Data.Histogram ( -- * Immutable histogram
                       ) where
 
 import Control.Arrow ((***))
+import Control.Monad (ap)
 import Data.Array.Vector
 import Text.Read
 import Text.ParserCombinators.ReadPrec (readPrec_to_S)
@@ -47,6 +48,7 @@ data Histogram bin a where
               -> UArr a
               -> Histogram bin a
 
+
 instance (Show a, Show (BinValue bin), Show bin) => Show (Histogram bin a) where
     show h@(Histogram bin uo _) = "# Histogram\n" ++ showUO uo ++ show bin ++
                                   (unlines $ map showT $ asList h)
@@ -60,11 +62,10 @@ instance (Show a, Show (BinValue bin), Show bin) => Show (Histogram bin a) where
 histHeader :: (Read bin, Read a, Bin bin, UA a) => ReadPrec (UArr a -> Histogram bin a)
 histHeader = do
   keyword "Histogram"
-  -- FIXME: will fail for Nothing 
-  u   <- value "Underflows"
-  o   <- value "Overflows"
+  u   <- maybeValue "Underflows"
+  o   <- maybeValue "Overflows"
   bin <- readPrec
-  return $ Histogram bin (Just (u,o))
+  return $ Histogram bin ((,) `fmap` u `ap` o)
 
 -- | Convert String to histogram. Histogram do not have Read instance
 --   because of slowness of ReadP
