@@ -71,8 +71,10 @@ histHeader = do
 --   because of slowness of ReadP
 readHistogram :: (Read bin, Read a, Bin bin, UA a) => String -> Histogram bin a
 readHistogram str = 
-    let [(h,rest)] = readPrec_to_S histHeader 0 str 
-        xs = map last . filter (not . null) . map words . lines $ rest
+    let (h,rest) = case readPrec_to_S histHeader 0 str of
+                     [x] -> x
+                     _   -> error "Cannot parse histogram header"
+        xs = map (unwords . tail) . filter (not . null) . map words . lines $ rest
     in h (toU $ map read xs)
 
 -- | fmap lookalike. It's not possible to create Functor instance
