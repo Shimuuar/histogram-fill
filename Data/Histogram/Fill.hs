@@ -58,6 +58,8 @@ createHistograms h xs = fillHistograms (runBuilder h) xs
 class HBuilderCl h where 
     -- | Convert input type of histogram from a to a'
     modifyIn  :: (a' -> a) -> h a b -> h a' b 
+    -- | Add cut to histogram. Only put value histogram if condition is true.
+    addCut    :: (a -> Bool) -> h a b -> h a b
     -- | Convert output of histogram 
     modifyOut :: (b -> b') -> h a b -> h a  b'
     -- | Create stateful histogram from instructions. Histograms could
@@ -74,6 +76,7 @@ data HBuilder a b where
 
 instance HBuilderCl HBuilder where 
     modifyIn  f (MkHBuilder h) = MkHBuilder $ modifyIn f h
+    addCut    f (MkHBuilder h) = MkHBuilder $ addCut f h
     modifyOut g (MkHBuilder h) = MkHBuilder $ modifyOut g h 
     runBuilder  (MkHBuilder h) = runBuilder h
 
@@ -93,6 +96,7 @@ builderListWrap = MkHBuilder . HBuilderList
 
 instance HBuilderCl HBuilderList where
     modifyIn  f (HBuilderList l) = HBuilderList $ map (modifyIn f) l
+    addCut    f (HBuilderList l) = HBuilderList $ map (addCut f) l
     modifyOut g (HBuilderList l) = HBuilderList $ map (modifyOut g) l
     runBuilder (HBuilderList l)  = accumList $ map runBuilder l
 
@@ -109,6 +113,9 @@ data HistBuilder a b where
 
 instance HBuilderCl HistBuilder where
     modifyIn  f (HistBuilder bin z inp out) = HistBuilder bin z (inp . f) out
+    addCut cut (HistBuilder bin z inp out) = HistBuilder bin z newInp out
+        where 
+          newInp x = if cut x then inp x else const (return ())
     modifyOut g (HistBuilder bin z inp out) = HistBuilder bin z  inp (g . out)
     runBuilder  (HistBuilder bin z inp out) = accumHist inp out =<< newHistogramST z bin
 
