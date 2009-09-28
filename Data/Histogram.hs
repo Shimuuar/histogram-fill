@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 -- |
 -- Module     : Data.Histogram
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -32,6 +33,7 @@ module Data.Histogram ( -- * Immutable histogram
 import Control.Arrow ((***))
 import Control.Monad (ap)
 import Data.Array.Vector
+import Data.Typeable
 import Text.Read
 import Text.ParserCombinators.ReadPrec (readPrec_to_S)
 
@@ -47,7 +49,7 @@ data Histogram bin a where
               -> Maybe (a,a)
               -> UArr a
               -> Histogram bin a
-
+    deriving Typeable
 
 instance (Show a, Show (BinValue bin), Show bin) => Show (Histogram bin a) where
     show h@(Histogram bin uo _) = "# Histogram\n" ++ showUO uo ++ show bin ++
