@@ -42,6 +42,8 @@ class Bin b where
     {-# INLINE toIndex #-}
     -- | Convert from index to value. 
     fromIndex :: b -> Int -> BinValue b 
+    -- | Check whether value in range.
+    inRange :: b -> BinValue b -> Bool
     -- | Total number of bins
     nBins :: b -> Int
 
@@ -56,6 +58,7 @@ instance Bin BinI where
     type BinValue BinI = Int
     toIndex   !(BinI base _) !x = x - base
     fromIndex !(BinI base _) !x = x + base
+    inRange   !(BinI x y) i     = i>=x && i<=y
     nBins     !(BinI x y) = y - x + 1
 
 instance Show BinI where
@@ -99,6 +102,7 @@ instance Bin (BinF f) where
     type BinValue (BinF f) = f 
     toIndex   !(BinF from step _) !x = floor $ (x-from) / step
     fromIndex !(BinF from step _) !i = (step/2) + (fromIntegral i * step) + from 
+    inRange   !(BinF from step n) x  = x > from && x < from + step*fromIntegral n
     nBins     !(BinF _ _ n) = n
     {-# SPECIALIZE instance Bin (BinF Double) #-}
     {-# SPECIALIZE instance Bin (BinF Float) #-}
@@ -132,14 +136,11 @@ data Bin2D bin1 bin2 = Bin2D bin1 bin2
 instance (Bin bin1, Bin bin2) => Bin (Bin2D bin1 bin2) where
     type BinValue (Bin2D bin1 bin2) = (BinValue bin1, BinValue bin2)
 
-    toIndex   (Bin2D bx by) (x,y) 
-        | ix < 0 || ix >= rx || iy < 0 || iy >= ry = maxBound
-        | otherwise                                = ix + iy*rx
-        where
-          ix = toIndex bx x
-          iy = toIndex by y
-          rx = nBins bx
-          ry = nBins by
+    toIndex b@(Bin2D bx by) (x,y) 
+        | inRange b (x,y) = toIndex bx x + (toIndex by y)*(fromIntegral $ nBins bx)
+        | otherwise       = maxBound
+
+    inRange (Bin2D bx by) (x,y) = inRange bx x && inRange by y
 
     fromIndex (Bin2D bx by) i = let (iy,ix) = divMod i (nBins bx)
                                 in  (fromIndex bx ix, fromIndex by iy)
