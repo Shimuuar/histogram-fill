@@ -15,6 +15,7 @@ module Data.Histogram ( -- * Immutable histogram
                         Histogram(..)
                       , module Data.Histogram.Bin
                       , mapHist
+                      , mapHistBin
                       , histBin
                       , histData
                       , underflows
@@ -83,6 +84,11 @@ readHistogram str =
 --   because of UA restriction.
 mapHist :: UA b => (a -> b) -> Histogram bin a -> Histogram bin b
 mapHist f (Histogram bin uo a) = Histogram bin (fmap (f *** f) uo) (mapU f a)
+
+-- | Apply function to histogram bins. It's expected that function
+--   does not change total number of bins. This is not checked.
+mapHistBin :: Bin bin' => (bin -> bin') -> Histogram bin a -> Histogram bin' a
+mapHistBin f (Histogram bin uo a) = Histogram (f bin) uo a
 
 -- | Histogram bins
 histBin :: Histogram bin a -> bin

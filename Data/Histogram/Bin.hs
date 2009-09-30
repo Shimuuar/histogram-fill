@@ -19,9 +19,13 @@ module Data.Histogram.Bin ( -- * Type class
                           , BinF
                           , binF
                           , binFn
+                          , binI2binF
+                          , scaleBinF
                           -- * 2D bins
                           , Bin2D(..)
                           , (><)
+                          , applyBinX
+                          , applyBinY
                           ) where
 
 import Data.Histogram.Parse
@@ -39,11 +43,12 @@ class Bin b where
     type BinValue b
     -- | Convert from value to index. No bound checking performed
     toIndex :: b -> BinValue b -> Int
-    {-# INLINE toIndex #-}
+
     -- | Convert from index to value. 
     fromIndex :: b -> Int -> BinValue b 
     -- | Check whether value in range.
     inRange :: b -> BinValue b -> Bool
+
     -- | Total number of bins
     nBins :: b -> Int
 
@@ -57,8 +62,10 @@ data BinI = BinI !Int !Int
 instance Bin BinI where
     type BinValue BinI = Int
     toIndex   !(BinI base _) !x = x - base
+    {-# INLINE toIndex #-}
     fromIndex !(BinI base _) !x = x + base
     inRange   !(BinI x y) i     = i>=x && i<=y
+    {-# INLINE inRange #-}
     nBins     !(BinI x y) = y - x + 1
 
 instance Show BinI where
@@ -101,11 +108,23 @@ binFn from step to = BinF from step (round $ (to - from) / step)
 instance Bin (BinF f) where
     type BinValue (BinF f) = f 
     toIndex   !(BinF from step _) !x = floor $ (x-from) / step
+    {-# INLINE toIndex #-}
     fromIndex !(BinF from step _) !i = (step/2) + (fromIntegral i * step) + from 
     inRange   !(BinF from step n) x  = x > from && x < from + step*fromIntegral n
+    {-# INLINE inRange #-}
     nBins     !(BinF _ _ n) = n
     {-# SPECIALIZE instance Bin (BinF Double) #-}
     {-# SPECIALIZE instance Bin (BinF Float) #-}
+
+-- | Convert BinI to BinF
+binI2binF :: RealFrac f => BinI -> BinF f
+binI2binF b@(BinI i _) = BinF (fromIntegral i) 1 (nBins b)
+
+-- | 'scaleBinF a b' scales BinF using linaer transform 'a+b*x'
+scaleBinF :: RealFrac f => f -> f -> BinF f -> BinF f
+scaleBinF a b (BinF base step n) 
+    | b > 0     = BinF (a + b*base) (b*step) n
+    | otherwise = error "scaleBinF: b must be positive"
 
 instance Show f => Show (BinF f) where
     show (BinF base step n) = unlines [ "# BinF"
@@ -139,13 +158,19 @@ instance (Bin bin1, Bin bin2) => Bin (Bin2D bin1 bin2) where
     toIndex b@(Bin2D bx by) (x,y) 
         | inRange b (x,y) = toIndex bx x + (toIndex by y)*(fromIntegral $ nBins bx)
         | otherwise       = maxBound
-
-    inRange (Bin2D bx by) (x,y) = inRange bx x && inRange by y
-
+    {-# INLINE toIndex #-}
     fromIndex (Bin2D bx by) i = let (iy,ix) = divMod i (nBins bx)
                                 in  (fromIndex bx ix, fromIndex by iy)
+    inRange (Bin2D bx by) (x,y) = inRange bx x && inRange by y
+    {-# INLINE inRange #-}
 
     nBins (Bin2D b1 b2) = (nBins b1) * (nBins b2)
+
+applyBinX :: (bx -> bx') -> Bin2D bx by -> Bin2D bx' by
+applyBinX f (Bin2D bx by) = Bin2D (f bx) by
+
+applyBinY :: (by -> by') -> Bin2D bx by -> Bin2D bx by'
+applyBinY f (Bin2D bx by) = Bin2D bx (f by)
 
 instance (Show b1, Show b2) => Show (Bin2D b1 b2) where
     show (Bin2D b1 b2) = "# Bin2D\n" ++
