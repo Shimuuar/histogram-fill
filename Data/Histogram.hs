@@ -85,6 +85,7 @@ readHistogram str =
 mapHist :: UA b => (a -> b) -> Histogram bin a -> Histogram bin b
 mapHist f (Histogram bin uo a) = Histogram bin (fmap (f *** f) uo) (mapU f a)
 
+-- FIXME: add some checking. Preferably static.
 -- | Apply function to histogram bins. It's expected that function
 --   does not change total number of bins. This is not checked.
 mapHistBin :: Bin bin' => (bin -> bin') -> Histogram bin a -> Histogram bin' a

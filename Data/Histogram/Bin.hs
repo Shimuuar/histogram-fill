@@ -24,8 +24,8 @@ module Data.Histogram.Bin ( -- * Type class
                           -- * 2D bins
                           , Bin2D(..)
                           , (><)
-                          , applyBinX
-                          , applyBinY
+                          , fmapBinX
+                          , fmapBinY
                           ) where
 
 import Data.Histogram.Parse
@@ -145,15 +145,15 @@ instance (Read f, RealFrac f) => Read (BinF f) where
 ----------------------------------------------------------------
 -- 2D bin
 
--- | 2D bins. bin1 is binning along X axis and bin2 is one along Y axis. 
-data Bin2D bin1 bin2 = Bin2D bin1 bin2
+-- | 2D bins. binX is binning along X axis and binY is one along Y axis. 
+data Bin2D binX binY = Bin2D binX binY
 
 -- | Alias for 'Bin2D'.
-(><) :: bin1 -> bin2 -> Bin2D bin1 bin2
+(><) :: binX -> binY -> Bin2D binX binY
 (><) = Bin2D
 
-instance (Bin bin1, Bin bin2) => Bin (Bin2D bin1 bin2) where
-    type BinValue (Bin2D bin1 bin2) = (BinValue bin1, BinValue bin2)
+instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
+    type BinValue (Bin2D binX binY) = (BinValue binX, BinValue binY)
 
     toIndex b@(Bin2D bx by) (x,y) 
         | inRange b (x,y) = toIndex bx x + (toIndex by y)*(fromIntegral $ nBins bx)
@@ -164,13 +164,27 @@ instance (Bin bin1, Bin bin2) => Bin (Bin2D bin1 bin2) where
     inRange (Bin2D bx by) (x,y) = inRange bx x && inRange by y
     {-# INLINE inRange #-}
 
-    nBins (Bin2D b1 b2) = (nBins b1) * (nBins b2)
+    nBins (Bin2D bx by) = (nBins bx) * (nBins by)
 
-applyBinX :: (bx -> bx') -> Bin2D bx by -> Bin2D bx' by
-applyBinX f (Bin2D bx by) = Bin2D (f bx) by
+-- | 2-dimensional size of 
+nBins2D :: (Bin bx, Bin by) => Bin2D bx by -> (Int,Int)
+nBins2D (Bin2D bx by) = (nBins bx, nBins by)
 
-applyBinY :: (by -> by') -> Bin2D bx by -> Bin2D bx by'
-applyBinY f (Bin2D bx by) = Bin2D bx (f by)
+-- | Apply function to X binning algorithm. 
+--
+-- N.B. This is dangerous function. If new binning algorithm doesn't
+-- have the same numer of bins it could lead to diffcult to find
+-- errors.
+fmapBinX :: (bx -> bx') -> Bin2D bx by -> Bin2D bx' by
+fmapBinX f (Bin2D bx by) = Bin2D (f bx) by
+
+-- | Apply function to Y binning algorithm.
+--
+-- N.B. This is dangerous function. If new binning algorithm doesn't
+-- have the same numer of bins it could lead to diffcult to find
+-- errors.
+fmapBinY :: (by -> by') -> Bin2D bx by -> Bin2D bx by'
+fmapBinY f (Bin2D bx by) = Bin2D bx (f by)
 
 instance (Show b1, Show b2) => Show (Bin2D b1 b2) where
     show (Bin2D b1 b2) = "# Bin2D\n" ++
