@@ -16,6 +16,7 @@ module Data.Histogram ( -- * Immutable histogram
                       , module Data.Histogram.Bin
                       , mapHist
                       , mapHistBin
+                      , mapHistData
                       , histBin
                       , histData
                       , underflows
@@ -90,6 +91,13 @@ mapHist f (Histogram bin uo a) = Histogram bin (fmap (f *** f) uo) (mapU f a)
 --   does not change total number of bins. This is not checked.
 mapHistBin :: Bin bin' => (bin -> bin') -> Histogram bin a -> Histogram bin' a
 mapHistBin f (Histogram bin uo a) = Histogram (f bin) uo a
+
+mapHistData :: UA b => (UArr a -> UArr b) -> Histogram bin a -> Histogram bin b
+mapHistData f (Histogram bin uo a) 
+    | lengthU b /= lengthU a = error "Array length mismatch"
+    | otherwise              = Histogram bin Nothing b
+    where 
+      b = f a
 
 -- | Histogram bins
 histBin :: Histogram bin a -> bin
