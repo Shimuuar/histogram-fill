@@ -13,6 +13,7 @@
 
 module Data.Histogram.Bin ( -- * Type class
                             Bin(..)
+                          , Bin1D(..)
                           -- * Integer bins
                           , BinI(..)
                           -- * Floating point bins
@@ -23,7 +24,10 @@ module Data.Histogram.Bin ( -- * Type class
                           , scaleBinF
                           -- * 2D bins
                           , Bin2D(..)
+                          , nBins2D
                           , (><)
+                          , binX
+                          , binY
                           , fmapBinX
                           , fmapBinY
                           ) where
@@ -52,7 +56,13 @@ class Bin b where
     -- | Total number of bins
     nBins :: b -> Int
 
-
+-- | One dimensional binning algorithm
+class Bin b => Bin1D b where
+    -- | List of center of bins in ascending order.
+    binsList :: b -> [BinValue b]
+    -- | List of bins in ascending order.
+    binsListRange :: b -> [(BinValue b, BinValue b)]
+    
 ----------------------------------------------------------------
 -- Integer bin
 
@@ -67,6 +77,10 @@ instance Bin BinI where
     inRange   !(BinI x y) i     = i>=x && i<=y
     {-# INLINE inRange #-}
     nBins     !(BinI x y) = y - x + 1
+
+instance Bin1D BinI where
+    binsList (BinI lo hi) = [lo .. hi]
+    binsListRange b = zip (binsList b) (binsList b)
 
 instance Show BinI where
     show (BinI lo hi) = unlines [ "# BinI"
@@ -116,6 +130,11 @@ instance Bin (BinF f) where
     {-# SPECIALIZE instance Bin (BinF Double) #-}
     {-# SPECIALIZE instance Bin (BinF Float) #-}
 
+instance Bin1D (BinF f) where
+    binsList b@(BinF _ _ n) = map (fromIndex b) [0..n-1]
+    binsListRange (BinF from step n) = 
+        error "Unimplemented"
+
 -- | Convert BinI to BinF
 binI2binF :: RealFrac f => BinI -> BinF f
 binI2binF b@(BinI i _) = BinF (fromIntegral i) 1 (nBins b)
@@ -151,6 +170,14 @@ data Bin2D binX binY = Bin2D binX binY
 -- | Alias for 'Bin2D'.
 (><) :: binX -> binY -> Bin2D binX binY
 (><) = Bin2D
+
+-- | Get binning algorithm along X axis
+binX :: Bin2D bx by -> bx
+binX (Bin2D bx _) = bx
+
+-- | Get binning algorithm along Y axis
+binY :: Bin2D bx by -> by
+binY (Bin2D _ by) = by
 
 instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
     type BinValue (Bin2D binX binY) = (BinValue binX, BinValue binY)
