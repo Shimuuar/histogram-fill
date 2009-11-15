@@ -14,15 +14,19 @@
 module Data.Histogram ( -- * Immutable histogram
                         Histogram(..)
                       , module Data.Histogram.Bin
-                      , mapHist
-                      , mapHistBin
-                      , mapHistData
+                      -- ** Accessors
                       , histBin
                       , histData
                       , underflows
                       , overflows
                       , outOfRange
+                      -- ** Modify histogram
+                      , mapHist
+                      , mapHistBin
+                      , mapHistData
+                      -- * Reading histogram
                       , readHistogram
+                      , readFileHistogram
                       -- * Conversion
                       , asList
                       , asPairVector
@@ -63,6 +67,7 @@ instance (Show a, Show (BinValue bin), Show bin) => Show (Histogram bin a) where
           showUO Nothing      = "# Underflows = \n" ++
                                 "# Overflows  = \n"
 
+-- Parse histogram header
 histHeader :: (Read bin, Read a, Bin bin, UA a) => ReadPrec (UArr a -> Histogram bin a)
 histHeader = do
   keyword "Histogram"
@@ -81,6 +86,10 @@ readHistogram str =
         xs = map (unwords . tail) . filter (not . null) . map words . lines $ rest
     in h (toU $ map read xs)
 
+-- | Read histogram from file.
+readFileHistogram :: (Read bin, Read a, Bin bin, UA a) => FilePath -> IO (Histogram bin a)
+readFileHistogram fname = readHistogram `fmap` readFile fname
+
 -- | fmap lookalike. It's not possible to create Functor instance
 --   because of UA restriction.
 mapHist :: UA b => (a -> b) -> Histogram bin a -> Histogram bin b
@@ -90,7 +99,11 @@ mapHist f (Histogram bin uo a) = Histogram bin (fmap (f *** f) uo) (mapU f a)
 -- | Apply function to histogram bins. It's expected that function
 --   does not change total number of bins. This is not checked.
 mapHistBin :: Bin bin' => (bin -> bin') -> Histogram bin a -> Histogram bin' a
-mapHistBin f (Histogram bin uo a) = Histogram (f bin) uo a
+mapHistBin f (Histogram bin uo a)
+    | nBins bin == nBins bin' = Histogram (f bin) uo a
+    | otherwise               = error "Number of bins doesn't match"
+    where
+      bin' = bin
 
 mapHistData :: UA b => (UArr a -> UArr b) -> Histogram bin a -> Histogram bin b
 mapHistData f (Histogram bin uo a) 
