@@ -39,6 +39,7 @@ module Data.Histogram.Bin ( -- * Type classes
                           , fmapBinY
                           ) where
 
+import Data.List (intercalate)
 import Data.Histogram.Parse
 import Text.Read (Read(..))
 
@@ -243,7 +244,6 @@ binY (Bin2D _ by) = by
 
 instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
     type BinValue (Bin2D binX binY) = (BinValue binX, BinValue binY)
-
     toIndex b@(Bin2D bx by) (x,y) 
         | inRange b (x,y) = toIndex bx x + (toIndex by y)*(fromIntegral $ nBins bx)
         | otherwise       = maxBound
@@ -252,35 +252,37 @@ instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
                                 in  (fromIndex bx ix, fromIndex by iy)
     inRange (Bin2D bx by) (x,y) = inRange bx x && inRange by y
     {-# INLINE inRange #-}
-
     nBins (Bin2D bx by) = (nBins bx) * (nBins by)
 
 -- | 2-dimensional size of 
 nBins2D :: (Bin bx, Bin by) => Bin2D bx by -> (Int,Int)
 nBins2D (Bin2D bx by) = (nBins bx, nBins by)
 
--- | Apply function to X binning algorithm. 
---
--- N.B. This is dangerous function. If new binning algorithm doesn't
--- have the same numer of bins it could lead to diffcult to find
--- errors.
-fmapBinX :: (bx -> bx') -> Bin2D bx by -> Bin2D bx' by
-fmapBinX f (Bin2D bx by) = Bin2D (f bx) by
+-- | Apply function to X binning algorithm. If new binning algorithm
+--   have different number of bins will fail.
+fmapBinX :: (Bin bx, Bin bx') => (bx -> bx') -> Bin2D bx by -> Bin2D bx' by
+fmapBinX f (Bin2D bx by) 
+    | nBins bx' /= nBins bx = error "fmapBinX: new binnig algorithm has different number of bins"
+    | otherwise             = Bin2D bx' by
+    where 
+      bx' = f bx
 
--- | Apply function to Y binning algorithm.
---
--- N.B. This is dangerous function. If new binning algorithm doesn't
--- have the same numer of bins it could lead to diffcult to find
--- errors.
-fmapBinY :: (by -> by') -> Bin2D bx by -> Bin2D bx by'
-fmapBinY f (Bin2D bx by) = Bin2D bx (f by)
+-- | Apply function to Y binning algorithm. If new binning algorithm
+--   have different number of bins will fail.
+fmapBinY ::(Bin by, Bin by') => (by -> by') -> Bin2D bx by -> Bin2D bx by'
+fmapBinY f (Bin2D bx by)
+    | nBins by' /= nBins by = error "fmapBinY: new binnig algorithm has different number of bins"
+    | otherwise             = Bin2D bx by'
+    where 
+      by' = f by
 
 instance (Show b1, Show b2) => Show (Bin2D b1 b2) where
-    show (Bin2D b1 b2) = "# Bin2D\n" ++
-                         "# X\n" ++ 
-                         show b1 ++
-                         "# Y\n" ++
-                         show b2
+    show (Bin2D b1 b2) = intercalate "\n" [ "# Bin2D"
+                                          , "# X"
+                                          , show b1
+                                          , "# Y"
+                                          , show b2
+                                          ]
 instance (Read b1, Read b2) => Read (Bin2D b1 b2) where
     readPrec = do
       keyword "Bin2D"
