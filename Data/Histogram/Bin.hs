@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs        #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE BangPatterns #-}
@@ -11,18 +12,24 @@
 -- Binning algorithms. This is mapping from set of interest to integer
 -- indices and approximate reverse. 
 
-module Data.Histogram.Bin ( -- * Type class
+module Data.Histogram.Bin ( -- * Type classes
                             Bin(..)
                           , Bin1D(..)
-                          -- * Integer bins
+                          , Indexable(..)
+                          , Indexable2D(..)
+                          -- * Bin types
+                          -- ** Integer bins
                           , BinI(..)
-                          -- * Floating point bins
+                          -- ** Indexed bins 
+                          , BinIx
+                          , binIx
+                          -- ** Floating point bins
                           , BinF
                           , binF
                           , binFn
                           , binI2binF
                           , scaleBinF
-                          -- * 2D bins
+                          -- ** 2D bins
                           , Bin2D(..)
                           , nBins2D
                           , (><)
@@ -36,7 +43,7 @@ import Data.Histogram.Parse
 import Text.Read (Read(..))
 
 
-
+----------------------------------------------------------------
 -- | Abstract binning algorithm. Following invariant is expected to hold: 
 -- 
 -- > toIndex . fromIndex == id
@@ -47,25 +54,48 @@ class Bin b where
     type BinValue b
     -- | Convert from value to index. No bound checking performed
     toIndex :: b -> BinValue b -> Int
-
     -- | Convert from index to value. 
     fromIndex :: b -> Int -> BinValue b 
     -- | Check whether value in range.
     inRange :: b -> BinValue b -> Bool
-
     -- | Total number of bins
     nBins :: b -> Int
 
+----------------------------------------------------------------
 -- | One dimensional binning algorithm
 class Bin b => Bin1D b where
     -- | List of center of bins in ascending order.
     binsList :: b -> [BinValue b]
     -- | List of bins in ascending order.
     binsListRange :: b -> [(BinValue b, BinValue b)]
-    
+
+----------------------------------------------------------------
+-- | Indexable is value which could be converted to and from Int
+class Indexable a where
+    -- | Convert value to index
+    index :: a -> Int 
+    -- | Convert index to value
+    deindex :: Int -> a
+
+instance Indexable Int where
+    index   = id
+    deindex = id
+
+----------------------------------------------------------------
+-- | Value which could be converted to/from (Int,Int) tuples
+class Indexable2D a where
+    -- | Convert value to index
+    index2D :: a -> (Int,Int)
+    -- | Convert index to value
+    deindex2D :: (Int,Int) -> a
+
+instance (Indexable a, Indexable b) => Indexable2D (a,b) where
+    index2D   (x,y) = (index x,   index y)
+    deindex2D (i,j) = (deindex i, deindex j)
+
 ----------------------------------------------------------------
 -- Integer bin
-
+----------------------------------------------------------------
 -- | Integer bins. This is inclusive interval [from,to]
 data BinI = BinI !Int !Int
 
@@ -87,7 +117,6 @@ instance Show BinI where
                                 , "# Low  = " ++ show lo
                                 , "# High = " ++ show hi
                                 ]
-
 instance Read BinI where
     readPrec = do
       keyword "BinI"
@@ -97,13 +126,46 @@ instance Read BinI where
 
 
 ----------------------------------------------------------------
--- Floating point bin
+-- Bins for indexables5A
+----------------------------------------------------------------
+-- | Bin for indexable values
+newtype BinIx i = BinIx BinI
 
+-- | Construct indexed bin
+binIx :: Indexable i => i -> i -> BinIx i
+binIx lo hi = BinIx $ BinI (index lo) (index hi)
+
+instance Indexable i => Bin (BinIx i) where
+    type BinValue (BinIx i) = i
+    toIndex   (BinIx b) x = toIndex b (index x)
+    fromIndex (BinIx b) i = deindex (fromIndex b i)
+    inRange   (BinIx b) x = inRange b (index x)
+    nBins (BinIx b) = nBins b
+
+instance Indexable i => Bin1D (BinIx i) where
+    binsList (BinIx b) = map deindex (binsList b)
+    binsListRange b    = let bins = binsList b in zip bins bins
+
+instance (Show i, Indexable i) => Show (BinIx i) where
+    show (BinIx (BinI lo hi)) = unlines [ "# BinIx"
+                                        , "# Low  = " ++ show (deindex lo :: i)
+                                        , "# High = " ++ show (deindex hi :: i)
+                                        ]
+instance (Read i, Indexable i) => Read (BinIx i) where
+    readPrec = do
+      keyword "BinIx"
+      l <- value "Low"
+      h <- value "High"
+      return $ binIx l h
+
+----------------------------------------------------------------
+-- Floating point bin
+----------------------------------------------------------------
 -- | Floaintg point bins with equal sizes.
 data BinF f where
     BinF :: RealFrac f => !f -> !f -> !Int -> BinF f 
 
--- | Create bins 
+-- | Create bins.
 binF :: RealFrac f => 
         f   -- ^ Lower bound of range
      -> Int -- ^ Number of bins
@@ -119,6 +181,16 @@ binFn :: RealFrac f =>
       -> BinF f 
 binFn from step to = BinF from step (round $ (to - from) / step)
 
+-- | Convert BinI to BinF
+binI2binF :: RealFrac f => BinI -> BinF f
+binI2binF b@(BinI i _) = BinF (fromIntegral i) 1 (nBins b)
+
+-- | 'scaleBinF a b' scales BinF using linaer transform 'a+b*x'
+scaleBinF :: RealFrac f => f -> f -> BinF f -> BinF f
+scaleBinF a b (BinF base step n) 
+    | b > 0     = BinF (a + b*base) (b*step) n
+    | otherwise = error $ "scaleBinF: b must be positive (b = "++show b++")"
+
 instance Bin (BinF f) where
     type BinValue (BinF f) = f 
     toIndex   !(BinF from step _) !x = floor $ (x-from) / step
@@ -128,30 +200,19 @@ instance Bin (BinF f) where
     {-# INLINE inRange #-}
     nBins     !(BinF _ _ n) = n
     {-# SPECIALIZE instance Bin (BinF Double) #-}
-    {-# SPECIALIZE instance Bin (BinF Float) #-}
+    {-# SPECIALIZE instance Bin (BinF Float)  #-}
 
 instance Bin1D (BinF f) where
     binsList b@(BinF _ _ n) = map (fromIndex b) [0..n-1]
     binsListRange (BinF from step n) = 
         error "Unimplemented"
 
--- | Convert BinI to BinF
-binI2binF :: RealFrac f => BinI -> BinF f
-binI2binF b@(BinI i _) = BinF (fromIntegral i) 1 (nBins b)
-
--- | 'scaleBinF a b' scales BinF using linaer transform 'a+b*x'
-scaleBinF :: RealFrac f => f -> f -> BinF f -> BinF f
-scaleBinF a b (BinF base step n) 
-    | b > 0     = BinF (a + b*base) (b*step) n
-    | otherwise = error "scaleBinF: b must be positive"
-
 instance Show f => Show (BinF f) where
     show (BinF base step n) = unlines [ "# BinF"
-                                  , "# Base = " ++ show base
-                                  , "# Step = " ++ show step
-                                  , "# N    = " ++ show n
-                                  ]
-
+                                      , "# Base = " ++ show base
+                                      , "# Step = " ++ show step
+                                      , "# N    = " ++ show n
+                                      ]
 instance (Read f, RealFrac f) => Read (BinF f) where
     readPrec = do
       keyword "BinF"
@@ -163,6 +224,7 @@ instance (Read f, RealFrac f) => Read (BinF f) where
 
 ----------------------------------------------------------------
 -- 2D bin
+----------------------------------------------------------------
 
 -- | 2D bins. binX is binning along X axis and binY is one along Y axis. 
 data Bin2D binX binY = Bin2D binX binY
