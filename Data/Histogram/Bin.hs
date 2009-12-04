@@ -208,8 +208,9 @@ instance Bin (BinF f) where
 
 instance Bin1D (BinF f) where
     binsList b@(BinF _ _ n) = map (fromIndex b) [0..n-1]
-    binsListRange (BinF from step n) = 
-        error "Unimplemented"
+    binsListRange b@(BinF _ step _) = map toPair (binsList b)
+        where
+          toPair x = (x - step/2, x + step/2)
 
 instance Show f => Show (BinF f) where
     show (BinF base step n) = unlines [ "# BinF"
@@ -306,7 +307,7 @@ newtype BinIx2D i = BinIx2D {unBinIx2D :: (Bin2D BinI BinI) }
 binIx2D :: Indexable2D i => i -> i -> BinIx2D i
 binIx2D lo hi = let (ix,iy) = index2D lo
                     (jx,jy) = index2D hi
-                in BinIx2D $ BinI ix jx >< BinI jx jy
+                in BinIx2D $ BinI ix jx >< BinI iy jy
 
 instance Indexable2D i => Bin (BinIx2D i) where
     type BinValue (BinIx2D i) = i
