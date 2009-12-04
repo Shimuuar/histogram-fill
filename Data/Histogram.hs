@@ -37,8 +37,10 @@ module Data.Histogram ( -- * Immutable histogram
                       ) where
 
 import Control.Arrow ((***))
-import Control.Monad (ap)
-import Data.Array.Vector
+import Control.Monad
+import Control.Monad.ST
+import Data.Array.Vector hiding (indexU)
+import Data.Array.Vector.UArr (indexU)
 import Data.Typeable
 import Text.Read
 import Text.ParserCombinators.ReadPrec (readPrec_to_S)
@@ -106,7 +108,7 @@ mapHistBin f (Histogram bin uo a)
       bin' = bin
 
 mapHistData :: UA b => (UArr a -> UArr b) -> Histogram bin a -> Histogram bin b
-mapHistData f (Histogram bin uo a) 
+mapHistData f (Histogram bin _ a) 
     | lengthU b /= lengthU a = error "Array length mismatch"
     | otherwise              = Histogram bin Nothing b
     where 
@@ -146,16 +148,19 @@ asVectorPairs h@(Histogram _ _ _) = uncurry zipU . asPairVector $ h
 
 -- | Slice 2D histogram along Y axis. This function is fast because it does not require reallocations.
 sliceY :: (Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bY, Histogram bX a)]
-sliceY (Histogram b@(Bin2D bX _) _ a) = map mkHist $ init [0, nBins bX .. nBins b]
+sliceY (Histogram b _ a) = map mkSlice [0 .. ny-1]
     where
-      mkHist i = ( snd $ fromIndex b i
-                 , Histogram bX Nothing (sliceU a i (nBins bX)) )
+      (nx, ny) = nBins2D b
+      mkSlice i = ( fromIndex (binY b) i
+                  , Histogram (binX b) Nothing (sliceU a (nx*i) nx) )
 
 -- | Slice 2D histogram along X axis.
 sliceX :: (Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bX, Histogram bY a)]
-sliceX (Histogram b@(Bin2D bX bY) _ a) = map mkHist $ init [0 .. nx]
+sliceX (Histogram b _ a) = map mkSlice [0 .. nx-1]
     where
-      nx = nBins bX
-      n  = nBins b
-      mkHist i = ( fst $ fromIndex b i
-                 , Histogram bY Nothing (toU $ map (indexU a) [i,i+nx .. n-1]) )
+      (nx, ny)  = nBins2D b
+      mkSlice i = ( fromIndex (binX b) i
+                  , Histogram (binY b) Nothing (mkArray i))
+      mkArray x = runST $ do arr <- newMU ny
+                             forM_ [0 .. ny-1] $ \y -> writeMU arr y (indexU a (y*nx + x))
+                             unsafeFreezeAllMU arr
