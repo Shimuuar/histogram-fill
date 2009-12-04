@@ -21,7 +21,7 @@ module Data.Histogram.Bin ( -- * Type classes
                           -- ** Integer bins
                           , BinI(..)
                           -- ** Indexed bins 
-                          , BinIx
+                          , BinIx(unBinIx)
                           , binIx
                           -- ** Floating point bins
                           , BinF
@@ -37,6 +37,9 @@ module Data.Histogram.Bin ( -- * Type classes
                           , binY
                           , fmapBinX
                           , fmapBinY
+                          -- ** 2D indexed bins
+                          , BinIx2D (unBinIx2D)
+                          , binIx2D
                           ) where
 
 import Data.List (intercalate)
@@ -129,8 +132,8 @@ instance Read BinI where
 ----------------------------------------------------------------
 -- Bins for indexables5A
 ----------------------------------------------------------------
--- | Bin for indexable values
-newtype BinIx i = BinIx BinI
+-- | Binning for indexable values
+newtype BinIx i = BinIx { unBinIx :: BinI }
 
 -- | Construct indexed bin
 binIx :: Indexable i => i -> i -> BinIx i
@@ -254,7 +257,7 @@ instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
     {-# INLINE inRange #-}
     nBins (Bin2D bx by) = (nBins bx) * (nBins by)
 
--- | 2-dimensional size of 
+-- | 2-dimensional size of binning algorithm
 nBins2D :: (Bin bx, Bin by) => Bin2D bx by -> (Int,Int)
 nBins2D (Bin2D bx by) = (nBins bx, nBins by)
 
@@ -291,3 +294,35 @@ instance (Read b1, Read b2) => Read (Bin2D b1 b2) where
       keyword "Y"
       b2 <- readPrec
       return $ Bin2D b1 b2
+
+
+----------------------------------------------------------------
+-- Indexed 2D bins
+----------------------------------------------------------------
+-- | Binning for 2D indexable value
+newtype BinIx2D i = BinIx2D {unBinIx2D :: (Bin2D BinI BinI) }
+
+-- | Construct indexed bin
+binIx2D :: Indexable2D i => i -> i -> BinIx2D i
+binIx2D lo hi = let (ix,iy) = index2D lo
+                    (jx,jy) = index2D hi
+                in BinIx2D $ BinI ix jx >< BinI jx jy
+
+instance Indexable2D i => Bin (BinIx2D i) where
+    type BinValue (BinIx2D i) = i
+    toIndex   (BinIx2D b) x = toIndex b (index2D x)
+    fromIndex (BinIx2D b) i = deindex2D $ fromIndex b i
+    inRange   (BinIx2D b) x = inRange b (index2D x)
+    nBins     (BinIx2D b)   = nBins b
+
+instance (Show i, Indexable2D i) => Show (BinIx2D i) where
+    show (BinIx2D b) = unlines [ "# BinIx2D"
+                               , "# Low  = " ++ show (deindex2D (fromIndex b 0            ) :: i)
+                               , "# High = " ++ show (deindex2D (fromIndex b (nBins b - 1)) :: i)
+                               ]
+instance (Read i, Indexable2D i) => Read (BinIx2D i) where
+    readPrec = do
+      keyword "BinIx"
+      l <- value "Low"
+      h <- value "High"
+      return $ binIx2D l h
