@@ -281,12 +281,12 @@ fmapBinY f (Bin2D bx by)
       by' = f by
 
 instance (Show b1, Show b2) => Show (Bin2D b1 b2) where
-    show (Bin2D b1 b2) = intercalate "\n" [ "# Bin2D"
-                                          , "# X"
-                                          , show b1
-                                          , "# Y"
-                                          , show b2
-                                          ]
+    show (Bin2D b1 b2) = concat [ "# Bin2D\n"
+                                , "# X\n"
+                                , show b1
+                                , "# Y\n"
+                                , show b2
+                                ]
 instance (Read b1, Read b2) => Read (Bin2D b1 b2) where
     readPrec = do
       keyword "Bin2D"
