@@ -21,7 +21,7 @@ module Data.Histogram.Bin ( -- * Type classes
                           -- ** Integer bins
                           , BinI(..)
                           -- ** Indexed bins 
-                          , BinIx(unBinIx)
+                          , BinIx(BinIx,unBinIx)
                           , binIx
                           -- ** Floating point bins
                           , BinF
@@ -130,7 +130,7 @@ instance Read BinI where
 
 
 ----------------------------------------------------------------
--- Bins for indexables5A
+-- Bins for indexables
 ----------------------------------------------------------------
 -- | Binning for indexable values
 newtype BinIx i = BinIx { unBinIx :: BinI }
@@ -170,6 +170,9 @@ instance (Read i, Indexable i) => Read (BinIx i) where
 data BinF f where
     BinF :: RealFrac f => !f -> !f -> !Int -> BinF f 
 
+instance Eq f => Eq (BinF f) where
+    (BinF lo hi n) == (BinF lo' hi' n') = lo == lo'  && hi == hi' && n == n'
+                                          
 -- | Create bins.
 binF :: RealFrac f => 
         f   -- ^ Lower bound of range
