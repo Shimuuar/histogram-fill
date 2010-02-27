@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleInstances #-}
 import Control.Applicative
 
 import Test.QuickCheck
@@ -18,21 +19,28 @@ p = quickCheck
 runTests :: [(String, IO ())] -> IO ()
 runTests = mapM_ $ \(name, test) -> putStrLn (" * " ++ name) >> test
 
+type Index = Int
+
 ----------------------------------------------------------------
--- Arbitary Instance for BinI
+-- Arbitrary Instance for BinI
 instance Arbitrary BinI where
     arbitrary = do
-      let maxI = 10^8
-      lo <- choose (0      , (maxI-1))
-      hi <- choose ((lo+1) , (maxI))
+      let maxI = 15000
+      lo <- choose (-maxI , maxI)
+      hi <- choose (lo    , maxI)
       return $ BinI lo hi
 
 instance Arbitrary (BinIx a) where
     arbitrary = BinIx <$> arbitrary
 
-instance (RealFrac f, Random f) => Arbitrary (BinF f) where
+instance Arbitrary (BinF Float) where
     arbitrary = do 
-      let maxN = 10^8
+      lo <- choose (-1.0e+3-1 , 1.0e+3)
+      n  <- choose (1, 10^3)
+      hi <- choose (lo , 1.0e+3+1)
+      return $ binF lo n hi
+instance Arbitrary (BinF Double) where
+    arbitrary = do 
       lo <- choose (-1.0e+6-1 , 1.0e+6)
       n  <- choose (1, 10^6)
       hi <- choose (lo , 1.0e+6+1)
@@ -53,16 +61,19 @@ readShowTest :: (Read a, Show a, Eq a) => a -> Bool
 readShowTest = equalTest (read . show) 
 
 -- toIndex . fromIndex
-fromToIndexTest :: (Bin bin) => (Int, bin) -> Bool
-fromToIndexTest (x, bin) = equalTest (toIndex bin . fromIndex bin) x
+fromToIndexTest :: (Bin bin) => (Index, bin) -> Bool
+fromToIndexTest (x, bin) | inRange bin val = x == toIndex bin val 
+                         | otherwise       = True -- Equality doesn't hold for out of range indices
+                         where val = fromIndex bin x 
 
 -- fromIndex . toIndex // Hold only for integral bins
 toFromIndexTest :: (Bin bin, Eq (BinValue bin)) => (BinValue bin, bin) -> Bool
-toFromIndexTest (x, bin) = equalTest (fromIndex bin . toIndex bin) x
+toFromIndexTest (x, bin) | inRange bin x = equalTest (fromIndex bin . toIndex bin) x
+                         | otherwise     = True -- Doesn't hold for out of range indices
 ----------------------------------------------------------------
 
 testsEq :: [(String, IO ())]
-testsEq = [ ( "==== Read/Show tests" , return ())
+testsEq = [ ( "==== Equality reflexivity tests" , return ())
           , ( "BinI"        , p (eqTest :: BinI            -> Bool))
           , ( "BinIx Int"   , p (eqTest :: BinIx Int       -> Bool))
           , ( "BinF Double" , p (eqTest :: BinF Double     -> Bool))
@@ -80,15 +91,15 @@ testsRead = [ ( "==== Read/Show tests" , return ())
 testsIndexing :: [(String, IO ())]
 testsIndexing = [ ( "==== Bin {to,from}Index tests ====", return ())
                 -- Integral bins
-                , ( "BinI"        , p (fromToIndexTest :: (Int, BinI)        -> Bool))
-                , ( "BinI'"       , p (toFromIndexTest :: (Int, BinI)        -> Bool))
-                , ( "BinIx"       , p (fromToIndexTest :: (Int, BinIx Int)   -> Bool))
-                , ( "BinIx'"      , p (toFromIndexTest :: (Int, BinIx Int)   -> Bool))
+                , ( "BinI"        , p (fromToIndexTest :: (Index, BinI)        -> Bool))
+                , ( "BinI'"       , p (toFromIndexTest :: (Int,   BinI)        -> Bool))
+                , ( "BinIx"       , p (fromToIndexTest :: (Index, BinIx Int)   -> Bool))
+                , ( "BinIx'"      , p (toFromIndexTest :: (Int,   BinIx Int)   -> Bool))
                 -- Floating point bins
-                , ( "BinF Float"  , p (fromToIndexTest :: (Int, BinF Float)  -> Bool))
-                , ( "BinF Double" , p (fromToIndexTest :: (Int, BinF Double) -> Bool))
+                -- No test for Float because of roundoff errors
+                , ( "BinF Double" , p (fromToIndexTest :: (Index, BinF Double) -> Bool))
                 -- 2D bins
-                , ( "Bin2D"       , p (fromToIndexTest :: ( Int,      Bin2D BinI BinI) -> Bool))
+                , ( "Bin2D"       , p (fromToIndexTest :: (Index, Bin2D BinI BinI) -> Bool))
                 , ( "Bin2D"       , p (toFromIndexTest :: ((Int,Int), Bin2D BinI BinI) -> Bool))
                 ]
 testsAll :: [(String, IO ())]
