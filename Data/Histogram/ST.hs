@@ -35,8 +35,6 @@ import Data.Array.Vector
 import Data.Monoid
 
 import Data.Histogram
-import Data.Histogram.Bin
-
 
 ----------------------------------------------------------------
 -- Mutable histograms

@@ -1,3 +1,4 @@
+
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeOperators #-}
@@ -43,7 +44,6 @@ import Data.Array.Vector hiding (indexU)
 import Data.Array.Vector.UArr (indexU)
 import Data.Typeable
 import Text.Read
-import Text.ParserCombinators.ReadPrec (readPrec_to_S)
 
 import Data.Histogram.Bin
 import Data.Histogram.Parse

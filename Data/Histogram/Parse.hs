@@ -7,7 +7,6 @@ module Data.Histogram.Parse ( ws
 
 import Text.Read
 import Text.ParserCombinators.ReadP    (ReadP, many, satisfy, char, string)
-import Text.ParserCombinators.ReadPrec
 
 -- Whitespaces
 ws :: ReadP String
@@ -28,7 +27,7 @@ key s = char '#' >> ws >> string s
 
 getVal :: Read a => ReadPrec a
 getVal = do x <- readPrec
-            lift eol 
+            lift eol
             return x
 
 -- Key value pair
