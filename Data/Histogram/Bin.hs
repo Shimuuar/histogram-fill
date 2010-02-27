@@ -193,7 +193,7 @@ binFn from step to = BinF from step (round $ (to - from) / step)
 binI2binF :: RealFrac f => BinI -> BinF f
 binI2binF b@(BinI i _) = BinF (fromIntegral i) 1 (nBins b)
 
--- | 'scaleBinF a b' scales BinF using linaer transform 'a+b*x'
+-- | 'scaleBinF a b' scales BinF using linear transform 'a+b*x'
 scaleBinF :: RealFrac f => f -> f -> BinF f -> BinF f
 scaleBinF a b (BinF base step n) 
     | b > 0     = BinF (a + b*base) (b*step) n
