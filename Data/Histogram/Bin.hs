@@ -42,7 +42,6 @@ module Data.Histogram.Bin ( -- * Type classes
                           , binIx2D
                           ) where
 
-import Data.List (intercalate)
 import Data.Histogram.Parse
 import Text.Read (Read(..))
 
@@ -102,6 +101,7 @@ instance (Indexable a, Indexable b) => Indexable2D (a,b) where
 ----------------------------------------------------------------
 -- | Integer bins. This is inclusive interval [from,to]
 data BinI = BinI !Int !Int
+            deriving Eq
 
 instance Bin BinI where
     type BinValue BinI = Int
@@ -134,6 +134,7 @@ instance Read BinI where
 ----------------------------------------------------------------
 -- | Binning for indexable values
 newtype BinIx i = BinIx { unBinIx :: BinI }
+                  deriving Eq
 
 -- | Construct indexed bin
 binIx :: Indexable i => i -> i -> BinIx i
@@ -233,6 +234,7 @@ instance (Read f, RealFrac f) => Read (BinF f) where
 
 -- | 2D bins. binX is binning along X axis and binY is one along Y axis. 
 data Bin2D binX binY = Bin2D binX binY
+                       deriving Eq
 
 -- | Alias for 'Bin2D'.
 (><) :: binX -> binY -> Bin2D binX binY
