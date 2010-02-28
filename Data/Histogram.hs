@@ -1,4 +1,3 @@
-
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeOperators #-}
@@ -43,8 +42,6 @@ import Control.Monad.ST
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as MU
 import qualified Data.Vector.Generic as G
--- import qualified Data.Vector.Unboxed.Base as U
--- import Data.Primitive.Array (unsafeFreezeArray)
 import Data.Typeable
 import Text.Read
 
