@@ -59,6 +59,9 @@ data Histogram bin a where
               -> Histogram bin a
     deriving Typeable
 
+instance (Eq a, Eq bin) => Eq (Histogram bin a) where
+    (Histogram bin uo a) == (Histogram bin' uo' a') = bin==bin' && uo==uo' && a==a'
+
 instance (Show a, Show (BinValue bin), Show bin) => Show (Histogram bin a) where
     show h@(Histogram bin uo _) = "# Histogram\n" ++ showUO uo ++ show bin ++
                                   (unlines $ map showT $ asList h)
