@@ -17,7 +17,7 @@ Description:
 
 
 Library
-  Build-Depends:        base >=3 && <5, uvector >=0.1 && <0.2
+  Build-Depends:        base >=3 && <5, vector
   Exposed-modules:      Data.Histogram
                         Data.Histogram.Fill 
                         Data.Histogram.Bin

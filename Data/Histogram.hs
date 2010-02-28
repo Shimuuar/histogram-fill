@@ -40,8 +40,11 @@ module Data.Histogram ( -- * Immutable histogram
 import Control.Arrow ((***))
 import Control.Monad
 import Control.Monad.ST
-import Data.Array.Vector hiding (indexU)
-import Data.Array.Vector.UArr (indexU)
+import qualified Data.Vector.Unboxed as U
+import qualified Data.Vector.Unboxed.Mutable as MU
+import qualified Data.Vector.Generic as G
+-- import qualified Data.Vector.Unboxed.Base as U
+-- import Data.Primitive.Array (unsafeFreezeArray)
 import Data.Typeable
 import Text.Read
 
@@ -52,10 +55,10 @@ import Data.Histogram.Parse
 -- | Immutable histogram. Histogram consists of binning algorithm,
 --   optional number of under and overflows, and data. 
 data Histogram bin a where
-    Histogram :: (Bin bin, UA a) => 
+    Histogram :: (Bin bin, U.Unbox a) => 
                  bin
               -> Maybe (a,a)
-              -> UArr a
+              -> U.Vector a
               -> Histogram bin a
     deriving Typeable
 
@@ -73,7 +76,7 @@ instance (Show a, Show (BinValue bin), Show bin) => Show (Histogram bin a) where
                                 "# Overflows  = \n"
 
 -- Parse histogram header
-histHeader :: (Read bin, Read a, Bin bin, UA a) => ReadPrec (UArr a -> Histogram bin a)
+histHeader :: (Read bin, Read a, Bin bin, U.Unbox a) => ReadPrec (U.Vector a -> Histogram bin a)
 histHeader = do
   keyword "Histogram"
   u   <- maybeValue "Underflows"
@@ -83,22 +86,22 @@ histHeader = do
 
 -- | Convert String to histogram. Histogram do not have Read instance
 --   because of slowness of ReadP
-readHistogram :: (Read bin, Read a, Bin bin, UA a) => String -> Histogram bin a
+readHistogram :: (Read bin, Read a, Bin bin, U.Unbox a) => String -> Histogram bin a
 readHistogram str = 
     let (h,rest) = case readPrec_to_S histHeader 0 str of
                      [x] -> x
                      _   -> error "Cannot parse histogram header"
         xs = map (unwords . tail) . filter (not . null) . map words . lines $ rest
-    in h (toU $ map read xs)
+    in h (U.fromList $ map read xs)
 
 -- | Read histogram from file.
-readFileHistogram :: (Read bin, Read a, Bin bin, UA a) => FilePath -> IO (Histogram bin a)
+readFileHistogram :: (Read bin, Read a, Bin bin, U.Unbox a) => FilePath -> IO (Histogram bin a)
 readFileHistogram fname = readHistogram `fmap` readFile fname
 
 -- | fmap lookalike. It's not possible to create Functor instance
 --   because of UA restriction.
-mapHist :: UA b => (a -> b) -> Histogram bin a -> Histogram bin b
-mapHist f (Histogram bin uo a) = Histogram bin (fmap (f *** f) uo) (mapU f a)
+mapHist :: U.Unbox b => (a -> b) -> Histogram bin a -> Histogram bin b
+mapHist f (Histogram bin uo a) = Histogram bin (fmap (f *** f) uo) (U.map f a)
 
 -- FIXME: add some checking. Preferably static.
 -- | Apply function to histogram bins. It's expected that function
@@ -110,10 +113,10 @@ mapHistBin f (Histogram bin uo a)
     where
       bin' = bin
 
-mapHistData :: UA b => (UArr a -> UArr b) -> Histogram bin a -> Histogram bin b
+mapHistData :: U.Unbox b => (U.Vector a -> U.Vector b) -> Histogram bin a -> Histogram bin b
 mapHistData f (Histogram bin _ a) 
-    | lengthU b /= lengthU a = error "Array length mismatch"
-    | otherwise              = Histogram bin Nothing b
+    | U.length b /= U.length a = error "Array length mismatch"
+    | otherwise                = Histogram bin Nothing b
     where 
       b = f a
 
@@ -122,7 +125,7 @@ histBin :: Histogram bin a -> bin
 histBin (Histogram bin _ _) = bin
 
 -- | Histogram data as vector
-histData :: Histogram bin a -> UArr a
+histData :: Histogram bin a -> U.Vector a
 histData (Histogram _ _ a) = a
 
 -- | Number of underflows
@@ -139,15 +142,16 @@ outOfRange (Histogram _ uo _) = uo
 
 -- | Convert histogram to list.
 asList :: Histogram bin a -> [(BinValue bin, a)]
-asList (Histogram bin _ arr) = map (fromIndex bin) [0..] `zip` fromU arr
+asList (Histogram bin _ arr) = map (fromIndex bin) [0..] `zip` U.toList arr
 
 -- | Convert to pair of vectors
-asPairVector :: UA (BinValue bin) => Histogram bin a -> (UArr (BinValue bin), UArr a)
-asPairVector (Histogram bin _ a) = (toU $ map (fromIndex bin) [0 .. nBins bin], a)
+asPairVector :: U.Unbox (BinValue bin) => Histogram bin a -> (U.Vector (BinValue bin), U.Vector a)
+asPairVector (Histogram bin _ a) = (U.fromList $ map (fromIndex bin) [0 .. nBins bin], a)
 
+-- FIXME: inefficient
 -- | Convert to vector of pairs
-asVectorPairs :: UA (BinValue bin) => Histogram bin a -> UArr ((BinValue bin) :*: a)
-asVectorPairs h@(Histogram _ _ _) = uncurry zipU . asPairVector $ h
+asVectorPairs :: U.Unbox (BinValue bin) => Histogram bin a -> U.Vector ((BinValue bin) , a)
+asVectorPairs h@(Histogram _ _ _) = uncurry U.zip . asPairVector $ h
 
 -- | Slice 2D histogram along Y axis. This function is fast because it does not require reallocations.
 sliceY :: (Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bY, Histogram bX a)]
@@ -155,7 +159,7 @@ sliceY (Histogram b _ a) = map mkSlice [0 .. ny-1]
     where
       (nx, ny) = nBins2D b
       mkSlice i = ( fromIndex (binY b) i
-                  , Histogram (binX b) Nothing (sliceU a (nx*i) nx) )
+                  , Histogram (binX b) Nothing (U.slice nx (nx*i) a) )
 
 -- | Slice 2D histogram along X axis.
 sliceX :: (Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bX, Histogram bY a)]
@@ -164,6 +168,7 @@ sliceX (Histogram b _ a) = map mkSlice [0 .. nx-1]
       (nx, ny)  = nBins2D b
       mkSlice i = ( fromIndex (binX b) i
                   , Histogram (binY b) Nothing (mkArray i))
-      mkArray x = runST $ do arr <- newMU ny
-                             forM_ [0 .. ny-1] $ \y -> writeMU arr y (indexU a (y*nx + x))
-                             unsafeFreezeAllMU arr
+      mkArray x = runST $ do arr <- MU.new ny
+                             forM_ [0 .. ny-1] $ \y -> MU.write arr y (a U.! (y*nx + x))
+                             G.unsafeFreeze arr
+

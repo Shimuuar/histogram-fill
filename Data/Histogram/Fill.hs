@@ -37,7 +37,8 @@ module Data.Histogram.Fill ( -- * Type classes & wrappers
 import Control.Monad.ST (ST)
 import Data.Monoid      (Monoid, mempty)
 
-import Data.Array.Vector
+import qualified Data.Vector.Unboxed.Mutable as MU
+
 import Data.Histogram
 import Data.Histogram.Bin
 import Data.Histogram.ST
@@ -104,7 +105,7 @@ instance HBuilderCl HBuilderList where
 
 -- | Generic histogram builder. 
 data HistBuilder a b where
-    HistBuilder :: (Bin bin, UA val) =>
+    HistBuilder :: (Bin bin, MU.Unbox val) =>
                    bin                                                -- Bin type
                 -> val                                                -- Zero element
                 -> (forall s . a -> HistogramST s bin val -> ST s ()) -- Input function
@@ -139,7 +140,7 @@ forceFloat = id
 
 -- | Create histogram builder which take single item as input. Each
 --   item has weight 1. To set type of bin 'force*' function could be used.
-mkHist1 :: (Bin bin, UA val, Num val) =>
+mkHist1 :: (Bin bin, MU.Unbox val, Num val) =>
            bin                      -- ^ Bin information
         -> (Histogram bin val -> b) -- ^ Output function 
         -> (a -> BinValue bin)      -- ^ Input function
@@ -149,7 +150,7 @@ mkHist1 bin out inp = MkHBuilder $ HistBuilder bin 0 (flip fillOne . inp) out
 -- | Create histogram builder which take many items as input. Each
 --   item has weight 1. To set type of bin 'force*' function could be
 --   used.
-mkHist :: (Bin bin, UA val, Num val) =>
+mkHist :: (Bin bin, MU.Unbox val, Num val) =>
           bin                      -- ^ Bin information
        -> (Histogram bin val -> b) -- ^ Output function
        -> (a -> [BinValue bin])    -- ^ Input function 
@@ -159,7 +160,7 @@ mkHist bin out inp = MkHBuilder $ HistBuilder bin 0 fill out
       fill a h = mapM_ (fillOne h) $ inp a
 
 -- | Create histogram with weighted bin. Takes one item at time. 
-mkHistWgh1 :: (Bin bin, UA val, Num val) =>
+mkHistWgh1 :: (Bin bin, MU.Unbox val, Num val) =>
               bin                        -- ^ Bin information
           -> (Histogram bin val -> b)    -- ^ Output function
           -> (a -> (BinValue bin, val))  -- ^ Input function
@@ -167,7 +168,7 @@ mkHistWgh1 :: (Bin bin, UA val, Num val) =>
 mkHistWgh1 bin out inp = MkHBuilder $ HistBuilder bin 0 (flip fillOneW . inp) out
 
 -- | Create histogram with weighted bin. Takes many items at time.
-mkHistWgh :: (Bin bin, UA val, Num val) => 
+mkHistWgh :: (Bin bin, MU.Unbox val, Num val) => 
              bin                          -- ^ Bin information
           -> (Histogram bin val  -> b)    -- ^ Output function
           -> (a -> [(BinValue bin, val)]) -- ^ Input function
@@ -177,7 +178,7 @@ mkHistWgh bin out inp = MkHBuilder $ HistBuilder bin 0 fill out
       fill a h = mapM_ (fillOneW h) $ inp a
 
 -- | Create histogram with monoidal bins
-mkHistMonoid1 :: (Bin bin, UA val, Monoid val) =>
+mkHistMonoid1 :: (Bin bin, MU.Unbox val, Monoid val) =>
               bin                         -- ^ Bin information
           -> (Histogram bin val -> b)     -- ^ Output function
           -> (a -> (BinValue bin, val))   -- ^ Input function
@@ -185,7 +186,7 @@ mkHistMonoid1 :: (Bin bin, UA val, Monoid val) =>
 mkHistMonoid1 bin out inp = MkHBuilder $ HistBuilder bin mempty (flip fillMonoid . inp) out
 
 -- | Create histogram with monoidal bins. Takes many items at time.
-mkHistMonoid :: (Bin bin, UA val, Monoid val) =>
+mkHistMonoid :: (Bin bin, MU.Unbox val, Monoid val) =>
               bin                         -- ^ Bin information
           -> (Histogram bin val -> b)     -- ^ Output function
           -> (a -> [(BinValue bin, val)]) -- ^ Input function

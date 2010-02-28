@@ -31,8 +31,10 @@ module Data.Histogram.ST ( -- * Mutable histograms
 
 import Control.Monad.ST
 
-import Data.Array.Vector
 import Data.Monoid
+import qualified Data.Vector.Unboxed as U
+import qualified Data.Vector.Unboxed.Mutable as MU
+import qualified Data.Vector.Generic as G
 
 import Data.Histogram
 
@@ -42,58 +44,59 @@ import Data.Histogram
 
 -- | Mutable histogram.
 data HistogramST s bin a where
-    HistogramST :: (Bin bin, UA a) => 
+    HistogramST :: (Bin bin, MU.Unbox a) => 
                    bin
-                -> MUArr a s -- Over/underflows
-                -> MUArr a s -- Data
+                -> MU.MVector s a -- Over/underflows
+                -> MU.MVector s a -- Data
                 -> HistogramST s bin a
 
 -- | Create new mutable histogram. All bins are set to zero element as
 --   passed to function.
-newHistogramST :: (Bin bin, UA a) => a -> bin -> ST s (HistogramST s bin a)
+newHistogramST :: (Bin bin, U.Unbox a) => a -> bin -> ST s (HistogramST s bin a)
 newHistogramST zero bin = do
-  uo <- newMU 2
-  writeMU uo 0 zero >> writeMU uo 1 zero
-  a <- newMU (nBins bin)
-  mapM_ (\i -> writeMU a i zero) [0 .. (lengthMU a) - 1]
+  uo <- MU.new 2
+  MU.write uo 0 zero >> MU.write uo 1 zero
+  a <- MU.new (nBins bin)
+  mapM_ (\i -> MU.write a i zero) [0 .. (MU.length a) - 1]
   return $ HistogramST bin uo a
 
 -- | Put one value into histogram
 fillOne :: Num a => HistogramST s bin a -> BinValue bin -> ST s ()
 fillOne (HistogramST bin uo arr) x
-    | i < 0             = writeMU uo  0 . (+1)  =<< readMU uo 0
-    | i >= lengthMU arr = writeMU uo  1 . (+1)  =<< readMU uo 1
-    | otherwise         = writeMU arr i . (+1)  =<< readMU arr i
+    | i < 0              = MU.write uo  0 . (+1)  =<< MU.read uo 0
+    | i >= MU.length arr = MU.write uo  1 . (+1)  =<< MU.read uo 1
+    | otherwise          = MU.write arr i . (+1)  =<< MU.read arr i
     where
       i = toIndex bin x
 
 -- | Put one value into histogram with weight
 fillOneW :: Num a => HistogramST s bin a -> (BinValue bin, a) -> ST s ()
 fillOneW (HistogramST bin uo arr) (x,w)
-    | i < 0             = writeMU uo  0 . (+w)  =<< readMU uo 0
-    | i >= lengthMU arr = writeMU uo  1 . (+w)  =<< readMU uo 1
-    | otherwise         = writeMU arr i . (+w)  =<< readMU arr i
+    | i < 0              = MU.write uo  0 . (+w)  =<< MU.read uo 0
+    | i >= MU.length arr = MU.write uo  1 . (+w)  =<< MU.read uo 1
+    | otherwise          = MU.write arr i . (+w)  =<< MU.read arr i
     where
       i = toIndex bin x
 
 -- | Put one monoidal element
 fillMonoid :: Monoid a => HistogramST s bin a -> (BinValue bin, a) -> ST s ()
 fillMonoid (HistogramST bin uo arr) (x,m)
-    | i < 0             = writeMU uo  1 . (flip mappend m)  =<< readMU uo  0
-    | i >= lengthMU arr = writeMU uo  1 . (flip mappend m)  =<< readMU uo  1
-    | otherwise         = writeMU arr i . (flip mappend m)  =<< readMU arr i
-    where
+    | i < 0              = MU.write uo  1 . (flip mappend m)  =<< MU.read uo  0
+    | i >= MU.length arr = MU.write uo  1 . (flip mappend m)  =<< MU.read uo  1
+    | otherwise          = MU.write arr i . (flip mappend m)  =<< MU.read arr i
+    where 
       i = toIndex bin x
 
 -- | Create immutable histogram from mutable one. This operation involve copying.
 freezeHist :: HistogramST s bin a -> ST s (Histogram bin a)
 freezeHist (HistogramST bin uo arr) = do
-  [u,o] <- fromU `fmap` unsafeFreezeAllMU uo -- Is it safe???
+  u <- MU.read uo 0
+  o <- MU.read uo 1
   -- Copy array
-  let len = lengthMU arr
-  tmp  <- newMU len
-  memcpyOffMU arr tmp 0 0 len
-  a    <- unsafeFreezeAllMU tmp
+  let len = MU.length arr
+  tmp  <- MU.new len
+  MU.copy arr tmp
+  a    <- G.unsafeFreeze tmp
   return $ Histogram bin (Just (u,o)) a
 
 
