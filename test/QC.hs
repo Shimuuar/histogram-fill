@@ -73,7 +73,7 @@ toFromIndexTest (x, bin) | inRange bin x = equalTest (fromIndex bin . toIndex bi
 ----------------------------------------------------------------
 
 testsEq :: [(String, IO ())]
-testsEq = [ ( "==== Equality reflexivity tests" , return ())
+testsEq = [ ( "==== Equality reflexivity tests ====" , return ())
           , ( "BinI"        , p (eqTest :: BinI            -> Bool))
           , ( "BinIx Int"   , p (eqTest :: BinIx Int       -> Bool))
           , ( "BinF Double" , p (eqTest :: BinF Double     -> Bool))
@@ -81,7 +81,7 @@ testsEq = [ ( "==== Equality reflexivity tests" , return ())
           , ( "Bin2D"       , p (eqTest :: Bin2D BinI BinI -> Bool))
           ]
 testsRead :: [(String, IO ())]
-testsRead = [ ( "==== Read/Show tests" , return ())
+testsRead = [ ( "==== Read/Show tests ====" , return ())
             , ( "BinI"        , p (readShowTest :: BinI            -> Bool))
             , ( "BinIx Int"   , p (readShowTest :: BinIx Int       -> Bool))
             , ( "BinF Double" , p (readShowTest :: BinF Double     -> Bool))
@@ -102,8 +102,13 @@ testsIndexing = [ ( "==== Bin {to,from}Index tests ====", return ())
                 , ( "Bin2D"       , p (fromToIndexTest :: (Index, Bin2D BinI BinI) -> Bool))
                 , ( "Bin2D"       , p (toFromIndexTest :: ((Int,Int), Bin2D BinI BinI) -> Bool))
                 ]
+testsFMap :: [(String, IO ())]
+testsFMap = [ ("==== Tests for functor like functions ====", return ())
+            , ("fmapBinX", p (equalTest (fmapBinX id) :: Bin2D BinI BinI -> Bool))
+            , ("fmapBinY", p (equalTest (fmapBinY id) :: Bin2D BinI BinI -> Bool))
+            ]
 testsAll :: [(String, IO ())]
-testsAll = concat [ testsEq , testsRead , testsIndexing ]
+testsAll = concat [ testsEq , testsRead , testsIndexing , testsFMap ]
 
 main :: IO ()
 main = do
