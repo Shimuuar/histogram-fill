@@ -2,9 +2,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 import Control.Applicative
 
+import qualified Data.Vector.Unboxed as U
+
 import Test.QuickCheck
 import System.Random
 
+import Data.Histogram
 import Data.Histogram.Bin
 
 ----------------------------------------------------------------
@@ -49,6 +52,10 @@ instance Arbitrary (BinF Double) where
 instance (Arbitrary bx, Arbitrary by) => Arbitrary (Bin2D bx by) where
     arbitrary = Bin2D <$> arbitrary <*> arbitrary
 
+instance (Bin bin, U.Unbox a, Arbitrary bin, Arbitrary a) => Arbitrary (Histogram bin a) where
+    arbitrary = do
+      bin <- arbitrary
+      Histogram bin <$> arbitrary <*> (U.fromList <$> vectorOf (nBins bin) arbitrary)
 ----------------------------------------------------------------
 -- Generic tests
 
@@ -59,6 +66,10 @@ eqTest x = x == x
 -- read . show == id
 readShowTest :: (Read a, Show a, Eq a) => a -> Bool
 readShowTest = equalTest (read . show) 
+
+readShowTestH :: (Read a, Show a, Eq a, Read bin, Show bin, Eq bin, Bin bin, U.Unbox a, Show (BinValue bin)) =>
+                 Histogram bin a -> Bool
+readShowTestH = equalTest (readHistogram . show) 
 
 -- toIndex . fromIndex
 fromToIndexTest :: (Bin bin) => (Index, bin) -> Bool
@@ -79,14 +90,15 @@ testsEq = [ ( "==== Equality reflexivity tests ====" , return ())
           , ( "BinF Double" , p (eqTest :: BinF Double     -> Bool))
           , ( "BinF Float"  , p (eqTest :: BinF Float      -> Bool))
           , ( "Bin2D"       , p (eqTest :: Bin2D BinI BinI -> Bool))
+          , ( "Histogram"   , p (eqTest :: Histogram BinI Int -> Bool))
           ]
 testsRead :: [(String, IO ())]
 testsRead = [ ( "==== Read/Show tests ====" , return ())
-            , ( "BinI"        , p (readShowTest :: BinI            -> Bool))
-            , ( "BinIx Int"   , p (readShowTest :: BinIx Int       -> Bool))
-            , ( "BinF Double" , p (readShowTest :: BinF Double     -> Bool))
-            , ( "BinF Float"  , p (readShowTest :: BinF Float      -> Bool))
-            , ( "Bin2D"       , p (readShowTest :: Bin2D BinI BinI -> Bool))
+            , ( "BinI"        , p (readShowTest  :: BinI            -> Bool))
+            , ( "BinIx Int"   , p (readShowTest  :: BinIx Int       -> Bool))
+            , ( "BinF Double" , p (readShowTest  :: BinF Double     -> Bool))
+            , ( "BinF Float"  , p (readShowTest  :: BinF Float      -> Bool))
+            , ( "Histogram"   , p (readShowTestH :: Histogram BinI        Int    -> Bool))
             ]
 testsIndexing :: [(String, IO ())]
 testsIndexing = [ ( "==== Bin {to,from}Index tests ====", return ())
@@ -104,8 +116,11 @@ testsIndexing = [ ( "==== Bin {to,from}Index tests ====", return ())
                 ]
 testsFMap :: [(String, IO ())]
 testsFMap = [ ("==== Tests for functor like functions ====", return ())
-            , ("fmapBinX", p (equalTest (fmapBinX id) :: Bin2D BinI BinI -> Bool))
-            , ("fmapBinY", p (equalTest (fmapBinY id) :: Bin2D BinI BinI -> Bool))
+            , ("fmapBinX"    , p (equalTest (fmapBinX id) :: Bin2D BinI BinI -> Bool))
+            , ("fmapBinY"    , p (equalTest (fmapBinY id) :: Bin2D BinI BinI -> Bool))
+            , ("mapHist"     , p (equalTest (mapHist  id) :: Histogram BinI Int -> Bool))
+            , ("mapHistBin"  , p (equalTest (mapHist  id) :: Histogram BinI Int -> Bool))
+            , ("mapHistData" , p (equalTest (mapHist  id) :: Histogram BinI Int -> Bool))
             ]
 testsAll :: [(String, IO ())]
 testsAll = concat [ testsEq , testsRead , testsIndexing , testsFMap ]
@@ -113,3 +128,4 @@ testsAll = concat [ testsEq , testsRead , testsIndexing , testsFMap ]
 main :: IO ()
 main = do
   runTests testsAll
+ 
