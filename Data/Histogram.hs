@@ -143,12 +143,11 @@ asList (Histogram bin _ arr) = map (fromIndex bin) [0..] `zip` U.toList arr
 
 -- | Convert to pair of vectors
 asPairVector :: U.Unbox (BinValue bin) => Histogram bin a -> (U.Vector (BinValue bin), U.Vector a)
-asPairVector (Histogram bin _ a) = (U.fromList $ map (fromIndex bin) [0 .. nBins bin], a)
+asPairVector (Histogram bin _ a) = (U.map (fromIndex bin) $ U.enumFromN 0 (nBins bin), a)
 
--- FIXME: inefficient
 -- | Convert to vector of pairs
 asVectorPairs :: U.Unbox (BinValue bin) => Histogram bin a -> U.Vector ((BinValue bin) , a)
-asVectorPairs h@(Histogram _ _ _) = uncurry U.zip . asPairVector $ h
+asVectorPairs h@(Histogram _ _ _) = uncurry U.zip $ asPairVector h
 
 -- | Slice 2D histogram along Y axis. This function is fast because it does not require reallocations.
 sliceY :: (Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bY, Histogram bX a)]
