@@ -54,7 +54,7 @@ instance (Arbitrary bx, Arbitrary by) => Arbitrary (Bin2D bx by) where
 
 instance (Bin bin, U.Unbox a, Arbitrary bin, Arbitrary a) => Arbitrary (Histogram bin a) where
     arbitrary = do
-      bin <- arbitrary
+      bin <- suchThat arbitrary ((<333) . nBins)
       Histogram bin <$> arbitrary <*> (U.fromList <$> vectorOf (nBins bin) arbitrary)
 ----------------------------------------------------------------
 -- Generic tests
@@ -67,10 +67,6 @@ eqTest x = x == x
 readShowTest :: (Read a, Show a, Eq a) => a -> Bool
 readShowTest = equalTest (read . show) 
 
-readShowTestH :: (Read a, Show a, Eq a, Read bin, Show bin, Eq bin, Bin bin, U.Unbox a, Show (BinValue bin)) =>
-                 Histogram bin a -> Bool
-readShowTestH = equalTest (readHistogram . show) 
-
 -- toIndex . fromIndex
 fromToIndexTest :: (Bin bin) => (Index, bin) -> Bool
 fromToIndexTest (x, bin) | inRange bin val = x == toIndex bin val 
@@ -81,6 +77,7 @@ fromToIndexTest (x, bin) | inRange bin val = x == toIndex bin val
 toFromIndexTest :: (Bin bin, Eq (BinValue bin)) => (BinValue bin, bin) -> Bool
 toFromIndexTest (x, bin) | inRange bin x = equalTest (fromIndex bin . toIndex bin) x
                          | otherwise     = True -- Doesn't hold for out of range indices
+
 ----------------------------------------------------------------
 
 testsEq :: [(String, IO ())]
@@ -98,7 +95,7 @@ testsRead = [ ( "==== Read/Show tests ====" , return ())
             , ( "BinIx Int"   , p (readShowTest  :: BinIx Int       -> Bool))
             , ( "BinF Double" , p (readShowTest  :: BinF Double     -> Bool))
             , ( "BinF Float"  , p (readShowTest  :: BinF Float      -> Bool))
-            , ( "Histogram"   , p (readShowTestH :: Histogram BinI        Int    -> Bool))
+            , ( "Histogram"   , p (equalTest (readHistogram . show) :: Histogram BinI Int -> Bool))
             ]
 testsIndexing :: [(String, IO ())]
 testsIndexing = [ ( "==== Bin {to,from}Index tests ====", return ())
@@ -122,6 +119,16 @@ testsFMap = [ ("==== Tests for functor like functions ====", return ())
             , ("mapHistBin"  , p (equalTest (mapHist  id) :: Histogram BinI Int -> Bool))
             , ("mapHistData" , p (equalTest (mapHist  id) :: Histogram BinI Int -> Bool))
             ]
+testsHistogram :: [(String, IO ())]
+testsHistogram = 
+    [ ("==== Test for histograms ====", return ())
+    , ("asList"        , p (asListTest  :: Histogram BinI Int -> Bool))
+    , ("asVectorPairs" , p (asPairVTest :: Histogram BinI Int -> Bool))
+    ]
+    where
+      asListTest  h = let (i,x) = unzip $ asList h in length i == length x
+      asPairVTest h = let (i,x) = asPairVector h   in U.length i == U.length x
+
 testsAll :: [(String, IO ())]
 testsAll = concat [ testsEq , testsRead , testsIndexing , testsFMap ]
 
