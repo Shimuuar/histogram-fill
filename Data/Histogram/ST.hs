@@ -54,10 +54,8 @@ data HistogramST s bin a where
 --   passed to function.
 newHistogramST :: (Bin bin, U.Unbox a) => a -> bin -> ST s (HistogramST s bin a)
 newHistogramST zero bin = do
-  uo <- MU.new 2
-  MU.write uo 0 zero >> MU.write uo 1 zero
-  a <- MU.new (nBins bin)
-  mapM_ (\i -> MU.write a i zero) [0 .. (MU.length a) - 1]
+  uo <- MU.newWith 2 zero
+  a  <- MU.newWith (nBins bin) zero
   return $ HistogramST bin uo a
 
 -- | Put one value into histogram
