@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
 import Control.Applicative
+import Control.Monad.ST
 
 import qualified Data.Vector.Unboxed as U
 
@@ -8,8 +9,10 @@ import Test.QuickCheck
 import System.Random
 
 import Data.Histogram
+import Data.Histogram.Fill
 import Data.Histogram.Bin
 
+import Debug.Trace
 ----------------------------------------------------------------
 -- Helpers
 
@@ -112,7 +115,7 @@ testsIndexing = [ ( "==== Bin {to,from}Index tests ====", return ())
                 , ( "Bin2D"       , p (toFromIndexTest :: ((Int,Int), Bin2D BinI BinI) -> Bool))
                 ]
 testsFMap :: [(String, IO ())]
-testsFMap = [ ("==== Tests for functor like functions ====", return ())
+testsFMap = [ ("==== Tests for fmap-like functions ====", return ())
             , ("fmapBinX"    , p (equalTest (fmapBinX id) :: Bin2D BinI BinI -> Bool))
             , ("fmapBinY"    , p (equalTest (fmapBinY id) :: Bin2D BinI BinI -> Bool))
             , ("mapHist"     , p (equalTest (mapHist  id) :: Histogram BinI Int -> Bool))
@@ -129,10 +132,31 @@ testsHistogram =
       asListTest  h = let (i,x) = unzip $ asList h in length i == length x
       asPairVTest h = let (i,x) = asPairVector h   in U.length i == U.length x
 
+testsFill :: [(String, IO ())]
+testsFill = [ ("==== Test for filling ====", return ())
+            -- , ("zeroness1"  , p (zeroTest  :: BinI -> Bool)) 
+            -- , ("zeroness1"  , p (zeroTest' :: BinI -> Bool)) 
+            -- , ("right size" , p (sizeTest  :: BinI -> Bool))
+            , ("Sum match"  , p (sumMatch  :: ([Int],BinI) -> Bool))
+            ]
+    where
+      fillHist bin =
+          let hb = [mkHist1 bin id id] :: [HBuilder Int (Histogram BinI Int)]
+              [h] = createHistograms (builderList hb) []
+          in h
+      zeroTest  = (== Just (0,0)) . outOfRange . fillHist
+      zeroTest' = (U.all (==0))   . histData   . fillHist
+      sizeTest b = (U.length . histData . fillHist $ b) == nBins b
+      
+      sumMatch (xs,bin) = let hb = [mkHist1 bin forceInt id]
+                              [h] = createHistograms (builderList hb) xs
+                              Just (u,o) = outOfRange h
+                          in length xs == ((U.sum (histData h)) + u + o)
+                   
+
 testsAll :: [(String, IO ())]
 testsAll = concat [ testsEq , testsRead , testsIndexing , testsFMap ]
 
 main :: IO ()
 main = do
   runTests testsAll
- 
