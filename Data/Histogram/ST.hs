@@ -93,7 +93,7 @@ freezeHist (HistogramST bin uo arr) = do
   -- Copy array
   let len = MU.length arr
   tmp  <- MU.new len
-  MU.copy arr tmp
+  MU.copy tmp arr
   a    <- G.unsafeFreeze tmp
   return $ Histogram bin (Just (u,o)) a
 
