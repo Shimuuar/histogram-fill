@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE Rank2Types        #-}
 import Control.Applicative
 import Control.Monad.ST
 
@@ -31,7 +32,7 @@ type Index = Int
 -- Arbitrary Instance for BinI
 instance Arbitrary BinI where
     arbitrary = do
-      let maxI = 15000
+      let maxI = 100 
       lo <- choose (-maxI , maxI)
       hi <- choose (lo    , maxI)
       return $ BinI lo hi
@@ -134,25 +135,27 @@ testsHistogram =
 
 testsFill :: [(String, IO ())]
 testsFill = [ ("==== Test for filling ====", return ())
-            -- , ("zeroness1"  , p (zeroTest  :: BinI -> Bool)) 
-            -- , ("zeroness1"  , p (zeroTest' :: BinI -> Bool)) 
-            -- , ("right size" , p (sizeTest  :: BinI -> Bool))
-            , ("Sum match"  , p (sumMatch  :: ([Int],BinI) -> Bool))
+            -- Zeroness
+            , ("zeroness mkHist1",    p ((\b -> zeroTest $ mkHist1    b id id) :: BinI -> Bool))
+            , ("zeroness mkHist",     p ((\b -> zeroTest $ mkHist     b id id) :: BinI -> Bool))
+            , ("zeroness mkHistWgh1", p ((\b -> zeroTest $ mkHistWgh1 b id id) :: BinI -> Bool))
+            , ("zeroness mkHistWgh",  p ((\b -> zeroTest $ mkHistWgh  b id id) :: BinI -> Bool))
+            -- Sizes match
+            , ("size mkHist1",    p ((\b -> sizeTest $ mkHist1    b id id) :: BinI -> Bool))
+            , ("size mkHist",     p ((\b -> sizeTest $ mkHist     b id id) :: BinI -> Bool))
+            , ("size mkHistWgh1", p ((\b -> sizeTest $ mkHistWgh1 b id id) :: BinI -> Bool))
+            , ("size mkHistWgh",  p ((\b -> sizeTest $ mkHistWgh  b id id) :: BinI -> Bool))
             ]
     where
-      fillHist bin =
-          let hb = [mkHist1 bin id id] :: [HBuilder Int (Histogram BinI Int)]
-              [h] = createHistograms (builderList hb) []
-          in h
-      zeroTest  = (== Just (0,0)) . outOfRange . fillHist
-      zeroTest' = (U.all (==0))   . histData   . fillHist
-      sizeTest b = (U.length . histData . fillHist $ b) == nBins b
-      
-      sumMatch (xs,bin) = let hb = [mkHist1 bin forceInt id]
-                              [h] = createHistograms (builderList hb) xs
-                              Just (u,o) = outOfRange h
-                          in length xs == ((U.sum (histData h)) + u + o)
-                   
+      -- Test that empty histogram is filled with zeroes
+      zeroTest :: (forall s . ST s (HBuilder s i (Histogram BinI Int))) -> Bool
+      zeroTest hb = outOfRange h == Just (0,0) && (U.all (==0) (histData h))
+          where h = runST $ freezeHB =<< hb
+      -- Test that array size and bin sizes match
+      sizeTest :: (forall s . ST s (HBuilder s i (Histogram BinI Int))) -> Bool
+      sizeTest hb = nBins (histBin h) == U.length (histData h)
+          where h = runST $ freezeHB =<< hb
+
 
 testsAll :: [(String, IO ())]
 testsAll = concat [ testsEq , testsRead , testsIndexing , testsFMap ]
