@@ -84,6 +84,9 @@ instance HistBuilder (HBuilder s) where
     addCut    f h = h { hbInput  = \x -> when (f x) (hbInput h x) }
     modifyOut f h = h { hbOutput = f `fmap` hbOutput h }
 
+instance Functor (HBuilder s a) where
+    fmap = modifyOut
+
 instance HistBuilderST HBuilder where
     feedOne  = hbInput
     freezeHB = hbOutput
@@ -94,6 +97,9 @@ instance HistBuilder (HBuilderST) where
     modifyIn  f (HBuilderST h) = HBuilderST (modifyIn  f <$> h)
     addCut    f (HBuilderST h) = HBuilderST (addCut    f <$> h)
     modifyOut f (HBuilderST h) = HBuilderST (modifyOut f <$> h)
+
+instance Functor (HBuilderST a) where
+    fmap = modifyOut
 
 
 -- | Join list of builders into one builder
