@@ -1,3 +1,4 @@
+
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs        #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -20,6 +21,7 @@ module Data.Histogram.Bin ( -- * Type classes
                           -- * Bin types
                           -- ** Integer bins
                           , BinI(..)
+                          , binI0
                           -- ** Indexed bins 
                           , BinIx(BinIx,unBinIx)
                           , binIx
@@ -102,6 +104,10 @@ instance (Indexable a, Indexable b) => Indexable2D (a,b) where
 -- | Integer bins. This is inclusive interval [from,to]
 data BinI = BinI !Int !Int
             deriving Eq
+
+-- | Construct BinI with n bins. Idexing starts from 0
+binI0 :: Int -> BinI
+binI0 n = BinI 0 (n-1)
 
 instance Bin BinI where
     type BinValue BinI = Int
