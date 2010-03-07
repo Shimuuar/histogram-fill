@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE Rank2Types        #-}
 import Control.Applicative
+import Control.Monad
 import Control.Monad.ST
 
 import qualified Data.Vector.Unboxed as U
@@ -52,6 +53,12 @@ instance Arbitrary (BinF Double) where
       n  <- choose (1, 10^6)
       hi <- choose (lo , 1.0e+6+1)
       return $ binF lo n hi
+instance Arbitrary BinD where
+    arbitrary = do
+      lo <- choose (-1.0e+6-1 , 1.0e+6)
+      n  <- choose (1, 10^6)
+      hi <- choose (lo , 1.0e+6+1)
+      return $ binD lo n hi
 
 instance (Arbitrary bx, Arbitrary by) => Arbitrary (Bin2D bx by) where
     arbitrary = Bin2D <$> arbitrary <*> arbitrary
@@ -90,6 +97,7 @@ testsEq = [ ( "==== Equality reflexivity tests ====" , return ())
           , ( "BinIx Int"   , p (eqTest :: BinIx Int       -> Bool))
           , ( "BinF Double" , p (eqTest :: BinF Double     -> Bool))
           , ( "BinF Float"  , p (eqTest :: BinF Float      -> Bool))
+          , ( "BinD"        , p (eqTest :: BinD            -> Bool))
           , ( "Bin2D"       , p (eqTest :: Bin2D BinI BinI -> Bool))
           , ( "Histogram"   , p (eqTest :: Histogram BinI Int -> Bool))
           ]
@@ -99,6 +107,7 @@ testsRead = [ ( "==== Read/Show tests ====" , return ())
             , ( "BinIx Int"   , p (readShowTest  :: BinIx Int       -> Bool))
             , ( "BinF Double" , p (readShowTest  :: BinF Double     -> Bool))
             , ( "BinF Float"  , p (readShowTest  :: BinF Float      -> Bool))
+            , ( "BinD"        , p (readShowTest  :: BinD            -> Bool))
             , ( "Histogram"   , p (equalTest (readHistogram . show) :: Histogram BinI Int -> Bool))
             ]
 testsIndexing :: [(String, IO ())]
@@ -111,6 +120,7 @@ testsIndexing = [ ( "==== Bin {to,from}Index tests ====", return ())
                 -- Floating point bins
                 -- No test for Float because of roundoff errors
                 , ( "BinF Double" , p (fromToIndexTest :: (Index, BinF Double) -> Bool))
+                , ( "BinD"        , p (fromToIndexTest :: (Index, BinD)        -> Bool))
                 -- 2D bins
                 , ( "Bin2D"       , p (fromToIndexTest :: (Index, Bin2D BinI BinI) -> Bool))
                 , ( "Bin2D"       , p (toFromIndexTest :: ((Int,Int), Bin2D BinI BinI) -> Bool))
