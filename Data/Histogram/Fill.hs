@@ -60,6 +60,8 @@ class HistBuilder h where
     modifyIn  :: (a' -> a) -> h a b -> h a' b
     -- | Add cut to histogram. Only put value histogram if condition is true.
     addCut    :: (a -> Bool) -> h a b -> h a b
+    -- | 
+    modifyMaybe :: h a b -> h (Maybe a) b
     -- | Convert output of histogram
     modifyOut :: (b -> b') -> h a b -> h a  b'
 
@@ -73,6 +75,9 @@ data HBuilder s a b = HBuilder { hbInput  :: a -> ST s ()
 instance HistBuilder (HBuilder s) where
     modifyIn  f h = h { hbInput  = hbInput h . f }
     addCut    f h = h { hbInput  = \x -> when (f x) (hbInput h x) }
+    modifyMaybe h = h { hbInput  = modified } 
+        where modified (Just x) = hbInput h x
+              modified Nothing  = return ()
     modifyOut f h = h { hbOutput = f `fmap` hbOutput h }
 
 instance Functor (HBuilder s a) where
@@ -92,6 +97,7 @@ newtype HBuilderST a b = HBuilderST { unwrapST :: (forall s . ST s (HBuilder s a
 instance HistBuilder (HBuilderST) where
     modifyIn  f (HBuilderST h) = HBuilderST (modifyIn  f <$> h)
     addCut    f (HBuilderST h) = HBuilderST (addCut    f <$> h)
+    modifyMaybe (HBuilderST h) = HBuilderST (modifyMaybe <$> h)
     modifyOut f (HBuilderST h) = HBuilderST (modifyOut f <$> h)
 
 instance Functor (HBuilderST a) where
