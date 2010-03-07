@@ -50,6 +50,7 @@ module Data.Histogram.Bin ( -- * Type classes
                           , binIx2D
                           ) where
 
+import Control.Monad
 import Data.Histogram.Parse
 import Text.Read (Read(..))
 
@@ -134,12 +135,7 @@ instance Show BinI where
                                 , "# High = " ++ show hi
                                 ]
 instance Read BinI where
-    readPrec = do
-      keyword "BinI"
-      l <- value "Low"
-      h <- value "High"
-      return $ BinI l h
-
+    readPrec = keyword "BinI" >> liftM2 BinI (value "Low") (value "High")
 
 ----------------------------------------------------------------
 -- Bins for indexables
@@ -169,11 +165,7 @@ instance (Show i, Indexable i) => Show (BinIx i) where
                                         , "# High = " ++ show (deindex hi :: i)
                                         ]
 instance (Read i, Indexable i) => Read (BinIx i) where
-    readPrec = do
-      keyword "BinIx"
-      l <- value "Low"
-      h <- value "High"
-      return $ binIx l h
+    readPrec = keyword "BinIx" >> liftM2 binIx (value "Low") (value "High")
 
 ----------------------------------------------------------------
 -- Floating point bin
