@@ -13,9 +13,10 @@
 --
 module Data.Histogram.Fill ( -- * Type classes
                              HistBuilder(..)
-                           , HistBuilderST(..)
                            -- * Stateful histogram builders
                            , HBuilder
+                           , feedOne
+                           , freezeHBuilder
                            , HBuilderST(unwrapST)
                            , hbuilderTree
                            , hbuilderTreeST
@@ -62,16 +63,6 @@ class HistBuilder h where
     -- | Convert output of histogram
     modifyOut :: (b -> b') -> h a b -> h a  b'
 
-class HistBuilderST h where
-    -- | Put one value into histogram
-    feedOne :: h s a b -> a -> ST s ()
-    -- | Put one value into histogram
-    feedMany :: h s a b -> [a] -> ST s ()
-    feedMany h = mapM_ (feedOne h)
-    -- | Create stateful histogram from instructions. Histograms could
-    --   be filled either in the ST monad or with createHistograms
-    freezeHB :: h s a b -> ST s b
-
 ----------------------------------------------------------------
 
 -- | Single stateful histogram
@@ -87,9 +78,14 @@ instance HistBuilder (HBuilder s) where
 instance Functor (HBuilder s a) where
     fmap = modifyOut
 
-instance HistBuilderST HBuilder where
-    feedOne  = hbInput
-    freezeHB = hbOutput
+-- | Put one value into histogram
+feedOne :: HBuilder s a b -> a -> ST s ()
+feedOne = hbInput
+
+-- | Create stateful histogram from instructions. Histograms could
+--   be filled either in the ST monad or with createHistograms
+freezeHBuilder :: HBuilder s a b -> ST s b
+freezeHBuilder = hbOutput
 
 newtype HBuilderST a b = HBuilderST { unwrapST :: (forall s . ST s (HBuilder s a b)) }
 
@@ -130,8 +126,8 @@ hbuilderTreeST fs h = joinHBuilderST $ map ($ h) fs
 fillBuilderST :: (HBuilderST a b) -> [a] -> b
 fillBuilderST (HBuilderST hb) xs = 
     runST $ do h <- hb
-               feedMany h xs
-               freezeHB h
+               mapM_ (feedOne h) xs
+               freezeHBuilder h
 
 
 ----------------------------------------------------------------
