@@ -31,6 +31,12 @@ module Data.Histogram.Bin ( -- * Type classes
                           , binFn
                           , binI2binF
                           , scaleBinF
+                          -- ** Floating point bins
+                          , BinD
+                          , binD
+                          , binDn
+                          , binI2binD
+                          , scaleBinD
                           -- ** 2D bins
                           , Bin2D(..)
                           , nBins2D
@@ -213,8 +219,6 @@ instance Bin (BinF f) where
     inRange   !(BinF from step n) x  = x > from && x < from + step*fromIntegral n
     {-# INLINE inRange #-}
     nBins     !(BinF _ _ n) = n
-    {-# SPECIALIZE instance Bin (BinF Double) #-}
-    {-# SPECIALIZE instance Bin (BinF Float)  #-}
 
 instance Bin1D (BinF f) where
     binsList b@(BinF _ _ n) = map (fromIndex b) [0..n-1]
@@ -235,6 +239,68 @@ instance (Read f, RealFrac f) => Read (BinF f) where
       step <- value "Step"
       n    <- value "N"
       return $ BinF base step n
+
+----------------------------------------------------------------
+-- Floating point bin /Specialized for Double
+----------------------------------------------------------------
+-- | Floaintg point bins with equal sizes.
+data BinD = BinD Double Double Int
+
+instance Eq BinD where
+    (BinD lo hi n) == (BinD lo' hi' n') = lo == lo'  && hi == hi' && n == n'
+                                          
+-- | Create bins.
+binD :: Double -- ^ Lower bound of range
+     -> Int    -- ^ Number of bins
+     -> Double -- ^ Upper bound of range
+     -> BinD
+binD from n to = BinD from ((to - from) / fromIntegral n) n
+
+-- | Create bins. Note that actual upper bound can differ from specified.
+binDn :: Double -- ^ Begin of range
+      -> Double -- ^ Size of step
+      -> Double -- ^ Approximation of end of range
+      -> BinD
+binDn from step to = BinD from step (round $ (to - from) / step)
+
+-- | Convert BinI to BinF
+binI2binD :: BinI -> BinD
+binI2binD b@(BinI i _) = BinD (fromIntegral i) 1 (nBins b)
+
+-- | 'scaleBinF a b' scales BinF using linear transform 'a+b*x'
+scaleBinD :: Double -> Double -> BinD -> BinD
+scaleBinD a b (BinD base step n) 
+    | b > 0     = BinD (a + b*base) (b*step) n
+    | otherwise = error $ "scaleBinF: b must be positive (b = "++show b++")"
+
+instance Bin BinD where
+    type BinValue BinD = Double
+    toIndex   !(BinD from step _) !x = floor $ (x-from) / step
+    {-# INLINE toIndex #-}
+    fromIndex !(BinD from step _) !i = (step/2) + (fromIntegral i * step) + from 
+    inRange   !(BinD from step n) x  = x > from && x < from + step*fromIntegral n
+    {-# INLINE inRange #-}
+    nBins     !(BinD _ _ n) = n
+
+instance Bin1D BinD where
+    binsList b@(BinD _ _ n) = map (fromIndex b) [0..n-1]
+    binsListRange b@(BinD _ step _) = map toPair (binsList b)
+        where
+          toPair x = (x - step/2, x + step/2)
+
+instance Show BinD where
+    show (BinD base step n) = unlines [ "# BinD"
+                                      , "# Base = " ++ show base
+                                      , "# Step = " ++ show step
+                                      , "# N    = " ++ show n
+                                      ]
+instance Read BinD where
+    readPrec = do
+      keyword "BinD"
+      base <- value "Base"
+      step <- value "Step"
+      n    <- value "N"
+      return $ BinD base step n
 
 
 ----------------------------------------------------------------
