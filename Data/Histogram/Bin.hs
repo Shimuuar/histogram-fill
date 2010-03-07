@@ -54,7 +54,7 @@ import Control.Monad
 import Data.Histogram.Parse
 import Text.Read (Read(..))
 
-
+import GHC.Float (double2Int)
 ----------------------------------------------------------------
 -- | Abstract binning algorithm. Following invariant is expected to hold: 
 -- 
@@ -265,9 +265,15 @@ scaleBinD a b (BinD base step n)
     | b > 0     = BinD (a + b*base) (b*step) n
     | otherwise = error $ "scaleBinF: b must be positive (b = "++show b++")"
 
+-- Fast variant of flooor
+floorD :: Double -> Int
+floorD x | x < 0     = double2Int x - 1
+         | otherwise = double2Int x
+{-# INLINE floorD #-}
+
 instance Bin BinD where
     type BinValue BinD = Double
-    toIndex   !(BinD from step _) !x = floor $ (x-from) / step
+    toIndex   !(BinD from step _) !x = floorD $ (x-from) / step
     {-# INLINE toIndex #-}
     fromIndex !(BinD from step _) !i = (step/2) + (fromIntegral i * step) + from 
     inRange   !(BinD from step n) x  = x > from && x < from + step*fromIntegral n
