@@ -148,13 +148,13 @@ testsFill = [ ("==== Test for filling ====", return ())
             ]
     where
       -- Test that empty histogram is filled with zeroes
-      zeroTest :: (forall s . ST s (HBuilder s i (Histogram BinI Int))) -> Bool
+      zeroTest :: HBuilderST i (Histogram BinI Int) -> Bool
       zeroTest hb = outOfRange h == Just (0,0) && (U.all (==0) (histData h))
-          where h = runST $ freezeHB =<< hb
+          where h = fillBuilderST hb []
       -- Test that array size and bin sizes match
-      sizeTest :: (forall s . ST s (HBuilder s i (Histogram BinI Int))) -> Bool
+      sizeTest :: HBuilderST i (Histogram BinI Int) -> Bool
       sizeTest hb = nBins (histBin h) == U.length (histData h)
-          where h = runST $ freezeHB =<< hb
+          where h = fillBuilderST hb []
 
 
 testsAll :: [(String, IO ())]
