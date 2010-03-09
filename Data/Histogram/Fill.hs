@@ -18,12 +18,12 @@ module Data.Histogram.Fill ( -- * Type classes
                            , feedOne
                            , freezeHBuilderST
                            , HBuilder(unwrapST)
-                           , hbuilderTree
-                           , hbuilderTreeST
-                           , joinHBuilderST
-                           , joinHBuilderSTList
                            , joinHBuilder
                            , joinHBuilderList
+                           , treeHBuilder
+                           , joinHBuilderST
+                           , joinHBuilderSTList
+                           , treeHBuilderST
                            -- * Fill histograms
                            , fillBuilderST
                            -- * Histogram constructors
@@ -121,11 +121,11 @@ joinHBuilder hs = HBuilder (joinHBuilderST <$> mapM unwrapST hs)
 joinHBuilderList :: [HBuilder a [b]] -> HBuilder a [b]
 joinHBuilderList = modifyOut concat . joinHBuilder
 
-hbuilderTree :: [HBuilderST s a b -> HBuilderST s a' b'] -> HBuilderST s a b -> HBuilderST s a' [b']
-hbuilderTree fs h = joinHBuilderST $ map ($ h) fs
+treeHBuilderST :: [HBuilderST s a b -> HBuilderST s a' b'] -> HBuilderST s a b -> HBuilderST s a' [b']
+treeHBuilderST fs h = joinHBuilderST $ map ($ h) fs
 
-hbuilderTreeST :: [HBuilder a b -> HBuilder a' b'] -> HBuilder a b -> HBuilder a' [b']
-hbuilderTreeST fs h = joinHBuilder $ map ($ h) fs
+treeHBuilder :: [HBuilder a b -> HBuilder a' b'] -> HBuilder a b -> HBuilder a' [b']
+treeHBuilder fs h = joinHBuilder $ map ($ h) fs
 
 fillBuilderST :: (HBuilder a b) -> [a] -> b
 fillBuilderST (HBuilder hb) xs = 
