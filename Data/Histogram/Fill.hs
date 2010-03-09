@@ -14,16 +14,16 @@
 module Data.Histogram.Fill ( -- * Type classes
                              HistBuilder(..)
                            -- * Stateful histogram builders
-                           , HBuilder
+                           , HBuilderST
                            , feedOne
-                           , freezeHBuilder
-                           , HBuilderST(unwrapST)
+                           , freezeHBuilderST
+                           , HBuilder(unwrapST)
                            , hbuilderTree
                            , hbuilderTreeST
+                           , joinHBuilderST
+                           , joinHBuilderSTList
                            , joinHBuilder
                            , joinHBuilderList
-                           , joinHBuilderST
-                           , joinHBuilderListST
                            -- * Fill histograms
                            , fillBuilderST
                            -- * Histogram constructors
@@ -68,11 +68,11 @@ class HistBuilder h where
 ----------------------------------------------------------------
 
 -- | Single stateful histogram
-data HBuilder s a b = HBuilder { hbInput  :: a -> ST s ()
-                               , hbOutput :: ST s b
-                               }
+data HBuilderST s a b = HBuilderST { hbInput  :: a -> ST s ()
+                                   , hbOutput :: ST s b
+                                   }
 
-instance HistBuilder (HBuilder s) where
+instance HistBuilder (HBuilderST s) where
     modifyIn  f h = h { hbInput  = hbInput h . f }
     addCut    f h = h { hbInput  = \x -> when (f x) (hbInput h x) }
     modifyMaybe h = h { hbInput  = modified } 
@@ -80,60 +80,58 @@ instance HistBuilder (HBuilder s) where
               modified Nothing  = return ()
     modifyOut f h = h { hbOutput = f `fmap` hbOutput h }
 
-instance Functor (HBuilder s a) where
+instance Functor (HBuilderST s a) where
     fmap = modifyOut
 
 -- | Put one value into histogram
-feedOne :: HBuilder s a b -> a -> ST s ()
+feedOne :: HBuilderST s a b -> a -> ST s ()
 feedOne = hbInput
 
 -- | Create stateful histogram from instructions. Histograms could
 --   be filled either in the ST monad or with createHistograms
-freezeHBuilder :: HBuilder s a b -> ST s b
-freezeHBuilder = hbOutput
+freezeHBuilderST :: HBuilderST s a b -> ST s b
+freezeHBuilderST = hbOutput
 
-newtype HBuilderST a b = HBuilderST { unwrapST :: (forall s . ST s (HBuilder s a b)) }
+newtype HBuilder a b = HBuilder { unwrapST :: (forall s . ST s (HBuilderST s a b)) }
 
-instance HistBuilder (HBuilderST) where
-    modifyIn  f (HBuilderST h) = HBuilderST (modifyIn  f <$> h)
-    addCut    f (HBuilderST h) = HBuilderST (addCut    f <$> h)
-    modifyMaybe (HBuilderST h) = HBuilderST (modifyMaybe <$> h)
-    modifyOut f (HBuilderST h) = HBuilderST (modifyOut f <$> h)
+instance HistBuilder (HBuilder) where
+    modifyIn  f (HBuilder h) = HBuilder (modifyIn  f <$> h)
+    addCut    f (HBuilder h) = HBuilder (addCut    f <$> h)
+    modifyMaybe (HBuilder h) = HBuilder (modifyMaybe <$> h)
+    modifyOut f (HBuilder h) = HBuilder (modifyOut f <$> h)
 
-instance Functor (HBuilderST a) where
+instance Functor (HBuilder a) where
     fmap = modifyOut
 
-
 -- | Join list of builders into one builder
-joinHBuilder :: [HBuilder s a b] -> HBuilder s a [b]
-joinHBuilder hs = HBuilder { hbInput  = \x -> mapM_ (flip hbInput x) hs
-                           , hbOutput = mapM hbOutput hs
-                           }
+joinHBuilderST :: [HBuilderST s a b] -> HBuilderST s a [b]
+joinHBuilderST hs = HBuilderST { hbInput  = \x -> mapM_ (flip hbInput x) hs
+                               , hbOutput = mapM hbOutput hs
+                               }
 
 -- | Join list of builders into one builders
-joinHBuilderList :: [HBuilder s a [b]] -> HBuilder s a [b]
+joinHBuilderSTList :: [HBuilderST s a [b]] -> HBuilderST s a [b]
+joinHBuilderSTList = modifyOut concat . joinHBuilderST
+
+-- | Join list of builders
+joinHBuilder :: [HBuilder a b] -> HBuilder a [b]
+joinHBuilder hs = HBuilder (joinHBuilderST <$> mapM unwrapST hs)
+
+-- | Join list of builders
+joinHBuilderList :: [HBuilder a [b]] -> HBuilder a [b]
 joinHBuilderList = modifyOut concat . joinHBuilder
 
--- | Join list of builders
-joinHBuilderST :: [HBuilderST a b] -> HBuilderST a [b]
-joinHBuilderST hs = HBuilderST (joinHBuilder <$> mapM unwrapST hs)
+hbuilderTree :: [HBuilderST s a b -> HBuilderST s a' b'] -> HBuilderST s a b -> HBuilderST s a' [b']
+hbuilderTree fs h = joinHBuilderST $ map ($ h) fs
 
--- | Join list of builders
-joinHBuilderListST :: [HBuilderST a [b]] -> HBuilderST a [b]
-joinHBuilderListST = modifyOut concat . joinHBuilderST
+hbuilderTreeST :: [HBuilder a b -> HBuilder a' b'] -> HBuilder a b -> HBuilder a' [b']
+hbuilderTreeST fs h = joinHBuilder $ map ($ h) fs
 
-
-hbuilderTree :: [HBuilder s a b -> HBuilder s a' b'] -> HBuilder s a b -> HBuilder s a' [b']
-hbuilderTree fs h = joinHBuilder $ map ($ h) fs
-
-hbuilderTreeST :: [HBuilderST a b -> HBuilderST a' b'] -> HBuilderST a b -> HBuilderST a' [b']
-hbuilderTreeST fs h = joinHBuilderST $ map ($ h) fs
-
-fillBuilderST :: (HBuilderST a b) -> [a] -> b
-fillBuilderST (HBuilderST hb) xs = 
+fillBuilderST :: (HBuilder a b) -> [a] -> b
+fillBuilderST (HBuilder hb) xs = 
     runST $ do h <- hb
                mapM_ (feedOne h) xs
-               freezeHBuilder h
+               freezeHBuilderST h
 
 
 ----------------------------------------------------------------
@@ -146,12 +144,12 @@ mkHist1 :: (Bin bin, MU.Unbox val, Num val) =>
            bin                      -- ^ Bin information
         -> (Histogram bin val -> b) -- ^ Output function 
         -> (a -> BinValue bin)      -- ^ Input function
-        -> HBuilderST a b
-mkHist1 bin out inp = HBuilderST $ do
+        -> HBuilder a b
+mkHist1 bin out inp = HBuilder $ do
   acc <- newMHistogram 0 bin
-  return $ HBuilder { hbInput  = fillOne acc . inp
-                    , hbOutput = fmap out (freezeHist acc)
-                    }
+  return $ HBuilderST { hbInput  = fillOne acc . inp
+                      , hbOutput = fmap out (freezeHist acc)
+                      }
 
 -- | Create histogram builder which take many items a3s input. Each
 --   item has weight 1. To set type of bin 'force*' function could be
@@ -160,24 +158,24 @@ mkHist :: (Bin bin, MU.Unbox val, Num val) =>
           bin                      -- ^ Bin information
        -> (Histogram bin val -> b) -- ^ Output function
        -> (a -> [BinValue bin])    -- ^ Input function 
-       -> HBuilderST a b
-mkHist bin out inp = HBuilderST $ do
+       -> HBuilder a b
+mkHist bin out inp = HBuilder $ do
   acc <- newMHistogram 0 bin
-  return $ HBuilder { hbInput  = mapM_ (fillOne acc) . inp
-                    , hbOutput = fmap out (freezeHist acc)
-                    }
+  return $ HBuilderST { hbInput  = mapM_ (fillOne acc) . inp
+                      , hbOutput = fmap out (freezeHist acc)
+                      }
 
 -- | Create histogram with weighted bin. Takes one item at time. 
 mkHistWgh1 :: (Bin bin, MU.Unbox val, Num val) =>
               bin                        -- ^ Bin information
           -> (Histogram bin val -> b)    -- ^ Output function
           -> (a -> (BinValue bin, val))  -- ^ Input function
-          -> HBuilderST a b
-mkHistWgh1 bin out inp = HBuilderST $ do
+          -> HBuilder a b
+mkHistWgh1 bin out inp = HBuilder $ do
   acc <- newMHistogram 0 bin
-  return $ HBuilder { hbInput  = fillOneW acc . inp
-                    , hbOutput = fmap out (freezeHist acc)
-                    }
+  return $ HBuilderST { hbInput  = fillOneW acc . inp
+                      , hbOutput = fmap out (freezeHist acc)
+                      }
 
 
 -- | Create histogram with weighted bin. Takes many items at time.
@@ -185,36 +183,36 @@ mkHistWgh :: (Bin bin, MU.Unbox val, Num val) =>
              bin                          -- ^ Bin information
           -> (Histogram bin val  -> b)    -- ^ Output function
           -> (a -> [(BinValue bin, val)]) -- ^ Input function
-          -> HBuilderST a b
-mkHistWgh bin out inp = HBuilderST $ do
+          -> HBuilder a b
+mkHistWgh bin out inp = HBuilder $ do
   acc <- newMHistogram 0 bin
-  return $ HBuilder { hbInput  = mapM_ (fillOneW acc) . inp
-                    , hbOutput = fmap out (freezeHist acc)
-                    }
+  return $ HBuilderST { hbInput  = mapM_ (fillOneW acc) . inp
+                      , hbOutput = fmap out (freezeHist acc)
+                      }
 
 -- | Create histogram with monoidal bins
 mkHistMonoid1 :: (Bin bin, MU.Unbox val, Monoid val) =>
               bin                         -- ^ Bin information
           -> (Histogram bin val -> b)     -- ^ Output function
           -> (a -> (BinValue bin, val))   -- ^ Input function
-          -> HBuilderST a b
-mkHistMonoid1 bin out inp = HBuilderST $ do
+          -> HBuilder a b
+mkHistMonoid1 bin out inp = HBuilder $ do
   acc <- newMHistogram mempty bin
-  return $ HBuilder { hbInput  = fillMonoid acc . inp
-                    , hbOutput = fmap out (freezeHist acc)
-                    }
+  return $ HBuilderST { hbInput  = fillMonoid acc . inp
+                      , hbOutput = fmap out (freezeHist acc)
+                      }
 
 -- | Create histogram with monoidal bins. Takes many items at time.
 mkHistMonoid :: (Bin bin, MU.Unbox val, Monoid val) =>
               bin                         -- ^ Bin information
           -> (Histogram bin val -> b)     -- ^ Output function
           -> (a -> [(BinValue bin, val)]) -- ^ Input function
-          -> HBuilderST a b
-mkHistMonoid bin out inp = HBuilderST $ do
+          -> HBuilder a b
+mkHistMonoid bin out inp = HBuilder $ do
   acc <- newMHistogram mempty bin
-  return $ HBuilder { hbInput  = mapM_ (fillMonoid acc) . inp
-                    , hbOutput = fmap out (freezeHist acc)
-                    }
+  return $ HBuilderST { hbInput  = mapM_ (fillMonoid acc) . inp
+                      , hbOutput = fmap out (freezeHist acc)
+                      }
 
 ----------------------------------------------------------------
 
