@@ -59,6 +59,12 @@ instance Arbitrary BinD where
       n  <- choose (1, 10^6)
       hi <- choose (lo , 1.0e+6+1)
       return $ binD lo n hi
+instance Arbitrary LogBinD where
+    arbitrary = do
+      lo <- choose (1.0e-6 , 1.0e+6)
+      n  <- choose (1, 10^6)
+      hi <- choose (lo , 1.0e+6+1)
+      return $ logBinD lo n hi
 
 instance (Arbitrary bx, Arbitrary by) => Arbitrary (Bin2D bx by) where
     arbitrary = Bin2D <$> arbitrary <*> arbitrary
@@ -98,6 +104,7 @@ testsEq = [ ( "==== Equality reflexivity tests ====" , return ())
           , ( "BinF Double" , p (eqTest :: BinF Double     -> Bool))
           , ( "BinF Float"  , p (eqTest :: BinF Float      -> Bool))
           , ( "BinD"        , p (eqTest :: BinD            -> Bool))
+          , ( "LogBinD"     , p (eqTest :: LogBinD         -> Bool))
           , ( "Bin2D"       , p (eqTest :: Bin2D BinI BinI -> Bool))
           , ( "Histogram"   , p (eqTest :: Histogram BinI Int -> Bool))
           ]
@@ -121,6 +128,7 @@ testsIndexing = [ ( "==== Bin {to,from}Index tests ====", return ())
                 -- No test for Float because of roundoff errors
                 , ( "BinF Double" , p (fromToIndexTest :: (Index, BinF Double) -> Bool))
                 , ( "BinD"        , p (fromToIndexTest :: (Index, BinD)        -> Bool))
+                , ( "LogBinD"     , p (fromToIndexTest :: (Index, BinD)        -> Bool))
                 -- 2D bins
                 , ( "Bin2D"       , p (fromToIndexTest :: (Index, Bin2D BinI BinI) -> Bool))
                 , ( "Bin2D"       , p (toFromIndexTest :: ((Int,Int), Bin2D BinI BinI) -> Bool))

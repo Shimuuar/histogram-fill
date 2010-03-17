@@ -31,12 +31,15 @@ module Data.Histogram.Bin ( -- * Type classes
                           , binFn
                           , binI2binF
                           , scaleBinF
-                          -- ** Floating point bins
+                          -- *** Specialized for Double 
                           , BinD
                           , binD
                           , binDn
                           , binI2binD
                           , scaleBinD
+                          -- ** Log scale point
+                          , LogBinD 
+                          , logBinD
                           -- ** 2D bins
                           , Bin2D(..)
                           , nBins2D
@@ -300,6 +303,38 @@ instance Read BinD where
       n    <- value "N"
       return $ BinD base step n
 
+
+----------------------------------------------------------------
+-- Log-scale bin
+----------------------------------------------------------------
+data LogBinD = LogBinD
+               Double -- Low border
+               Double -- Hi border
+               Double -- Increment ratio
+               Int    -- Number of bins
+               deriving Eq
+
+-- | Create log-scale bins. 
+logBinD :: Double -> Int -> Double -> LogBinD
+logBinD lo n hi = LogBinD lo hi ((hi-lo) ** (1 / fromIntegral n)) n
+
+instance Bin LogBinD where
+    type BinValue LogBinD = Double
+    toIndex   !(LogBinD base _ step _) !x = floorD $ logBase step (x / base)
+    {-# INLINE toIndex #-}
+    fromIndex !(LogBinD base _ step _) !i = base * step ^ i
+    inRange   !(LogBinD lo hi _ _) x  = x >= lo && x < hi
+    {-# INLINE inRange #-}
+    nBins     !(LogBinD _ _ _ n) = n
+
+instance Show LogBinD where
+    show (LogBinD lo hi step n) = 
+        unlines [ "# LogBinD"
+                , "# Lo   = " ++ show lo
+                , "# Hi   = " ++ show hi
+                , "# Step = " ++ show step
+                , "# N    = " ++ show n
+                ]
 
 ----------------------------------------------------------------
 -- 2D bin
