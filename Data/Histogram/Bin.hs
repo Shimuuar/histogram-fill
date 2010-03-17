@@ -316,7 +316,7 @@ data LogBinD = LogBinD
 
 -- | Create log-scale bins. 
 logBinD :: Double -> Int -> Double -> LogBinD
-logBinD lo n hi = LogBinD lo hi ((hi-lo) ** (1 / fromIntegral n)) n
+logBinD lo n hi = LogBinD lo hi ((hi/lo) ** (1 / fromIntegral n)) n
 
 instance Bin LogBinD where
     type BinValue LogBinD = Double
