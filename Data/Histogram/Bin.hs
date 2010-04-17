@@ -42,8 +42,9 @@ module Data.Histogram.Bin ( -- * Type classes
                           , logBinD
                           -- ** 2D bins
                           , Bin2D(..)
-                          , nBins2D
                           , (><)
+                          , nBins2D
+                          , toIndex2D
                           , binX
                           , binY
                           , fmapBinX
@@ -362,11 +363,14 @@ instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
         | inRange b (x,y) = toIndex bx x + (toIndex by y)*(fromIntegral $ nBins bx)
         | otherwise       = maxBound
     {-# INLINE toIndex #-}
-    fromIndex (Bin2D bx by) i = let (iy,ix) = divMod i (nBins bx)
-                                in  (fromIndex bx ix, fromIndex by iy)
+    fromIndex b@(Bin2D bx by) i = let (ix,iy) = toIndex2D b i
+                                  in  (fromIndex bx ix, fromIndex by iy)
     inRange (Bin2D bx by) (x,y) = inRange bx x && inRange by y
     {-# INLINE inRange #-}
     nBins (Bin2D bx by) = (nBins bx) * (nBins by)
+
+toIndex2D :: (Bin binX, Bin binY) => Bin2D binX binY -> Int -> (Int,Int)
+toIndex2D b i = let (iy,ix) = divMod i (nBins $ binX b) in (ix,iy)
 
 -- | 2-dimensional size of binning algorithm
 nBins2D :: (Bin bx, Bin by) => Bin2D bx by -> (Int,Int)
