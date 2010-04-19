@@ -1,4 +1,3 @@
-
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs        #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -113,7 +112,7 @@ instance (Indexable a, Indexable b) => Indexable2D (a,b) where
 -- Integer bin
 ----------------------------------------------------------------
 -- | Integer bins. This is inclusive interval [from,to]
-data BinI = BinI !Int !Int
+data BinI = BinI {-# UNPACK #-} !Int {-# UNPACK #-} !Int
             deriving Eq
 
 -- | Construct BinI with n bins. Idexing starts from 0
@@ -240,7 +239,7 @@ instance (Read f, RealFrac f) => Read (BinF f) where
 -- Floating point bin /Specialized for Double
 ----------------------------------------------------------------
 -- | Floaintg point bins with equal sizes.
-data BinD = BinD Double Double Int
+data BinD = BinD {-# UNPACK #-} !Double {-# UNPACK #-} !Double {-# UNPACK #-} !Int
 
 instance Eq BinD where
     (BinD lo hi n) == (BinD lo' hi' n') = lo == lo'  && hi == hi' && n == n'
@@ -342,7 +341,7 @@ instance Show LogBinD where
 ----------------------------------------------------------------
 
 -- | 2D bins. binX is binning along X axis and binY is one along Y axis. 
-data Bin2D binX binY = Bin2D binX binY
+data Bin2D binX binY = Bin2D !binX !binY
                        deriving Eq
 
 -- | Alias for 'Bin2D'.
@@ -351,11 +350,11 @@ data Bin2D binX binY = Bin2D binX binY
 
 -- | Get binning algorithm along X axis
 binX :: Bin2D bx by -> bx
-binX (Bin2D bx _) = bx
+binX !(Bin2D bx _) = bx
 
 -- | Get binning algorithm along Y axis
 binY :: Bin2D bx by -> by
-binY (Bin2D _ by) = by
+binY !(Bin2D _ by) = by
 
 instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
     type BinValue (Bin2D binX binY) = (BinValue binX, BinValue binY)
