@@ -14,6 +14,8 @@
 module Data.Histogram ( -- * Immutable histogram
                         Histogram(..)
                       , module Data.Histogram.Bin
+                      -- ** Consructors
+                      , histogram
                       -- ** Accessors
                       , histBin
                       , histData
@@ -58,6 +60,11 @@ data Histogram bin a where
               -> U.Vector a
               -> Histogram bin a
     deriving Typeable
+
+-- | Create histogram. Number of bins and vector size must match
+histogram :: (Bin bin, U.Unbox a) => bin -> U.Vector a -> Histogram bin a
+histogram b v | nBins b == U.length v = Histogram b Nothing v
+              | otherwise             = error "histogram: number of bins and vector size doesn;t match"
 
 instance (Eq a, Eq bin) => Eq (Histogram bin a) where
     (Histogram bin uo a) == (Histogram bin' uo' a') = bin==bin' && uo==uo' && a==a'
