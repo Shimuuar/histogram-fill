@@ -21,6 +21,7 @@ Library
   Exposed-modules:      Data.Histogram
                         Data.Histogram.Fill 
                         Data.Histogram.Bin
+                        Data.Histogram.Bin.Extra
                         Data.Histogram.ST
   Other-modules:        Data.Histogram.Parse
   Ghc-options:          -O2 -Wall -auto-all
