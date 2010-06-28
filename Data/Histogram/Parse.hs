@@ -27,8 +27,7 @@ key s = char '#' >> ws >> string s
 
 getVal :: Read a => ReadPrec a
 getVal = do x <- readPrec
-            lift eol
-            return x
+            lift eol >> return x
 
 -- Key value pair
 value :: Read a => String -> ReadPrec a

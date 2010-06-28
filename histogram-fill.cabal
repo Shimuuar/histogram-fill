@@ -19,7 +19,8 @@ Description:
 Library
   Build-Depends:        base >=3 && <5, vector
   Exposed-modules:      Data.Histogram
-                        Data.Histogram.Fill 
+                        Data.Histogram.Generic
+                        Data.Histogram.Fill
                         Data.Histogram.Bin
                         Data.Histogram.Bin.Extra
                         Data.Histogram.ST

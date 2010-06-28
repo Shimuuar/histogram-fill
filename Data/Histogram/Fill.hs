@@ -73,7 +73,7 @@ class HistBuilder h where
 
 ----------------------------------------------------------------
 
--- | Single stateful histogram
+-- | Stateful histogram builder.
 data HBuilderST s a b = HBuilderST { hbInput  :: a -> ST s ()
                                    , hbOutput :: ST s b
                                    }
