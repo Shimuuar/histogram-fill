@@ -13,19 +13,32 @@
 --
 module Data.Histogram.Fill ( -- * Type classes
                              HistBuilder(..)
-                           -- * Stateful histogram builders
+                             -- * Histogram builders
+                             -- ** Stateful
                            , HBuilderST
                            , feedOne
                            , freezeHBuilderST
-                           , HBuilder(unwrapST)
-                           , joinHBuilder
-                           , joinHBuilderList
-                           , treeHBuilder
                            , joinHBuilderST
                            , joinHBuilderSTList
                            , treeHBuilderST
+                             -- ** IO based
+                           , HBuilderIO
+                           , feedOneIO
+                           , freezeHBuilderIO
+                           , joinHBuilderIO
+                           , joinHBuilderIOList
+                           , treeHBuilderIO
+                             -- ** Stateless
+                           , HBuilder
+                           , joinHBuilder
+                           , joinHBuilderList
+                           , treeHBuilder
+                             -- ** Conversion between builders
+                           , toBuilderST
+                           , toBuilderIO
+                           , builderSTtoIO
                            -- * Fill histograms
-                           , fillBuilderST
+                           , fillBuilder
                            -- * Histogram constructors
                            , module Data.Histogram.Bin
                            -- ** Fixed weigth histograms
@@ -47,9 +60,9 @@ module Data.Histogram.Fill ( -- * Type classes
                            ) where
 
 import Control.Applicative ((<$>))
-import Control.Monad    (when)
-import Control.Monad.ST (ST,runST)
-import Data.Monoid      (Monoid, mempty)
+import Control.Monad       (when)
+import Control.Monad.ST 
+import Data.Monoid         (Monoid, mempty)
 
 import qualified Data.Vector.Unboxed.Mutable as MU
 
@@ -57,6 +70,8 @@ import Data.Histogram
 import Data.Histogram.Bin
 import Data.Histogram.ST
 
+----------------------------------------------------------------
+-- Type class
 ----------------------------------------------------------------
 
 -- | Histogram builder typeclass. Instance of this class contain
@@ -71,6 +86,8 @@ class HistBuilder h where
     -- | Convert output of histogram
     modifyOut :: (b -> b') -> h a b -> h a  b'
 
+----------------------------------------------------------------
+-- ST based builder
 ----------------------------------------------------------------
 
 -- | Stateful histogram builder.
@@ -98,7 +115,68 @@ feedOne = hbInput
 freezeHBuilderST :: HBuilderST s a b -> ST s b
 freezeHBuilderST = hbOutput
 
-newtype HBuilder a b = HBuilder { unwrapST :: (forall s . ST s (HBuilderST s a b)) }
+
+-- | Join list of builders into one builder
+joinHBuilderST :: [HBuilderST s a b] -> HBuilderST s a [b]
+joinHBuilderST hs = HBuilderST { hbInput  = \x -> mapM_ (flip hbInput x) hs
+                               , hbOutput = mapM hbOutput hs
+                               }
+
+-- | Join list of builders into one builders
+joinHBuilderSTList :: [HBuilderST s a [b]] -> HBuilderST s a [b]
+joinHBuilderSTList = fmap concat . joinHBuilderST
+
+treeHBuilderST :: [HBuilderST s a b -> HBuilderST s a' b'] -> HBuilderST s a b -> HBuilderST s a' [b']
+treeHBuilderST fs h = joinHBuilderST $ map ($ h) fs
+
+----------------------------------------------------------------
+-- IO based
+----------------------------------------------------------------
+
+-- | Stateful histogram builder.
+data HBuilderIO a b = HBuilderIO { hbInputIO  :: a -> IO ()
+                                 , hbOutputIO :: IO b
+                                 }
+
+instance HistBuilder (HBuilderIO) where
+    modifyIn  f h = h { hbInputIO  = hbInputIO h . f }
+    addCut    f h = h { hbInputIO  = \x -> when (f x) (hbInputIO h x) }
+    modifyMaybe h = h { hbInputIO  = modified } 
+        where modified (Just x) = hbInputIO h x
+              modified Nothing  = return ()
+    modifyOut f h = h { hbOutputIO = f `fmap` hbOutputIO h }
+
+instance Functor (HBuilderIO a) where
+    fmap = modifyOut
+
+-- | Put one value into histogram
+feedOneIO :: HBuilderIO a b -> a -> IO ()
+feedOneIO = hbInputIO
+
+-- | Create stateful histogram from instructions. Histograms could
+--   be filled either in the ST monad or with createHistograms
+freezeHBuilderIO :: HBuilderIO a b -> IO b
+freezeHBuilderIO = hbOutputIO
+
+-- | Join list of builders into one builder
+joinHBuilderIO :: [HBuilderIO a b] -> HBuilderIO a [b]
+joinHBuilderIO hs = HBuilderIO { hbInputIO  = \x -> mapM_ (flip hbInputIO x) hs
+                               , hbOutputIO = mapM hbOutputIO hs
+                               }
+
+-- | Join list of builders into one builders
+joinHBuilderIOList :: [HBuilderIO a [b]] -> HBuilderIO a [b]
+joinHBuilderIOList = fmap concat . joinHBuilderIO
+
+treeHBuilderIO :: [HBuilderIO a b -> HBuilderIO a' b'] -> HBuilderIO a b -> HBuilderIO a' [b']
+treeHBuilderIO fs h = joinHBuilderIO $ map ($ h) fs
+
+----------------------------------------------------------------
+-- Stateless 
+----------------------------------------------------------------
+
+-- | Stateless histogram builder
+newtype HBuilder a b = HBuilder { toBuilderST :: (forall s . ST s (HBuilderST s a b)) }
 
 instance HistBuilder (HBuilder) where
     modifyIn  f (HBuilder h) = HBuilder (modifyIn  f <$> h)
@@ -109,36 +187,39 @@ instance HistBuilder (HBuilder) where
 instance Functor (HBuilder a) where
     fmap = modifyOut
 
--- | Join list of builders into one builder
-joinHBuilderST :: [HBuilderST s a b] -> HBuilderST s a [b]
-joinHBuilderST hs = HBuilderST { hbInput  = \x -> mapM_ (flip hbInput x) hs
-                               , hbOutput = mapM hbOutput hs
-                               }
-
--- | Join list of builders into one builders
-joinHBuilderSTList :: [HBuilderST s a [b]] -> HBuilderST s a [b]
-joinHBuilderSTList = modifyOut concat . joinHBuilderST
-
 -- | Join list of builders
 joinHBuilder :: [HBuilder a b] -> HBuilder a [b]
-joinHBuilder hs = HBuilder (joinHBuilderST <$> mapM unwrapST hs)
+joinHBuilder hs = HBuilder (joinHBuilderST <$> mapM toBuilderST hs)
 
 -- | Join list of builders
 joinHBuilderList :: [HBuilder a [b]] -> HBuilder a [b]
 joinHBuilderList = modifyOut concat . joinHBuilder
 
-treeHBuilderST :: [HBuilderST s a b -> HBuilderST s a' b'] -> HBuilderST s a b -> HBuilderST s a' [b']
-treeHBuilderST fs h = joinHBuilderST $ map ($ h) fs
-
 treeHBuilder :: [HBuilder a b -> HBuilder a' b'] -> HBuilder a b -> HBuilder a' [b']
 treeHBuilder fs h = joinHBuilder $ map ($ h) fs
 
-fillBuilderST :: (HBuilder a b) -> [a] -> b
-fillBuilderST (HBuilder hb) xs = 
+----------------------------------------------------------------
+-- Conversions
+----------------------------------------------------------------
+
+
+-- | Convert ST base builder to IO based one
+builderSTtoIO :: HBuilderST RealWorld a b -> HBuilderIO a b
+builderSTtoIO (HBuilderST i o) = HBuilderIO (stToIO . i) (stToIO o)
+
+-- | Convert stateless builder to IO based one
+toBuilderIO :: HBuilder a b -> IO (HBuilderIO a b)
+toBuilderIO h = builderSTtoIO `fmap` stToIO (toBuilderST h)
+
+----------------------------------------------------------------
+-- Actual filling of histograms
+----------------------------------------------------------------
+
+fillBuilder :: HBuilder a b -> [a] -> b
+fillBuilder (HBuilder hb) xs = 
     runST $ do h <- hb
                mapM_ (feedOne h) xs
                freezeHBuilderST h
-
 
 ----------------------------------------------------------------
 -- Histogram constructors
