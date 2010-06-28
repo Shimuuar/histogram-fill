@@ -62,9 +62,9 @@ module Data.Histogram.Fill ( -- * Type classes
 import Control.Applicative ((<$>))
 import Control.Monad       (when)
 import Control.Monad.ST 
-import Data.Monoid         (Monoid, mempty)
 
-import qualified Data.Vector.Unboxed.Mutable as MU
+import Data.Monoid         (Monoid, mempty)
+import Data.Vector.Unboxed (Unbox)
 
 import Data.Histogram
 import Data.Histogram.Bin
@@ -227,7 +227,7 @@ fillBuilder (HBuilder hb) xs =
 
 -- | Create histogram builder which take single item as input. Each
 --   item has weight 1.
-mkHist1 :: (Bin bin, MU.Unbox val, Num val) =>
+mkHist1 :: (Bin bin, Unbox val, Num val) =>
            bin                      -- ^ Bin information
         -> (Histogram bin val -> b) -- ^ Output function 
         -> (a -> BinValue bin)      -- ^ Input function
@@ -240,7 +240,7 @@ mkHist1 bin out inp = HBuilder $ do
 
 -- | Create histogram builder which take many items as input. Each
 --   item has weight 1.
-mkHist :: (Bin bin, MU.Unbox val, Num val) =>
+mkHist :: (Bin bin, Unbox val, Num val) =>
           bin                      -- ^ Bin information
        -> (Histogram bin val -> b) -- ^ Output function
        -> (a -> [BinValue bin])    -- ^ Input function 
@@ -253,7 +253,7 @@ mkHist bin out inp = HBuilder $ do
 
 -- | Create histogram builder which at most one item as input. Each
 --   item has weight 1. 
-mkHistMaybe :: (Bin bin, MU.Unbox val, Num val) =>
+mkHistMaybe :: (Bin bin, Unbox val, Num val) =>
           bin                         -- ^ Bin information
        -> (Histogram bin val -> b)    -- ^ Output function
        -> (a -> Maybe (BinValue bin)) -- ^ Input function 
@@ -265,7 +265,7 @@ mkHistMaybe bin out inp = HBuilder $ do
                       }
 
 -- | Create histogram with weighted bin. Takes one item at time. 
-mkHistWgh1 :: (Bin bin, MU.Unbox val, Num val) =>
+mkHistWgh1 :: (Bin bin, Unbox val, Num val) =>
               bin                        -- ^ Bin information
           -> (Histogram bin val -> b)    -- ^ Output function
           -> (a -> (BinValue bin, val))  -- ^ Input function
@@ -277,7 +277,7 @@ mkHistWgh1 bin out inp = HBuilder $ do
                       }
 
 -- | Create histogram with weighted bin. Takes many items at time.
-mkHistWgh :: (Bin bin, MU.Unbox val, Num val) => 
+mkHistWgh :: (Bin bin, Unbox val, Num val) => 
              bin                          -- ^ Bin information
           -> (Histogram bin val  -> b)    -- ^ Output function
           -> (a -> [(BinValue bin, val)]) -- ^ Input function
@@ -289,7 +289,7 @@ mkHistWgh bin out inp = HBuilder $ do
                       }
 
 -- | Create histogram with weighted bin. Takes many items at time.
-mkHistWghMaybe :: (Bin bin, MU.Unbox val, Num val) => 
+mkHistWghMaybe :: (Bin bin, Unbox val, Num val) => 
                   bin                              -- ^ Bin information
                -> (Histogram bin val  -> b)        -- ^ Output function
                -> (a -> Maybe (BinValue bin, val)) -- ^ Input function
@@ -301,7 +301,7 @@ mkHistWghMaybe bin out inp = HBuilder $ do
                       }
 
 -- | Create histogram with monoidal bins
-mkHistMonoid1 :: (Bin bin, MU.Unbox val, Monoid val) =>
+mkHistMonoid1 :: (Bin bin, Unbox val, Monoid val) =>
               bin                         -- ^ Bin information
           -> (Histogram bin val -> b)     -- ^ Output function
           -> (a -> (BinValue bin, val))   -- ^ Input function
@@ -313,7 +313,7 @@ mkHistMonoid1 bin out inp = HBuilder $ do
                       }
 
 -- | Create histogram with monoidal bins. Takes many items at time.
-mkHistMonoid :: (Bin bin, MU.Unbox val, Monoid val) =>
+mkHistMonoid :: (Bin bin, Unbox val, Monoid val) =>
               bin                         -- ^ Bin information
           -> (Histogram bin val -> b)     -- ^ Output function
           -> (a -> [(BinValue bin, val)]) -- ^ Input function
@@ -325,7 +325,7 @@ mkHistMonoid bin out inp = HBuilder $ do
                       }
 
 -- | Create histogram with monoidal bins
-mkHistMonoidMaybe :: (Bin bin, MU.Unbox val, Monoid val) =>
+mkHistMonoidMaybe :: (Bin bin, Unbox val, Monoid val) =>
                      bin                              -- ^ Bin information
                   -> (Histogram bin val -> b)         -- ^ Output function
                   -> (a -> Maybe (BinValue bin, val)) -- ^ Input function
