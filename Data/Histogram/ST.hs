@@ -86,6 +86,6 @@ freezeHist (MHistogram bin uo arr) = do
   tmp  <- MU.new (MU.length arr)
   MU.copy tmp arr
   a    <- G.unsafeFreeze tmp
-  return $ Histogram bin (Just (u,o)) a
+  return $ histogramUO bin (Just (u,o)) a
 
 
