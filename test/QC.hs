@@ -1,6 +1,8 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE Rank2Types        #-}
+
+{-# LANGUAGE TypeSynonymInstances #-}
 import Control.Applicative
 import Control.Monad
 import Control.Monad.ST
@@ -72,7 +74,8 @@ instance (Arbitrary bx, Arbitrary by) => Arbitrary (Bin2D bx by) where
 instance (Bin bin, U.Unbox a, Arbitrary bin, Arbitrary a) => Arbitrary (Histogram bin a) where
     arbitrary = do
       bin <- suchThat arbitrary ((<333) . nBins)
-      Histogram bin <$> arbitrary <*> (U.fromList <$> vectorOf (nBins bin) arbitrary)
+      histogramUO bin <$> arbitrary <*> (U.fromList <$> vectorOf (nBins bin) arbitrary)
+
 ----------------------------------------------------------------
 -- Generic tests
 
@@ -137,19 +140,19 @@ testsFMap :: [(String, IO ())]
 testsFMap = [ ("==== Tests for fmap-like functions ====", return ())
             , ("fmapBinX"    , p (equalTest (fmapBinX id) :: Bin2D BinI BinI -> Bool))
             , ("fmapBinY"    , p (equalTest (fmapBinY id) :: Bin2D BinI BinI -> Bool))
-            , ("mapHist"     , p (equalTest (mapHist  id) :: Histogram BinI Int -> Bool))
-            , ("mapHistBin"  , p (equalTest (mapHist  id) :: Histogram BinI Int -> Bool))
-            , ("mapHistData" , p (equalTest (mapHist  id) :: Histogram BinI Int -> Bool))
+            , ("mapHist"     , p (equalTest (histMap  id) :: Histogram BinI Int -> Bool))
+            , ("mapHistBin"  , p (equalTest (histMapBin  id) :: Histogram BinI Int -> Bool))
             ]
+
 testsHistogram :: [(String, IO ())]
 testsHistogram = 
     [ ("==== Test for histograms ====", return ())
-    , ("asList"        , p (asListTest  :: Histogram BinI Int -> Bool))
-    , ("asVectorPairs" , p (asPairVTest :: Histogram BinI Int -> Bool))
+    -- , ("asList"        , p (asListTest  :: Histogram BinI Int -> Bool))
+    -- , ("asVectorPairs" , p (asPairVTest :: Histogram BinI Int -> Bool))
     ]
     where
-      asListTest  h = let (i,x) = unzip $ asList h in length i == length x
-      asPairVTest h = let (i,x) = asPairVector h   in U.length i == U.length x
+      -- asListTest  h = let (i,x) = unzip $ asList h in length i == length x
+      -- asPairVTest h = let (i,x) = asPairVector h   in U.length i == U.length x
 
 testsFill :: [(String, IO ())]
 testsFill = [ ("==== Test for filling ====", return ())
@@ -168,11 +171,11 @@ testsFill = [ ("==== Test for filling ====", return ())
       -- Test that empty histogram is filled with zeroes
       zeroTest :: HBuilder i (Histogram BinI Int) -> Bool
       zeroTest hb = outOfRange h == Just (0,0) && (U.all (==0) (histData h))
-          where h = fillBuilderST hb []
+          where h = fillBuilder hb []
       -- Test that array size and bin sizes match
       sizeTest :: HBuilder i (Histogram BinI Int) -> Bool
-      sizeTest hb = nBins (histBin h) == U.length (histData h)
-          where h = fillBuilderST hb []
+      sizeTest hb = nBins (bins h) == U.length (histData h)
+          where h = fillBuilder hb []
 
 
 testsAll :: [(String, IO ())]
