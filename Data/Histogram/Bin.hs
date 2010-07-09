@@ -21,6 +21,9 @@ module Data.Histogram.Bin ( -- * Type classes
                           -- ** Integer bins
                           , BinI(..)
                           , binI0
+                          -- ** Integer bins with non-1 size
+                          , BinInt
+                          , binInt
                           -- ** Indexed bins 
                           , BinIx(BinIx,unBinIx)
                           , binIx
@@ -139,6 +142,41 @@ instance Show BinI where
                                 ]
 instance Read BinI where
     readPrec = keyword "BinI" >> liftM2 BinI (value "Low") (value "High")
+
+----------------------------------------------------------------
+-- Another form of Integer bin
+----------------------------------------------------------------
+
+data BinInt = BinInt 
+              {-# UNPACK #-} !Int -- Low bound
+              {-# UNPACK #-} !Int -- Bin size
+              {-# UNPACK #-} !Int -- Number of bins
+              deriving Eq
+
+binInt :: Int -> Int -> Int -> BinInt
+binInt lo n hi = BinInt lo n nb
+  where
+    nb = (hi-lo) `div` n 
+
+instance Bin BinInt where
+    type BinValue BinInt = Int
+    toIndex   !(BinInt base sz _) !x = (x - base) `div` sz
+    {-# INLINE toIndex #-}
+    fromIndex !(BinInt base sz _) !x = x * sz + base
+    inRange   !(BinInt base sz n) i  = i>=base && i<(base+n*sz)
+    {-# INLINE inRange #-}
+    nBins     !(BinInt _ _ n) = n
+
+instance Show BinInt where
+    show (BinInt base sz n) = 
+      unlines [ "# BinInt"
+              , "# Low  = " ++ show base
+              , "# Step = " ++ show sz
+              , "# Bins = " ++ show n
+              ]
+
+instance Read BinInt where
+    readPrec = keyword "BinInt" >> liftM3 BinInt (value "Low") (value "Step") (value "Bins")
 
 ----------------------------------------------------------------
 -- Bins for indexables

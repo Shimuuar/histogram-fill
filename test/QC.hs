@@ -40,6 +40,14 @@ instance Arbitrary BinI where
       hi <- choose (lo    , maxI)
       return $ BinI lo hi
 
+instance Arbitrary BinInt where
+    arbitrary = do
+      let maxI = 100
+      base <- choose (-maxI,maxI)
+      step <- choose (1,10)
+      max  <- choose (base, base+2*maxI)
+      return $ binInt base step max
+
 instance Arbitrary (BinIx a) where
     arbitrary = BinIx <$> arbitrary
 
@@ -103,6 +111,7 @@ toFromIndexTest (x, bin) | inRange bin x = equalTest (fromIndex bin . toIndex bi
 testsEq :: [(String, IO ())]
 testsEq = [ ( "==== Equality reflexivity tests ====" , return ())
           , ( "BinI"        , p (eqTest :: BinI            -> Bool))
+          , ( "BinInt"      , p (eqTest :: BinInt          -> Bool))
           , ( "BinIx Int"   , p (eqTest :: BinIx Int       -> Bool))
           , ( "BinF Double" , p (eqTest :: BinF Double     -> Bool))
           , ( "BinF Float"  , p (eqTest :: BinF Float      -> Bool))
@@ -114,6 +123,7 @@ testsEq = [ ( "==== Equality reflexivity tests ====" , return ())
 testsRead :: [(String, IO ())]
 testsRead = [ ( "==== Read/Show tests ====" , return ())
             , ( "BinI"        , p (readShowTest  :: BinI            -> Bool))
+            , ( "BinInt"      , p (readShowTest  :: BinInt          -> Bool))            
             , ( "BinIx Int"   , p (readShowTest  :: BinIx Int       -> Bool))
             , ( "BinF Double" , p (readShowTest  :: BinF Double     -> Bool))
             , ( "BinF Float"  , p (readShowTest  :: BinF Float      -> Bool))
@@ -127,6 +137,7 @@ testsIndexing = [ ( "==== Bin {to,from}Index tests ====", return ())
                 , ( "BinI'"       , p (toFromIndexTest :: (Int,   BinI)        -> Bool))
                 , ( "BinIx"       , p (fromToIndexTest :: (Index, BinIx Int)   -> Bool))
                 , ( "BinIx'"      , p (toFromIndexTest :: (Int,   BinIx Int)   -> Bool))
+                , ( "BinInt"      , p (fromToIndexTest :: (Index, BinInt)      -> Bool))
                 -- Floating point bins
                 -- No test for Float because of roundoff errors
                 , ( "BinF Double" , p (fromToIndexTest :: (Index, BinF Double) -> Bool))

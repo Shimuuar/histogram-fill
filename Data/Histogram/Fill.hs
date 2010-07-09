@@ -39,6 +39,7 @@ module Data.Histogram.Fill ( -- * Type classes
                            , builderSTtoIO
                            -- * Fill histograms
                            , fillBuilder
+                           , fillBuilderIO
                            -- * Histogram constructors
                            , module Data.Histogram.Bin
                            -- ** Fixed weigth histograms
@@ -60,9 +61,10 @@ module Data.Histogram.Fill ( -- * Type classes
                            ) where
 
 import Control.Applicative ((<$>))
-import Control.Monad       (when)
+import Control.Monad       (when,forM_)
 import Control.Monad.ST 
 
+import Data.IORef
 import Data.Monoid         (Monoid, mempty)
 import Data.Vector.Unboxed (Unbox)
 
@@ -216,11 +218,19 @@ toBuilderIO h = builderSTtoIO `fmap` stToIO (toBuilderST h)
 ----------------------------------------------------------------
 
 fillBuilder :: HBuilder a b -> [a] -> b
-fillBuilder (HBuilder hb) xs = 
-    runST $ do h <- hb
+fillBuilder hb xs = 
+    runST $ do h <- toBuilderST hb
                mapM_ (feedOne h) xs
                freezeHBuilderST h
 
+fillBuilderIO :: (Int -> IO ()) -> HBuilder a b -> [[a]] -> IO b
+fillBuilderIO act hb xs = do
+  cnt <- newIORef 0 :: IO (IORef Int)
+  h   <- toBuilderIO hb
+  forM_ xs $ \ys -> do forM_ ys (\x -> feedOneIO h x >> modifyIORef cnt (+1))
+                       act =<< readIORef cnt
+  freezeHBuilderIO h
+  
 ----------------------------------------------------------------
 -- Histogram constructors
 ----------------------------------------------------------------
