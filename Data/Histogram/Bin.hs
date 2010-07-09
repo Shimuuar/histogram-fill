@@ -170,13 +170,13 @@ instance Bin BinInt where
 instance Show BinInt where
     show (BinInt base sz n) = 
       unlines [ "# BinInt"
-              , "# Low  = " ++ show base
+              , "# Base = " ++ show base
               , "# Step = " ++ show sz
               , "# Bins = " ++ show n
               ]
 
 instance Read BinInt where
-    readPrec = keyword "BinInt" >> liftM3 BinInt (value "Low") (value "Step") (value "Bins")
+    readPrec = keyword "BinInt" >> liftM3 BinInt (value "Base") (value "Step") (value "Bins")
 
 ----------------------------------------------------------------
 -- Bins for indexables
