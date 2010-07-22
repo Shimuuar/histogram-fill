@@ -48,6 +48,7 @@ newMHistogram zero bin = do
   uo <- MU.newWith 2 zero
   a  <- MU.newWith (nBins bin) zero
   return $ MHistogram bin uo a
+{-# INLINE newMHistogram #-}
 
 -- | Put one value into histogram
 fillOne :: Num a => MHistogram s bin a -> BinValue bin -> ST s ()
@@ -57,7 +58,7 @@ fillOne (MHistogram bin uo arr) x
     | otherwise          = MU.unsafeWrite arr i . (+1)  =<< MU.unsafeRead arr i
     where
       i = toIndex bin x
-
+{-# INLINE fillOne #-}
 
 -- | Put one value into histogram with weight
 fillOneW :: Num a => MHistogram s bin a -> (BinValue bin, a) -> ST s ()
@@ -67,6 +68,7 @@ fillOneW (MHistogram bin uo arr) (x,w)
     | otherwise          = MU.unsafeWrite arr i . (+w)  =<< MU.unsafeRead arr i
     where
       i = toIndex bin x
+{-# INLINE fillOneW #-} 
 
 -- | Put one monoidal element
 fillMonoid :: Monoid a => MHistogram s bin a -> (BinValue bin, a) -> ST s ()
@@ -76,6 +78,7 @@ fillMonoid (MHistogram bin uo arr) (x,m)
     | otherwise          = MU.unsafeWrite arr i . (flip mappend m)  =<< MU.unsafeRead arr i
     where 
       i = toIndex bin x
+{-# fillMonoid #-}
 
 -- | Create immutable histogram from mutable one. This operation involve copying.
 freezeHist :: MHistogram s bin a -> ST s (Histogram bin a)
@@ -87,5 +90,5 @@ freezeHist (MHistogram bin uo arr) = do
   MU.copy tmp arr
   a    <- G.unsafeFreeze tmp
   return $ histogramUO bin (Just (u,o)) a
-
+{-# INLINE freezeHist #-}
 
