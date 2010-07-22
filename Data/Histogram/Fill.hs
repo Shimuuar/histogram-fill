@@ -39,7 +39,6 @@ module Data.Histogram.Fill ( -- * Type classes
                            , builderSTtoIO
                            -- * Fill histograms
                            , fillBuilder
-                           , fillBuilderIO
                            -- * Histogram constructors
                            , module Data.Histogram.Bin
                            -- ** Fixed weigth histograms
@@ -61,10 +60,9 @@ module Data.Histogram.Fill ( -- * Type classes
                            ) where
 
 import Control.Applicative ((<$>))
-import Control.Monad       (when,forM_)
+import Control.Monad       (when)
 import Control.Monad.ST 
 
-import Data.IORef
 import Data.Monoid         (Monoid, mempty)
 import Data.Vector.Unboxed (Unbox)
 
@@ -81,10 +79,10 @@ import Data.Histogram.ST
 class HistBuilder h where
     -- | Convert input type of histogram from a to a'
     modifyIn  :: (a' -> a) -> h a b -> h a' b
+    -- | Make input function accept value only if it's Just a.
+    modifyMaybe :: h a b -> h (Maybe a) b
     -- | Add cut to histogram. Only put value histogram if condition is true.
     addCut    :: (a -> Bool) -> h a b -> h a b
-    -- | 
-    modifyMaybe :: h a b -> h (Maybe a) b
     -- | Convert output of histogram
     modifyOut :: (b -> b') -> h a b -> h a  b'
 
@@ -204,7 +202,6 @@ treeHBuilder fs h = joinHBuilder $ map ($ h) fs
 -- Conversions
 ----------------------------------------------------------------
 
-
 -- | Convert ST base builder to IO based one
 builderSTtoIO :: HBuilderST RealWorld a b -> HBuilderIO a b
 builderSTtoIO (HBuilderST i o) = HBuilderIO (stToIO . i) (stToIO o)
@@ -222,14 +219,6 @@ fillBuilder hb xs =
     runST $ do h <- toBuilderST hb
                mapM_ (feedOne h) xs
                freezeHBuilderST h
-
-fillBuilderIO :: (Int -> IO ()) -> HBuilder a b -> [[a]] -> IO b
-fillBuilderIO act hb xs = do
-  cnt <- newIORef 0 :: IO (IORef Int)
-  h   <- toBuilderIO hb
-  forM_ xs $ \ys -> do forM_ ys (\x -> feedOneIO h x >> modifyIORef cnt (+1))
-                       act =<< readIORef cnt
-  freezeHBuilderIO h
   
 ----------------------------------------------------------------
 -- Histogram constructors
