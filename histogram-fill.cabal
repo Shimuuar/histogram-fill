@@ -1,6 +1,6 @@
 Name:           histogram-fill
-Version:        0.1.0
-Cabal-Version:  >= 1.2
+Version:        0.2.0
+Cabal-Version:  >= 1.6
 License:        BSD3
 License-File:   LICENSE
 Author:         Alexey Khudyakov
@@ -15,6 +15,9 @@ Description:
   .
   This is very much work in progress so expect API breakage in future relesases.
 
+source-repository head
+  type:     hg
+  location: http://bitbucket.org/Shimuuar/histogram-fill
 
 Library
   Build-Depends:        base >=3 && <5, vector
