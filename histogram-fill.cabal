@@ -28,4 +28,4 @@ Library
                         Data.Histogram.Bin.Extra
                         Data.Histogram.ST
   Other-modules:        Data.Histogram.Parse
-  Ghc-options:          -O2 -Wall -auto-all
+  Ghc-options:          -O2 -Wall
