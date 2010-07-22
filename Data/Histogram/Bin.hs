@@ -62,7 +62,10 @@ import Text.Read (Read(..))
 
 import GHC.Float (double2Int)
 ----------------------------------------------------------------
--- | Abstract binning algorithm. Following invariant is expected to hold: 
+-- | Abstract binning algorithm. It provides way to map some values
+-- onto continous range of integer values starting from zero. 
+-- 
+-- Following invariant is expected to hold: 
 -- 
 -- > toIndex . fromIndex == id
 -- 
@@ -80,7 +83,10 @@ class Bin b where
     nBins :: b -> Int
 
 ----------------------------------------------------------------
--- | One dimensional binning algorithm
+-- | One dimensional binning algorithm. It means that bin values have
+-- some inherent ordering. For example all binning algorithms for real
+-- numbers could be members or this type class whereas binning
+-- algorithms for R^2 could not. 
 class Bin b => Bin1D b where
     -- | List of center of bins in ascending order.
     binsList :: b -> [BinValue b]
@@ -89,6 +95,15 @@ class Bin b => Bin1D b where
 
 ----------------------------------------------------------------
 -- | Indexable is value which could be converted to and from Int
+-- without information loss.
+--
+-- Always true
+--
+-- > deindex . index = id
+--
+-- Only if Int is in range
+--
+-- > index . deindex = id
 class Indexable a where
     -- | Convert value to index
     index :: a -> Int 
@@ -100,7 +115,7 @@ instance Indexable Int where
     deindex = id
 
 ----------------------------------------------------------------
--- | Value which could be converted to/from (Int,Int) tuples
+-- | This type class is same as Indexable but for 2D values.
 class Indexable2D a where
     -- | Convert value to index
     index2D :: a -> (Int,Int)
@@ -114,11 +129,12 @@ instance (Indexable a, Indexable b) => Indexable2D (a,b) where
 ----------------------------------------------------------------
 -- Integer bin
 ----------------------------------------------------------------
--- | Integer bins. This is inclusive interval [from,to]
+-- | Simple binning algorithm which map continous range of bins onto
+-- indices. Each number correcsponds to different bin
 data BinI = BinI {-# UNPACK #-} !Int {-# UNPACK #-} !Int
             deriving Eq
 
--- | Construct BinI with n bins. Idexing starts from 0
+-- | Construct BinI with n bins. Indexing starts from 0
 binI0 :: Int -> BinI
 binI0 n = BinI 0 (n-1)
 
@@ -147,13 +163,18 @@ instance Read BinI where
 -- Another form of Integer bin
 ----------------------------------------------------------------
 
+-- | Integer bins with size which differ from 1.
 data BinInt = BinInt 
               {-# UNPACK #-} !Int -- Low bound
               {-# UNPACK #-} !Int -- Bin size
               {-# UNPACK #-} !Int -- Number of bins
               deriving Eq
 
-binInt :: Int -> Int -> Int -> BinInt
+-- | Construct BinInt.
+binInt :: Int                   -- ^ Lower bound
+       -> Int                   -- ^ Bin size
+       -> Int                   -- ^ Upper bound
+       -> BinInt
 binInt lo n hi = BinInt lo n nb
   where
     nb = (hi-lo) `div` n 
@@ -181,6 +202,7 @@ instance Read BinInt where
 ----------------------------------------------------------------
 -- Bins for indexables
 ----------------------------------------------------------------
+
 -- | Binning for indexable values
 newtype BinIx i = BinIx { unBinIx :: BinI }
                   deriving Eq
@@ -276,7 +298,8 @@ instance (Read f, RealFrac f) => Read (BinF f) where
 ----------------------------------------------------------------
 -- Floating point bin /Specialized for Double
 ----------------------------------------------------------------
--- | Floaintg point bins with equal sizes.
+-- | Floaintg point bins with equal sizes. If you work with Doubles
+-- this data type should be used instead of BinF.
 data BinD = BinD {-# UNPACK #-} !Double {-# UNPACK #-} !Double {-# UNPACK #-} !Int
 
 instance Eq BinD where
@@ -345,6 +368,7 @@ instance Read BinD where
 ----------------------------------------------------------------
 -- Log-scale bin
 ----------------------------------------------------------------
+-- | Logarithmic scale bins.
 data LogBinD = LogBinD
                Double -- Low border
                Double -- Hi border
@@ -474,7 +498,7 @@ instance (Show i, Indexable2D i) => Show (BinIx2D i) where
                                ]
 instance (Read i, Indexable2D i) => Read (BinIx2D i) where
     readPrec = do
-      keyword "BinIx"
+      keyword "BinIx2D"
       l <- value "Low"
       h <- value "High"
       return $ binIx2D l h
