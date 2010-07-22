@@ -36,9 +36,9 @@ import Data.Histogram
 -- | Mutable histogram.
 data MHistogram s bin a where
     MHistogram :: (Bin bin, MU.Unbox a) => 
-                  bin            -- ^ Binning
-               -> MU.MVector s a -- ^ Over/underflows
-               -> MU.MVector s a -- ^ Data
+                  bin            -- Binning
+               -> MU.MVector s a -- Over/underflows
+               -> MU.MVector s a -- Data
                -> MHistogram s bin a
 
 -- | Create new mutable histogram. All bins are set to zero element as
