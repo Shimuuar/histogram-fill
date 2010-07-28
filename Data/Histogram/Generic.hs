@@ -32,6 +32,7 @@ module Data.Histogram.Generic (
   , histMap
   , histMapBin
   , histZip
+  , histZipSafe
   ) where
 
 import Control.Applicative ((<$>),(<*>))
@@ -161,7 +162,7 @@ histMapBin f (Histogram bin uo a)
     where
       bin' = bin
 
--- | Zip two histograms together. Bins of histograms must be equal
+-- | Zip two histograms elementwise. Bins of histograms must be equal
 --   otherwise error will be called.
 histZip :: (Bin bin, Eq bin, Vector v a, Vector v b, Vector v c) =>
            (a -> b -> c) -> Histogram v bin a -> Histogram v bin b -> Histogram v bin c
@@ -170,7 +171,17 @@ histZip f (Histogram bin uo v) (Histogram bin' uo' v')
     | otherwise   = Histogram bin (f2 <$> uo <*> uo') (G.zipWith f v v')
       where
         f2 (x,x') (y,y') = (f x y, f x' y')
-           
+
+-- | Zip two histogram elementwise. If bins are not equal return `Nothing`
+histZipSafe :: (Bin bin, Eq bin, Vector v a, Vector v b, Vector v c) =>
+           (a -> b -> c) -> Histogram v bin a -> Histogram v bin b -> Maybe (Histogram v bin c)
+histZipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
+    | bin /= bin' = Nothing
+    | otherwise   = Just $ Histogram bin (f2 <$> uo <*> uo') (G.zipWith f v v')
+      where
+        f2 (x,x') (y,y') = (f x y, f x' y')
+
+
 -- | Slice 2D histogram along Y axis. This function is fast because it does not require reallocations.
 sliceY :: (Vector v a, Bin bX, Bin bY) => Histogram v (Bin2D bX bY) a -> [(BinValue bY, Histogram v bX a)]
 sliceY (Histogram b _ a) = map mkSlice [0 .. ny-1]

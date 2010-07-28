@@ -37,6 +37,7 @@ module Data.Histogram ( -- * Immutable histogram
   , histMap
   , histMapBin
   , histZip
+  , histZipSafe
   ) where
 
 import qualified Data.Vector.Unboxed    as U
@@ -125,12 +126,17 @@ histMap = H.histMap
 histMapBin :: (Bin bin, Bin bin') => (bin -> bin') -> Histogram bin a -> Histogram bin' a
 histMapBin = H.histMapBin
 
--- | Zip two histograms together. Bins of histograms must be equal
+-- | Zip two histograms elementwise. Bins of histograms must be equal
 --   otherwise error will be called.
 histZip :: (Bin bin, Eq bin, Unbox a, Unbox b, Unbox c) =>
            (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Histogram bin c
 histZip = H.histZip
            
+-- | Zip two histogram elementwise. If bins are not equal return `Nothing`
+histZipSafe :: (Bin bin, Eq bin, Unbox a, Unbox b, Unbox c) =>
+           (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Maybe (Histogram bin c)
+histZipSafe = H.histZipSafe
+
 -- | Slice 2D histogram along Y axis. This function is fast because it does not require reallocations.
 sliceY :: (Unbox a, Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bY, Histogram bX a)]
 sliceY = H.sliceY
