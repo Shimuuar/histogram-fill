@@ -78,7 +78,7 @@ fillMonoid (MHistogram bin uo arr) (x,m)
     | otherwise          = MU.unsafeWrite arr i . (flip mappend m)  =<< MU.unsafeRead arr i
     where 
       i = toIndex bin x
-{-# fillMonoid #-}
+{-# INLINE fillMonoid #-}
 
 -- | Create immutable histogram from mutable one. This operation involve copying.
 freezeHist :: MHistogram s bin a -> ST s (Histogram bin a)
