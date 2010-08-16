@@ -63,10 +63,6 @@ instance Indexable i => Bin (BinIx i) where
     inRange   (BinIx b) x = inRange b (index x)
     nBins (BinIx b) = nBins b
 
-instance Indexable i => Bin1D (BinIx i) where
-    binsList (BinIx b) = map deindex (binsList b)
-    binsListRange b    = let bins = binsList b in zip bins bins
-
 instance (Show i, Indexable i) => Show (BinIx i) where
     show (BinIx (BinI lo hi)) = unlines [ "# BinIx"
                                         , "# Low  = " ++ show (deindex lo :: i)
