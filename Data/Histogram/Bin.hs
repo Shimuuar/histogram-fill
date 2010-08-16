@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs        #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE FlexibleContexts #-}
 -- |
 -- Module     : Data.Histogram.Bin
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -49,7 +50,10 @@ module Data.Histogram.Bin ( -- * Type classes
                           ) where
 
 import Control.Monad (liftM2, liftM3)
+
 import Data.Histogram.Parse
+import qualified Data.Vector.Generic as G
+
 import Text.Read (Read(..))
 
 import GHC.Float (double2Int)
@@ -80,10 +84,13 @@ class Bin b where
 -- numbers could be members or this type class whereas binning
 -- algorithms for R^2 could not. 
 class Bin b => Bin1D b where
+    -- | Size of i'th bin.
+    binSize :: b -> Int -> BinValue b
     -- | List of center of bins in ascending order.
-    binsList :: b -> [BinValue b]
-    -- | List of bins in ascending order.
-    binsListRange :: b -> [(BinValue b, BinValue b)]
+    binsList :: G.Vector v (BinValue b) => b -> v (BinValue b)
+    -- | List of bins in ascending order. First element of tuple is
+    --   lower bound second is upper bound of bin
+    binsListRange :: G.Vector v (BinValue b, BinValue b) => b -> v (BinValue b, BinValue b)
 
 ----------------------------------------------------------------
 -- Integer bin
@@ -107,8 +114,9 @@ instance Bin BinI where
     nBins     !(BinI x y) = y - x + 1
 
 instance Bin1D BinI where
-    binsList (BinI lo hi) = [lo .. hi]
-    binsListRange b = zip (binsList b) (binsList b)
+    binSize _ _ = 1
+    binsList      b@(BinI lo _) = G.enumFromN lo (nBins b)
+    binsListRange b@(BinI lo _) = G.generate (nBins b) (\i -> (lo+i, lo+i))
 
 instance Show BinI where
     show (BinI lo hi) = unlines [ "# BinI"
@@ -205,10 +213,11 @@ instance Bin (BinF f) where
     nBins     !(BinF _ _ n) = n
 
 instance Bin1D (BinF f) where
-    binsList b@(BinF _ _ n) = map (fromIndex b) [0..n-1]
-    binsListRange b@(BinF _ step _) = map toPair (binsList b)
+    binSize (BinF _ step _) _ = step
+    binsList      b@(BinF _    _ n) = G.generate n (fromIndex b)
+    binsListRange b@(BinF _ step n) = G.generate n toPair
         where
-          toPair x = (x - step/2, x + step/2)
+          toPair n = (x - step/2, x + step/2) where x = fromIndex b n
 
 instance Show f => Show (BinF f) where
     show (BinF base step n) = unlines [ "# BinF"
@@ -274,10 +283,12 @@ instance Bin BinD where
     nBins     !(BinD _ _ n) = n
 
 instance Bin1D BinD where
-    binsList b@(BinD _ _ n) = map (fromIndex b) [0..n-1]
-    binsListRange b@(BinD _ step _) = map toPair (binsList b)
+    binSize (BinD _ step _) _ = step
+    binsList      b@(BinD _    _ n) = G.generate n (fromIndex b)
+    binsListRange b@(BinD _ step n) = G.generate n toPair
         where
-          toPair x = (x - step/2, x + step/2)
+          toPair n = (x - step/2, x + step/2) where x = fromIndex b n
+
 
 instance Show BinD where
     show (BinD base step n) = unlines [ "# BinD"
