@@ -217,7 +217,7 @@ instance Bin1D (BinF f) where
     binsList      b@(BinF _    _ n) = G.generate n (fromIndex b)
     binsListRange b@(BinF _ step n) = G.generate n toPair
         where
-          toPair n = (x - step/2, x + step/2) where x = fromIndex b n
+          toPair k = (x - step/2, x + step/2) where x = fromIndex b k
 
 instance Show f => Show (BinF f) where
     show (BinF base step n) = unlines [ "# BinF"
@@ -287,7 +287,7 @@ instance Bin1D BinD where
     binsList      b@(BinD _    _ n) = G.generate n (fromIndex b)
     binsListRange b@(BinD _ step n) = G.generate n toPair
         where
-          toPair n = (x - step/2, x + step/2) where x = fromIndex b n
+          toPair k = (x - step/2, x + step/2) where x = fromIndex b k
 
 
 instance Show BinD where
