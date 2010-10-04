@@ -19,20 +19,23 @@ module Data.Histogram.Fill ( -- * Type classes
                            , feedOne
                            , freezeHBuilderST
                            , joinHBuilderST
-                           , joinHBuilderSTList
+                           , joinHBuilderSTMonoid
                            , treeHBuilderST
+                           , treeHBuilderSTMonoid
                              -- ** IO based
                            , HBuilderIO
                            , feedOneIO
                            , freezeHBuilderIO
                            , joinHBuilderIO
-                           , joinHBuilderIOList
+                           , joinHBuilderIOMonoid
                            , treeHBuilderIO
+                           , treeHBuilderIOMonoid
                              -- ** Stateless
                            , HBuilder
                            , joinHBuilder
-                           , joinHBuilderList
+                           , joinHBuilderMonoid
                            , treeHBuilder
+                           , treeHBuilderMonoid
                              -- ** Conversion between builders
                            , toBuilderST
                            , toBuilderIO
@@ -63,7 +66,7 @@ import Control.Applicative ((<$>))
 import Control.Monad       (when)
 import Control.Monad.ST 
 
-import Data.Monoid         (Monoid, mempty)
+import Data.Monoid         (Monoid(..))
 import Data.Vector.Unboxed (Unbox)
 
 import Data.Histogram
@@ -123,11 +126,15 @@ joinHBuilderST hs = HBuilderST { hbInput  = \x -> mapM_ (flip hbInput x) hs
                                }
 
 -- | Join list of builders into one builders
-joinHBuilderSTList :: [HBuilderST s a [b]] -> HBuilderST s a [b]
-joinHBuilderSTList = fmap concat . joinHBuilderST
+joinHBuilderSTMonoid :: Monoid b => [HBuilderST s a b] -> HBuilderST s a b
+joinHBuilderSTMonoid = fmap mconcat . joinHBuilderST
 
 treeHBuilderST :: [HBuilderST s a b -> HBuilderST s a' b'] -> HBuilderST s a b -> HBuilderST s a' [b']
 treeHBuilderST fs h = joinHBuilderST $ map ($ h) fs
+
+treeHBuilderSTMonoid :: Monoid b' => 
+                        [HBuilderST s a b -> HBuilderST s a' b'] -> HBuilderST s a b -> HBuilderST s a' b'
+treeHBuilderSTMonoid fs h = joinHBuilderSTMonoid $ map ($ h) fs
 
 ----------------------------------------------------------------
 -- IO based
@@ -165,11 +172,14 @@ joinHBuilderIO hs = HBuilderIO { hbInputIO  = \x -> mapM_ (flip hbInputIO x) hs
                                }
 
 -- | Join list of builders into one builders
-joinHBuilderIOList :: [HBuilderIO a [b]] -> HBuilderIO a [b]
-joinHBuilderIOList = fmap concat . joinHBuilderIO
+joinHBuilderIOMonoid :: Monoid b => [HBuilderIO a b] -> HBuilderIO a b
+joinHBuilderIOMonoid = fmap mconcat . joinHBuilderIO
 
 treeHBuilderIO :: [HBuilderIO a b -> HBuilderIO a' b'] -> HBuilderIO a b -> HBuilderIO a' [b']
 treeHBuilderIO fs h = joinHBuilderIO $ map ($ h) fs
+
+treeHBuilderIOMonoid :: Monoid b' => [HBuilderIO a b -> HBuilderIO a' b'] -> HBuilderIO a b -> HBuilderIO a' b'
+treeHBuilderIOMonoid fs h = joinHBuilderIOMonoid $ map ($ h) fs
 
 ----------------------------------------------------------------
 -- Stateless 
@@ -192,11 +202,14 @@ joinHBuilder :: [HBuilder a b] -> HBuilder a [b]
 joinHBuilder hs = HBuilder (joinHBuilderST <$> mapM toBuilderST hs)
 
 -- | Join list of builders
-joinHBuilderList :: [HBuilder a [b]] -> HBuilder a [b]
-joinHBuilderList = modifyOut concat . joinHBuilder
+joinHBuilderMonoid :: Monoid b => [HBuilder a b] -> HBuilder a b
+joinHBuilderMonoid = modifyOut mconcat . joinHBuilder
 
 treeHBuilder :: [HBuilder a b -> HBuilder a' b'] -> HBuilder a b -> HBuilder a' [b']
 treeHBuilder fs h = joinHBuilder $ map ($ h) fs
+
+treeHBuilderMonoid :: Monoid b' => [HBuilder a b -> HBuilder a' b'] -> HBuilder a b -> HBuilder a' b'
+treeHBuilderMonoid fs h = joinHBuilderMonoid $ map ($ h) fs
 
 ----------------------------------------------------------------
 -- Conversions
