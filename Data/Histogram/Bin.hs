@@ -21,7 +21,7 @@ module Data.Histogram.Bin ( -- * Type classes
                           , BinI(..)
                           , binI0
                           -- ** Integer bins with non-1 size
-                          , BinInt
+                          , BinInt(..)
                           , binInt
                           -- ** Floating point bins
                           , BinF
@@ -30,13 +30,13 @@ module Data.Histogram.Bin ( -- * Type classes
                           , binI2binF
                           , scaleBinF
                           -- *** Specialized for Double 
-                          , BinD
+                          , BinD(..)
                           , binD
                           , binDn
                           , binI2binD
                           , scaleBinD
                           -- ** Log scale point
-                          , LogBinD 
+                          , LogBinD(..)
                           , logBinD
                           -- ** 2D bins
                           , Bin2D(..)
@@ -132,9 +132,9 @@ instance Read BinI where
 
 -- | Integer bins with size which differ from 1.
 data BinInt = BinInt 
-              {-# UNPACK #-} !Int -- Low bound
-              {-# UNPACK #-} !Int -- Bin size
-              {-# UNPACK #-} !Int -- Number of bins
+              {-# UNPACK #-} !Int -- ^ Low bound
+              {-# UNPACK #-} !Int -- ^ Bin size
+              {-# UNPACK #-} !Int -- ^ Number of bins
               deriving Eq
 
 -- | Construct BinInt.
@@ -310,10 +310,10 @@ instance Read BinD where
 ----------------------------------------------------------------
 -- | Logarithmic scale bins.
 data LogBinD = LogBinD
-               Double -- Low border
-               Double -- Hi border
-               Double -- Increment ratio
-               Int    -- Number of bins
+               Double -- ^ Low border
+               Double -- ^ Hi border
+               Double -- ^ Increment ratio
+               Int    -- ^ Number of bins
                deriving Eq
 
 -- | Create log-scale bins. 
