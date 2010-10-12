@@ -11,8 +11,10 @@
 -- Module with algorithms for histogram filling. This is pure wrapper
 -- around stateful histograms.
 --
-module Data.Histogram.Fill ( -- * Type classes
+module Data.Histogram.Fill ( -- * Histogram builders API
                              HistBuilder(..)
+                           , (<<-)
+                           , (-<<)
                              -- * Histogram builders
                              -- ** Stateful
                            , HBuilderM
@@ -32,18 +34,9 @@ module Data.Histogram.Fill ( -- * Type classes
                            , fillBuilder
                              -- * Histogram constructors
                            , module Data.Histogram.Bin
-                             -- ** Fixed weigth histograms
-                           , mkHist1
-                           , mkHist
-                           , mkHistMaybe
-                             -- ** Weighted histograms
-                           , mkHistWgh1
-                           , mkHistWgh
-                           , mkHistWghMaybe
-                             -- ** Histograms with monoidal bins
-                           , mkHistMonoid1
-                           , mkHistMonoid
-                           , mkHistMonoidMaybe
+                           , mkSimple
+                           , mkWeighted
+                           , mkMonoidal
                              -- * Auxillary functions
                            , forceInt
                            , forceDouble
@@ -69,14 +62,24 @@ import Data.Histogram.ST
 -- | Histogram builder typeclass. Instance of this class contain
 --   instructions how to build histograms.
 class HistBuilder h where
+    -- | Convert output of histogram
+    modifyOut   :: (b -> b') -> h a b -> h a  b'
     -- | Convert input type of histogram from a to a'
-    modifyIn  :: (a' -> a) -> h a b -> h a' b
+    modifyIn    :: (a' -> a) -> h a b -> h a' b
     -- | Make input function accept value only if it's Just a.
     modifyMaybe :: h a b -> h (Maybe a) b
     -- | Add cut to histogram. Only put value histogram if condition is true.
-    addCut    :: (a -> Bool) -> h a b -> h a b
-    -- | Convert output of histogram
-    modifyOut :: (b -> b') -> h a b -> h a  b'
+    addCut      :: (a -> Bool) -> h a b -> h a b
+
+-- | Modify input of builder 
+(<<-) :: HistBuilder h => h a b -> (a' -> a) -> h a' b
+(<<-) = flip modifyIn
+infixl 4 <<-
+
+-- | Modify output of histogram. In fact it's same as '<$>' but have opposite fixity
+(-<<) :: HistBuilder h => (b -> b') -> h a b -> h a b'
+(-<<) = modifyOut
+infixr 4 -<<
 
 ----------------------------------------------------------------
 -- ST based builder
@@ -107,7 +110,6 @@ instance PrimMonad m => Applicative (HBuilderM m a) where
                                         return (a b)
                         }
                                         
-
 -- | Put one value into histogram
 feedOne :: PrimMonad m => HBuilderM m a b -> a -> m ()
 feedOne = hbInput
@@ -181,120 +183,27 @@ fillBuilder hb xs =
                freezeHBuilderM h
 
 
-----------------------------------------------------------------
--- Histogram constructors
-----------------------------------------------------------------
+mkSimple :: (Bin bin, Unbox val, Num val
+            ) => bin -> HBuilder (BinValue bin) (Histogram bin val)
+mkSimple bin = 
+  HBuilder $ do acc <- newMHistogram 0 bin
+                return $ HBuilderM { hbInput  = fillOne acc
+                                   , hbOutput = freezeHist acc
+                                   }
 
--- | Create histogram builder which take single item as input. Each
---   item has weight 1.
-mkHist1 :: (Bin bin, Unbox val, Num val) =>
-           bin                      -- ^ Bin information
-        -> (Histogram bin val -> b) -- ^ Output function 
-        -> (a -> BinValue bin)      -- ^ Input function
-        -> HBuilder a b
-mkHist1 bin out inp = HBuilder $ do
-  acc <- newMHistogram 0 bin
-  return $ HBuilderM  { hbInput  = fillOne acc . inp
-                      , hbOutput = fmap out (freezeHist acc)
-                      }
-
--- | Create histogram builder which take many items as input. Each
---   item has weight 1.
-mkHist :: (Bin bin, Unbox val, Num val) =>
-          bin                      -- ^ Bin information
-       -> (Histogram bin val -> b) -- ^ Output function
-       -> (a -> [BinValue bin])    -- ^ Input function 
-       -> HBuilder a b
-mkHist bin out inp = HBuilder $ do
-  acc <- newMHistogram 0 bin
-  return $ HBuilderM  { hbInput  = mapM_ (fillOne acc) . inp
-                      , hbOutput = fmap out (freezeHist acc)
-                      }
-
--- | Create histogram builder which at most one item as input. Each
---   item has weight 1. 
-mkHistMaybe :: (Bin bin, Unbox val, Num val) =>
-          bin                         -- ^ Bin information
-       -> (Histogram bin val -> b)    -- ^ Output function
-       -> (a -> Maybe (BinValue bin)) -- ^ Input function 
-       -> HBuilder a b
-mkHistMaybe bin out inp = HBuilder $ do
-  acc <- newMHistogram 0 bin
-  return $ HBuilderM  { hbInput  = maybe (return ()) (fillOne acc) . inp
-                      , hbOutput = fmap out (freezeHist acc)
-                      }
-
--- | Create histogram with weighted bin. Takes one item at time. 
-mkHistWgh1 :: (Bin bin, Unbox val, Num val) =>
-              bin                        -- ^ Bin information
-          -> (Histogram bin val -> b)    -- ^ Output function
-          -> (a -> (BinValue bin, val))  -- ^ Input function
-          -> HBuilder a b
-mkHistWgh1 bin out inp = HBuilder $ do
-  acc <- newMHistogram 0 bin
-  return $ HBuilderM  { hbInput  = fillOneW acc . inp
-                      , hbOutput = fmap out (freezeHist acc)
-                      }
-
--- | Create histogram with weighted bin. Takes many items at time.
-mkHistWgh :: (Bin bin, Unbox val, Num val) => 
-             bin                          -- ^ Bin information
-          -> (Histogram bin val  -> b)    -- ^ Output function
-          -> (a -> [(BinValue bin, val)]) -- ^ Input function
-          -> HBuilder a b
-mkHistWgh bin out inp = HBuilder $ do
-  acc <- newMHistogram 0 bin
-  return $ HBuilderM  { hbInput  = mapM_ (fillOneW acc) . inp
-                      , hbOutput = fmap out (freezeHist acc)
-                      }
-
--- | Create histogram with weighted bin. Takes many items at time.
-mkHistWghMaybe :: (Bin bin, Unbox val, Num val) => 
-                  bin                              -- ^ Bin information
-               -> (Histogram bin val  -> b)        -- ^ Output function
-               -> (a -> Maybe (BinValue bin, val)) -- ^ Input function
-               -> HBuilder a b
-mkHistWghMaybe bin out inp = HBuilder $ do
-  acc <- newMHistogram 0 bin
-  return $ HBuilderM  { hbInput  = maybe (return ()) (fillOneW acc) . inp
-                      , hbOutput = fmap out (freezeHist acc)
-                      }
-
--- | Create histogram with monoidal bins
-mkHistMonoid1 :: (Bin bin, Unbox val, Monoid val) =>
-              bin                         -- ^ Bin information
-          -> (Histogram bin val -> b)     -- ^ Output function
-          -> (a -> (BinValue bin, val))   -- ^ Input function
-          -> HBuilder a b
-mkHistMonoid1 bin out inp = HBuilder $ do
-  acc <- newMHistogram mempty bin
-  return $ HBuilderM  { hbInput  = fillMonoid acc . inp
-                      , hbOutput = fmap out (freezeHist acc)
-                      }
-
--- | Create histogram with monoidal bins. Takes many items at time.
-mkHistMonoid :: (Bin bin, Unbox val, Monoid val) =>
-              bin                         -- ^ Bin information
-          -> (Histogram bin val -> b)     -- ^ Output function
-          -> (a -> [(BinValue bin, val)]) -- ^ Input function
-          -> HBuilder a b
-mkHistMonoid bin out inp = HBuilder $ do
-  acc <- newMHistogram mempty bin
-  return $ HBuilderM  { hbInput  = mapM_ (fillMonoid acc) . inp
-                      , hbOutput = fmap out (freezeHist acc)
-                      }
-
--- | Create histogram with monoidal bins
-mkHistMonoidMaybe :: (Bin bin, Unbox val, Monoid val) =>
-                     bin                              -- ^ Bin information
-                  -> (Histogram bin val -> b)         -- ^ Output function
-                  -> (a -> Maybe (BinValue bin, val)) -- ^ Input function
-                  -> HBuilder a b
-mkHistMonoidMaybe bin out inp = HBuilder $ do
-  acc <- newMHistogram mempty bin
-  return $ HBuilderM  { hbInput  = maybe (return ()) (fillMonoid acc) . inp
-                      , hbOutput = fmap out (freezeHist acc)
-                      }
+mkWeighted :: (Bin bin, Unbox val, Num val
+              ) => bin -> HBuilder (BinValue bin,val) (Histogram bin val)
+mkWeighted bin = HBuilder $ do acc <- newMHistogram 0 bin
+                               return $ HBuilderM { hbInput  = fillOneW acc
+                                                  , hbOutput = freezeHist acc
+                                                  }
+                 
+mkMonoidal :: (Bin bin, Unbox val, Monoid val
+              ) => bin -> HBuilder (BinValue bin,val) (Histogram bin val)
+mkMonoidal bin = HBuilder $ do acc <- newMHistogram mempty bin
+                               return $ HBuilderM { hbInput  = fillMonoid acc
+                                                  , hbOutput = freezeHist acc
+                                                  }
 
 ----------------------------------------------------------------
 
