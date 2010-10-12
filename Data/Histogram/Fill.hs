@@ -50,8 +50,8 @@ module Data.Histogram.Fill ( -- * Type classes
                            , forceFloat
                            ) where
 
-import Control.Applicative ((<$>))
-import Control.Monad       (when,liftM)
+import Control.Applicative
+import Control.Monad       (when,liftM,liftM2)
 import Control.Monad.ST 
 import Control.Monad.Primitive
 
@@ -97,6 +97,16 @@ instance PrimMonad m => HistBuilder (HBuilderM m) where
 
 instance PrimMonad m => Functor (HBuilderM m a) where
     fmap = modifyOut
+instance PrimMonad m => Applicative (HBuilderM m a) where
+    pure x = HBuilderM { hbInput  = const $ return ()
+                       , hbOutput = return x
+                       }
+    f <*> g = HBuilderM { hbInput  = \a -> hbInput f a >> hbInput g a
+                        , hbOutput = do a <- hbOutput f
+                                        b <- hbOutput g
+                                        return (a b)
+                        }
+                                        
 
 -- | Put one value into histogram
 feedOne :: PrimMonad m => HBuilderM m a b -> a -> m ()
@@ -111,8 +121,8 @@ freezeHBuilderM = hbOutput
 -- | Join list of builders into one builder
 joinHBuilderM :: PrimMonad m => [HBuilderM m a b] -> HBuilderM m a [b]
 joinHBuilderM hs = HBuilderM { hbInput  = \x -> mapM_ (flip hbInput x) hs
-                               , hbOutput = mapM hbOutput hs
-                               }
+                             , hbOutput = mapM hbOutput hs
+                             }
 
 -- | Join list of builders into one builders
 joinHBuilderMMonoid :: (PrimMonad m, Monoid b) => [HBuilderM m a b] -> HBuilderM m a b
@@ -141,6 +151,9 @@ instance HistBuilder (HBuilder) where
 
 instance Functor (HBuilder a) where
     fmap = modifyOut
+instance Applicative (HBuilder a) where
+    pure x  = HBuilder (return $ pure x)
+    (HBuilder f) <*> (HBuilder g) = HBuilder $ liftM2 (<*>) f g 
 
 -- | Join list of builders
 joinHBuilder :: [HBuilder a b] -> HBuilder a [b]
