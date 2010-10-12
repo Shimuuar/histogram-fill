@@ -19,9 +19,9 @@ module Data.Histogram.Fill ( -- * Type classes
                            , feedOne
                            , freezeHBuilderM
                            , joinHBuilderM
-                           , joinHBuilderMMonoid
+                           , joinHBuilderMonoidM
                            , treeHBuilderM
-                           , treeHBuilderMMonoid
+                           , treeHBuilderMonoidM
                              -- ** Stateless
                            , HBuilder
                            , joinHBuilder
@@ -125,15 +125,15 @@ joinHBuilderM hs = HBuilderM { hbInput  = \x -> mapM_ (flip hbInput x) hs
                              }
 
 -- | Join list of builders into one builders
-joinHBuilderMMonoid :: (PrimMonad m, Monoid b) => [HBuilderM m a b] -> HBuilderM m a b
-joinHBuilderMMonoid = fmap mconcat . joinHBuilderM
+joinHBuilderMonoidM :: (PrimMonad m, Monoid b) => [HBuilderM m a b] -> HBuilderM m a b
+joinHBuilderMonoidM = fmap mconcat . joinHBuilderM
 
 treeHBuilderM :: PrimMonad m => [HBuilderM m a b -> HBuilderM m a' b'] -> HBuilderM m a b -> HBuilderM m a' [b']
 treeHBuilderM fs h = joinHBuilderM $ map ($ h) fs
 
-treeHBuilderMMonoid :: (PrimMonad m, Monoid b') => 
+treeHBuilderMonoidM :: (PrimMonad m, Monoid b') => 
                         [HBuilderM m a b -> HBuilderM m a' b'] -> HBuilderM m a b -> HBuilderM m a' b'
-treeHBuilderMMonoid fs h = joinHBuilderMMonoid $ map ($ h) fs
+treeHBuilderMonoidM fs h = joinHBuilderMonoidM $ map ($ h) fs
 
 
 ----------------------------------------------------------------
