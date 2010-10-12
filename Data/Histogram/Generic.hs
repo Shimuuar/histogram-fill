@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 -- |
 -- Module     : Data.Histogram
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -41,7 +42,8 @@ import Control.Monad       (ap, forM_)
 import Control.Monad.ST    (runST)
 
 import qualified Data.Vector.Generic.Mutable as M
-import qualified Data.Vector.Generic as G
+import qualified Data.Vector.Generic         as G
+import Data.Typeable        (Typeable)
 import Data.Vector.Generic  (Vector)
 import Text.Read
 
