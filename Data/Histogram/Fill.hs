@@ -15,56 +15,45 @@ module Data.Histogram.Fill ( -- * Type classes
                              HistBuilder(..)
                              -- * Histogram builders
                              -- ** Stateful
-                           , HBuilderST
+                           , HBuilderM
                            , feedOne
-                           , freezeHBuilderST
-                           , joinHBuilderST
-                           , joinHBuilderSTMonoid
-                           , treeHBuilderST
-                           , treeHBuilderSTMonoid
-                             -- ** IO based
-                           , HBuilderIO
-                           , feedOneIO
-                           , freezeHBuilderIO
-                           , joinHBuilderIO
-                           , joinHBuilderIOMonoid
-                           , treeHBuilderIO
-                           , treeHBuilderIOMonoid
+                           , freezeHBuilderM
+                           , joinHBuilderM
+                           , joinHBuilderMMonoid
+                           , treeHBuilderM
+                           , treeHBuilderMMonoid
                              -- ** Stateless
                            , HBuilder
                            , joinHBuilder
                            , joinHBuilderMonoid
                            , treeHBuilder
                            , treeHBuilderMonoid
-                             -- ** Conversion between builders
-                           , toBuilderST
-                           , toBuilderIO
-                           , builderSTtoIO
-                           -- * Fill histograms
+                             -- * Fill histograms
                            , fillBuilder
-                           -- * Histogram constructors
+                             -- * Histogram constructors
                            , module Data.Histogram.Bin
-                           -- ** Fixed weigth histograms
+                             -- ** Fixed weigth histograms
                            , mkHist1
                            , mkHist
                            , mkHistMaybe
-                           -- ** Weighted histograms
+                             -- ** Weighted histograms
                            , mkHistWgh1
                            , mkHistWgh
                            , mkHistWghMaybe
-                           -- ** Histograms with monoidal bins
+                             -- ** Histograms with monoidal bins
                            , mkHistMonoid1
                            , mkHistMonoid
                            , mkHistMonoidMaybe
-                           -- * Auxillary functions
+                             -- * Auxillary functions
                            , forceInt
                            , forceDouble
                            , forceFloat
                            ) where
 
 import Control.Applicative ((<$>))
-import Control.Monad       (when)
+import Control.Monad       (when,liftM)
 import Control.Monad.ST 
+import Control.Monad.Primitive
 
 import Data.Monoid         (Monoid(..))
 import Data.Vector.Unboxed (Unbox)
@@ -94,99 +83,55 @@ class HistBuilder h where
 ----------------------------------------------------------------
 
 -- | Stateful histogram builder.
-data HBuilderST s a b = HBuilderST { hbInput  :: a -> ST s ()
-                                   , hbOutput :: ST s b
-                                   }
+data HBuilderM m a b = HBuilderM { hbInput  :: a -> m ()
+                                 , hbOutput :: m b
+                                 }
 
-instance HistBuilder (HBuilderST s) where
+instance PrimMonad m => HistBuilder (HBuilderM m) where
     modifyIn  f h = h { hbInput  = hbInput h . f }
     addCut    f h = h { hbInput  = \x -> when (f x) (hbInput h x) }
     modifyMaybe h = h { hbInput  = modified } 
         where modified (Just x) = hbInput h x
               modified Nothing  = return ()
-    modifyOut f h = h { hbOutput = f `fmap` hbOutput h }
+    modifyOut f h = h { hbOutput = f `liftM` hbOutput h }
 
-instance Functor (HBuilderST s a) where
+instance PrimMonad m => Functor (HBuilderM m a) where
     fmap = modifyOut
 
 -- | Put one value into histogram
-feedOne :: HBuilderST s a b -> a -> ST s ()
+feedOne :: PrimMonad m => HBuilderM m a b -> a -> m ()
 feedOne = hbInput
 
 -- | Create stateful histogram from instructions. Histograms could
 --   be filled either in the ST monad or with createHistograms
-freezeHBuilderST :: HBuilderST s a b -> ST s b
-freezeHBuilderST = hbOutput
+freezeHBuilderM :: PrimMonad m => HBuilderM m a b -> m b
+freezeHBuilderM = hbOutput
 
 
 -- | Join list of builders into one builder
-joinHBuilderST :: [HBuilderST s a b] -> HBuilderST s a [b]
-joinHBuilderST hs = HBuilderST { hbInput  = \x -> mapM_ (flip hbInput x) hs
+joinHBuilderM :: PrimMonad m => [HBuilderM m a b] -> HBuilderM m a [b]
+joinHBuilderM hs = HBuilderM { hbInput  = \x -> mapM_ (flip hbInput x) hs
                                , hbOutput = mapM hbOutput hs
                                }
 
 -- | Join list of builders into one builders
-joinHBuilderSTMonoid :: Monoid b => [HBuilderST s a b] -> HBuilderST s a b
-joinHBuilderSTMonoid = fmap mconcat . joinHBuilderST
+joinHBuilderMMonoid :: (PrimMonad m, Monoid b) => [HBuilderM m a b] -> HBuilderM m a b
+joinHBuilderMMonoid = fmap mconcat . joinHBuilderM
 
-treeHBuilderST :: [HBuilderST s a b -> HBuilderST s a' b'] -> HBuilderST s a b -> HBuilderST s a' [b']
-treeHBuilderST fs h = joinHBuilderST $ map ($ h) fs
+treeHBuilderM :: PrimMonad m => [HBuilderM m a b -> HBuilderM m a' b'] -> HBuilderM m a b -> HBuilderM m a' [b']
+treeHBuilderM fs h = joinHBuilderM $ map ($ h) fs
 
-treeHBuilderSTMonoid :: Monoid b' => 
-                        [HBuilderST s a b -> HBuilderST s a' b'] -> HBuilderST s a b -> HBuilderST s a' b'
-treeHBuilderSTMonoid fs h = joinHBuilderSTMonoid $ map ($ h) fs
+treeHBuilderMMonoid :: (PrimMonad m, Monoid b') => 
+                        [HBuilderM m a b -> HBuilderM m a' b'] -> HBuilderM m a b -> HBuilderM m a' b'
+treeHBuilderMMonoid fs h = joinHBuilderMMonoid $ map ($ h) fs
 
-----------------------------------------------------------------
--- IO based
-----------------------------------------------------------------
-
--- | Stateful histogram builder.
-data HBuilderIO a b = HBuilderIO { hbInputIO  :: a -> IO ()
-                                 , hbOutputIO :: IO b
-                                 }
-
-instance HistBuilder (HBuilderIO) where
-    modifyIn  f h = h { hbInputIO  = hbInputIO h . f }
-    addCut    f h = h { hbInputIO  = \x -> when (f x) (hbInputIO h x) }
-    modifyMaybe h = h { hbInputIO  = modified } 
-        where modified (Just x) = hbInputIO h x
-              modified Nothing  = return ()
-    modifyOut f h = h { hbOutputIO = f `fmap` hbOutputIO h }
-
-instance Functor (HBuilderIO a) where
-    fmap = modifyOut
-
--- | Put one value into histogram
-feedOneIO :: HBuilderIO a b -> a -> IO ()
-feedOneIO = hbInputIO
-
--- | Create stateful histogram from instructions. Histograms could
---   be filled either in the ST monad or with createHistograms
-freezeHBuilderIO :: HBuilderIO a b -> IO b
-freezeHBuilderIO = hbOutputIO
-
--- | Join list of builders into one builder
-joinHBuilderIO :: [HBuilderIO a b] -> HBuilderIO a [b]
-joinHBuilderIO hs = HBuilderIO { hbInputIO  = \x -> mapM_ (flip hbInputIO x) hs
-                               , hbOutputIO = mapM hbOutputIO hs
-                               }
-
--- | Join list of builders into one builders
-joinHBuilderIOMonoid :: Monoid b => [HBuilderIO a b] -> HBuilderIO a b
-joinHBuilderIOMonoid = fmap mconcat . joinHBuilderIO
-
-treeHBuilderIO :: [HBuilderIO a b -> HBuilderIO a' b'] -> HBuilderIO a b -> HBuilderIO a' [b']
-treeHBuilderIO fs h = joinHBuilderIO $ map ($ h) fs
-
-treeHBuilderIOMonoid :: Monoid b' => [HBuilderIO a b -> HBuilderIO a' b'] -> HBuilderIO a b -> HBuilderIO a' b'
-treeHBuilderIOMonoid fs h = joinHBuilderIOMonoid $ map ($ h) fs
 
 ----------------------------------------------------------------
 -- Stateless 
 ----------------------------------------------------------------
 
 -- | Stateless histogram builder
-newtype HBuilder a b = HBuilder { toBuilderST :: (forall s . ST s (HBuilderST s a b)) }
+newtype HBuilder a b = HBuilder { toBuilderM :: (forall s . ST s (HBuilderM (ST s) a b)) }
 
 instance HistBuilder (HBuilder) where
     modifyIn  f (HBuilder h) = HBuilder (modifyIn  f <$> h)
@@ -199,7 +144,7 @@ instance Functor (HBuilder a) where
 
 -- | Join list of builders
 joinHBuilder :: [HBuilder a b] -> HBuilder a [b]
-joinHBuilder hs = HBuilder (joinHBuilderST <$> mapM toBuilderST hs)
+joinHBuilder hs = HBuilder (joinHBuilderM <$> mapM toBuilderM hs)
 
 -- | Join list of builders
 joinHBuilderMonoid :: Monoid b => [HBuilder a b] -> HBuilder a b
@@ -211,17 +156,6 @@ treeHBuilder fs h = joinHBuilder $ map ($ h) fs
 treeHBuilderMonoid :: Monoid b' => [HBuilder a b -> HBuilder a' b'] -> HBuilder a b -> HBuilder a' b'
 treeHBuilderMonoid fs h = joinHBuilderMonoid $ map ($ h) fs
 
-----------------------------------------------------------------
--- Conversions
-----------------------------------------------------------------
-
--- | Convert ST base builder to IO based one
-builderSTtoIO :: HBuilderST RealWorld a b -> HBuilderIO a b
-builderSTtoIO (HBuilderST i o) = HBuilderIO (stToIO . i) (stToIO o)
-
--- | Convert stateless builder to IO based one
-toBuilderIO :: HBuilder a b -> IO (HBuilderIO a b)
-toBuilderIO h = builderSTtoIO `fmap` stToIO (toBuilderST h)
 
 ----------------------------------------------------------------
 -- Actual filling of histograms
@@ -229,10 +163,11 @@ toBuilderIO h = builderSTtoIO `fmap` stToIO (toBuilderST h)
 
 fillBuilder :: HBuilder a b -> [a] -> b
 fillBuilder hb xs = 
-    runST $ do h <- toBuilderST hb
+    runST $ do h <- toBuilderM hb
                mapM_ (feedOne h) xs
-               freezeHBuilderST h
-  
+               freezeHBuilderM h
+
+
 ----------------------------------------------------------------
 -- Histogram constructors
 ----------------------------------------------------------------
@@ -246,7 +181,7 @@ mkHist1 :: (Bin bin, Unbox val, Num val) =>
         -> HBuilder a b
 mkHist1 bin out inp = HBuilder $ do
   acc <- newMHistogram 0 bin
-  return $ HBuilderST { hbInput  = fillOne acc . inp
+  return $ HBuilderM  { hbInput  = fillOne acc . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
 
@@ -259,7 +194,7 @@ mkHist :: (Bin bin, Unbox val, Num val) =>
        -> HBuilder a b
 mkHist bin out inp = HBuilder $ do
   acc <- newMHistogram 0 bin
-  return $ HBuilderST { hbInput  = mapM_ (fillOne acc) . inp
+  return $ HBuilderM  { hbInput  = mapM_ (fillOne acc) . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
 
@@ -272,7 +207,7 @@ mkHistMaybe :: (Bin bin, Unbox val, Num val) =>
        -> HBuilder a b
 mkHistMaybe bin out inp = HBuilder $ do
   acc <- newMHistogram 0 bin
-  return $ HBuilderST { hbInput  = maybe (return ()) (fillOne acc) . inp
+  return $ HBuilderM  { hbInput  = maybe (return ()) (fillOne acc) . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
 
@@ -284,7 +219,7 @@ mkHistWgh1 :: (Bin bin, Unbox val, Num val) =>
           -> HBuilder a b
 mkHistWgh1 bin out inp = HBuilder $ do
   acc <- newMHistogram 0 bin
-  return $ HBuilderST { hbInput  = fillOneW acc . inp
+  return $ HBuilderM  { hbInput  = fillOneW acc . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
 
@@ -296,7 +231,7 @@ mkHistWgh :: (Bin bin, Unbox val, Num val) =>
           -> HBuilder a b
 mkHistWgh bin out inp = HBuilder $ do
   acc <- newMHistogram 0 bin
-  return $ HBuilderST { hbInput  = mapM_ (fillOneW acc) . inp
+  return $ HBuilderM  { hbInput  = mapM_ (fillOneW acc) . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
 
@@ -308,7 +243,7 @@ mkHistWghMaybe :: (Bin bin, Unbox val, Num val) =>
                -> HBuilder a b
 mkHistWghMaybe bin out inp = HBuilder $ do
   acc <- newMHistogram 0 bin
-  return $ HBuilderST { hbInput  = maybe (return ()) (fillOneW acc) . inp
+  return $ HBuilderM  { hbInput  = maybe (return ()) (fillOneW acc) . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
 
@@ -320,7 +255,7 @@ mkHistMonoid1 :: (Bin bin, Unbox val, Monoid val) =>
           -> HBuilder a b
 mkHistMonoid1 bin out inp = HBuilder $ do
   acc <- newMHistogram mempty bin
-  return $ HBuilderST { hbInput  = fillMonoid acc . inp
+  return $ HBuilderM  { hbInput  = fillMonoid acc . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
 
@@ -332,7 +267,7 @@ mkHistMonoid :: (Bin bin, Unbox val, Monoid val) =>
           -> HBuilder a b
 mkHistMonoid bin out inp = HBuilder $ do
   acc <- newMHistogram mempty bin
-  return $ HBuilderST { hbInput  = mapM_ (fillMonoid acc) . inp
+  return $ HBuilderM  { hbInput  = mapM_ (fillMonoid acc) . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
 
@@ -344,7 +279,7 @@ mkHistMonoidMaybe :: (Bin bin, Unbox val, Monoid val) =>
                   -> HBuilder a b
 mkHistMonoidMaybe bin out inp = HBuilder $ do
   acc <- newMHistogram mempty bin
-  return $ HBuilderST { hbInput  = maybe (return ()) (fillMonoid acc) . inp
+  return $ HBuilderM  { hbInput  = maybe (return ()) (fillMonoid acc) . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
 
