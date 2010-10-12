@@ -1,8 +1,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE GADTs        #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE DeriveDataTypeable  #-}
 -- |
 -- Module     : Data.Histogram.Bin
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -50,13 +51,16 @@ module Data.Histogram.Bin ( -- * Type classes
                           ) where
 
 import Control.Monad (liftM2, liftM3)
+import GHC.Float     (double2Int)
+
+import qualified Data.Vector.Generic as G
+import Data.Typeable                    (Typeable)
+import Text.Read                        (Read(..))
 
 import Data.Histogram.Parse
-import qualified Data.Vector.Generic as G
 
-import Text.Read (Read(..))
 
-import GHC.Float (double2Int)
+
 ----------------------------------------------------------------
 -- | Abstract binning algorithm. It provides way to map some values
 -- onto continous range of integer values starting from zero. 
@@ -98,7 +102,7 @@ class Bin b => Bin1D b where
 -- | Simple binning algorithm which map continous range of bins onto
 -- indices. Each number correcsponds to different bin
 data BinI = BinI {-# UNPACK #-} !Int {-# UNPACK #-} !Int
-            deriving Eq
+            deriving (Eq,Typeable)
 
 -- | Construct BinI with n bins. Indexing starts from 0
 binI0 :: Int -> BinI
@@ -135,7 +139,7 @@ data BinInt = BinInt
               {-# UNPACK #-} !Int -- ^ Low bound
               {-# UNPACK #-} !Int -- ^ Bin size
               {-# UNPACK #-} !Int -- ^ Number of bins
-              deriving Eq
+              deriving (Eq,Typeable)
 
 -- | Construct BinInt.
 binInt :: Int                   -- ^ Lower bound
@@ -173,6 +177,7 @@ instance Read BinInt where
 -- | Floaintg point bins with equal sizes.
 data BinF f where
     BinF :: RealFrac f => !f -> !f -> !Int -> BinF f 
+    deriving Typeable
 
 instance Eq f => Eq (BinF f) where
     (BinF lo hi n) == (BinF lo' hi' n') = lo == lo'  && hi == hi' && n == n'
@@ -239,6 +244,7 @@ instance (Read f, RealFrac f) => Read (BinF f) where
 -- | Floaintg point bins with equal sizes. If you work with Doubles
 -- this data type should be used instead of BinF.
 data BinD = BinD {-# UNPACK #-} !Double {-# UNPACK #-} !Double {-# UNPACK #-} !Int
+            deriving Typeable
 
 instance Eq BinD where
     (BinD lo hi n) == (BinD lo' hi' n') = lo == lo'  && hi == hi' && n == n'
@@ -314,7 +320,7 @@ data LogBinD = LogBinD
                Double -- ^ Hi border
                Double -- ^ Increment ratio
                Int    -- ^ Number of bins
-               deriving Eq
+               deriving (Eq,Typeable)
 
 -- | Create log-scale bins. 
 logBinD :: Double -> Int -> Double -> LogBinD
@@ -344,7 +350,7 @@ instance Show LogBinD where
 
 -- | 2D bins. binX is binning along X axis and binY is one along Y axis. 
 data Bin2D binX binY = Bin2D !binX !binY
-                       deriving Eq
+                       deriving (Eq,Typeable)
 
 -- | Alias for 'Bin2D'.
 (><) :: binX -> binY -> Bin2D binX binY
