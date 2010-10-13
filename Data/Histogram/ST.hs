@@ -1,6 +1,4 @@
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE Rank2Types #-}
 -- |
 -- Module     : Data.Histogram.ST
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -33,12 +31,7 @@ import Data.Histogram
 ----------------------------------------------------------------
 
 -- | Mutable histogram.
-data MHistogram s bin a where
-    MHistogram :: (Bin bin, MU.Unbox a) => 
-                  bin            -- Binning
-               -> MU.MVector s a -- Over/underflows
-               -> MU.MVector s a -- Data
-               -> MHistogram s bin a
+data MHistogram s bin a = MHistogram bin (MU.MVector s a) (MU.MVector s a)
 
 -- | Create new mutable histogram. All bins are set to zero element as
 --   passed to function.
@@ -50,8 +43,8 @@ newMHistogram zero bin = do
 {-# INLINE newMHistogram #-}
 
 -- | Put one value into histogram
-fillOne :: (PrimMonad m, Num a) => MHistogram (PrimState m) bin a -> BinValue bin -> m ()
-fillOne (MHistogram bin uo arr) x
+fillOne :: (PrimMonad m, Num a, U.Unbox a, Bin bin) => MHistogram (PrimState m) bin a -> BinValue bin -> m ()
+fillOne (MHistogram bin uo arr) !x
     | i < 0              = MU.unsafeWrite uo  0 . (+1)  =<< MU.unsafeRead uo 0
     | i >= MU.length arr = MU.unsafeWrite uo  1 . (+1)  =<< MU.unsafeRead uo 1
     | otherwise          = MU.unsafeWrite arr i . (+1)  =<< MU.unsafeRead arr i
@@ -60,8 +53,8 @@ fillOne (MHistogram bin uo arr) x
 {-# INLINE fillOne #-}
 
 -- | Put one value into histogram with weight
-fillOneW :: (PrimMonad m, Num a) => MHistogram (PrimState m) bin a -> (BinValue bin, a) -> m ()
-fillOneW (MHistogram bin uo arr) (x,w)
+fillOneW :: (PrimMonad m, Num a, U.Unbox a, Bin bin) => MHistogram (PrimState m) bin a -> (BinValue bin, a) -> m ()
+fillOneW (MHistogram bin uo arr) !(x,w)
     | i < 0              = MU.unsafeWrite uo  0 . (+w)  =<< MU.unsafeRead uo 0
     | i >= MU.length arr = MU.unsafeWrite uo  1 . (+w)  =<< MU.unsafeRead uo 1
     | otherwise          = MU.unsafeWrite arr i . (+w)  =<< MU.unsafeRead arr i
@@ -70,8 +63,8 @@ fillOneW (MHistogram bin uo arr) (x,w)
 {-# INLINE fillOneW #-} 
 
 -- | Put one monoidal element
-fillMonoid :: (PrimMonad m, Monoid a) => MHistogram (PrimState m) bin a -> (BinValue bin, a) -> m ()
-fillMonoid (MHistogram bin uo arr) (x,m)
+fillMonoid :: (PrimMonad m, Monoid a, U.Unbox a, Bin bin) => MHistogram (PrimState m) bin a -> (BinValue bin, a) -> m ()
+fillMonoid (MHistogram bin uo arr) !(x,m)
     | i < 0              = MU.unsafeWrite uo  1 . (flip mappend m)  =<< MU.unsafeRead uo  0
     | i >= MU.length arr = MU.unsafeWrite uo  1 . (flip mappend m)  =<< MU.unsafeRead uo  1
     | otherwise          = MU.unsafeWrite arr i . (flip mappend m)  =<< MU.unsafeRead arr i
@@ -80,7 +73,7 @@ fillMonoid (MHistogram bin uo arr) (x,m)
 {-# INLINE fillMonoid #-}
 
 -- | Create immutable histogram from mutable one. This operation involve copying.
-freezeHist :: PrimMonad m => MHistogram (PrimState m) bin a -> m (Histogram bin a)
+freezeHist :: (PrimMonad m, U.Unbox a, Bin bin) => MHistogram (PrimState m) bin a -> m (Histogram bin a)
 freezeHist (MHistogram bin uo arr) = do
   u <- MU.unsafeRead uo 0
   o <- MU.unsafeRead uo 1
