@@ -14,6 +14,7 @@ module Data.Histogram.ST ( -- * Mutable histograms
                          , fillOne
                          , fillOneW
                          , fillMonoid
+                         , unsafeFreezeHist
                          , freezeHist
                          ) where
 
@@ -72,7 +73,18 @@ fillMonoid (MHistogram bin uo arr) !(x,m)
       i = toIndex bin x
 {-# INLINE fillMonoid #-}
 
--- | Create immutable histogram from mutable one. This operation involve copying.
+
+-- | Create immutable histogram from mutable one. This operation is
+-- unsafe! Accumulator mustn't be used after that
+unsafeFreezeHist :: (PrimMonad m, U.Unbox a, Bin bin) => MHistogram (PrimState m) bin a -> m (Histogram bin a)
+unsafeFreezeHist (MHistogram bin uo arr) = do
+  u <- MU.unsafeRead uo 0
+  o <- MU.unsafeRead uo 1
+  a <- G.unsafeFreeze arr
+  return $ histogramUO bin (Just (u,o)) a
+{-# INLINE unsafeFreezeHist #-}  
+
+-- | Create immutable histogram from mutable one.
 freezeHist :: (PrimMonad m, U.Unbox a, Bin bin) => MHistogram (PrimState m) bin a -> m (Histogram bin a)
 freezeHist (MHistogram bin uo arr) = do
   u <- MU.unsafeRead uo 0
