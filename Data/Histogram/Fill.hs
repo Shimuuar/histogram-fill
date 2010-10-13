@@ -111,29 +111,34 @@ instance PrimMonad m => Applicative (HBuilderM m a) where
 -- | Put one value into histogram
 feedOne :: PrimMonad m => HBuilderM m a b -> a -> m ()
 feedOne = hbInput
+{-# INLINE feedOne #-}
 
 -- | Create stateful histogram from instructions. Histograms could
 --   be filled either in the ST monad or with createHistograms
 freezeHBuilderM :: PrimMonad m => HBuilderM m a b -> m b
 freezeHBuilderM = hbOutput
-
+{-# INLINE freezeHBuilderM #-}
 
 -- | Join list of builders into one builder
 joinHBuilderM :: PrimMonad m => [HBuilderM m a b] -> HBuilderM m a [b]
 joinHBuilderM hs = HBuilderM { hbInput  = \x -> mapM_ (flip hbInput x) hs
                              , hbOutput = mapM hbOutput hs
                              }
+{-# INLINE joinHBuilderM #-}
 
 -- | Join list of builders into one builders
 joinHBuilderMonoidM :: (PrimMonad m, Monoid b) => [HBuilderM m a b] -> HBuilderM m a b
 joinHBuilderMonoidM = fmap mconcat . joinHBuilderM
+{-# INLINE joinHBuilderMonoidM #-}
 
 treeHBuilderM :: PrimMonad m => [HBuilderM m a b -> HBuilderM m a' b'] -> HBuilderM m a b -> HBuilderM m a' [b']
 treeHBuilderM fs h = joinHBuilderM $ map ($ h) fs
+{-# INLINE treeHBuilderM #-}
 
 treeHBuilderMonoidM :: (PrimMonad m, Monoid b') => 
                         [HBuilderM m a b -> HBuilderM m a' b'] -> HBuilderM m a b -> HBuilderM m a' b'
 treeHBuilderMonoidM fs h = joinHBuilderMonoidM $ map ($ h) fs
+{-# INLINE treeHBuilderMonoidM #-}
 
 
 ----------------------------------------------------------------
@@ -158,17 +163,20 @@ instance Applicative (HBuilder a) where
 -- | Join list of builders
 joinHBuilder :: [HBuilder a b] -> HBuilder a [b]
 joinHBuilder hs = HBuilder (joinHBuilderM <$> mapM toBuilderM hs)
+{-# INLINE joinHBuilder #-}
 
 -- | Join list of builders
 joinHBuilderMonoid :: Monoid b => [HBuilder a b] -> HBuilder a b
 joinHBuilderMonoid = modifyOut mconcat . joinHBuilder
+{-# INLINE joinHBuilderMonoid #-}
 
 treeHBuilder :: [HBuilder a b -> HBuilder a' b'] -> HBuilder a b -> HBuilder a' [b']
 treeHBuilder fs h = joinHBuilder $ map ($ h) fs
+{-# INLINE treeHBuilder #-}
 
 treeHBuilderMonoid :: Monoid b' => [HBuilder a b -> HBuilder a' b'] -> HBuilder a b -> HBuilder a' b'
 treeHBuilderMonoid fs h = joinHBuilderMonoid $ map ($ h) fs
-
+{-# INLINE treeHBuilderMonoid #-}
 
 ----------------------------------------------------------------
 -- Actual filling of histograms
@@ -197,6 +205,7 @@ mkHist1 bin out inp = HBuilder $ do
   return $ HBuilderM  { hbInput  = fillOne acc . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
+{-# INLINE mkHist1 #-}
 
 -- | Create histogram builder which take many items as input. Each
 --   item has weight 1.
@@ -210,6 +219,7 @@ mkHist bin out inp = HBuilder $ do
   return $ HBuilderM  { hbInput  = mapM_ (fillOne acc) . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
+{-# INLINE mkHist #-}
 
 -- | Create histogram builder which at most one item as input. Each
 --   item has weight 1. 
@@ -223,6 +233,7 @@ mkHistMaybe bin out inp = HBuilder $ do
   return $ HBuilderM  { hbInput  = maybe (return ()) (fillOne acc) . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
+{-# INLINE mkHistMaybe #-}
 
 -- | Create histogram with weighted bin. Takes one item at time. 
 mkHistWgh1 :: (Bin bin, Unbox val, Num val) =>
@@ -235,6 +246,7 @@ mkHistWgh1 bin out inp = HBuilder $ do
   return $ HBuilderM  { hbInput  = fillOneW acc . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
+{-# INLINE mkHistWgh1 #-}
 
 -- | Create histogram with weighted bin. Takes many items at time.
 mkHistWgh :: (Bin bin, Unbox val, Num val) => 
@@ -247,6 +259,7 @@ mkHistWgh bin out inp = HBuilder $ do
   return $ HBuilderM  { hbInput  = mapM_ (fillOneW acc) . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
+{-# INLINE mkHistWgh #-}
 
 -- | Create histogram with weighted bin. Takes many items at time.
 mkHistWghMaybe :: (Bin bin, Unbox val, Num val) => 
@@ -259,6 +272,7 @@ mkHistWghMaybe bin out inp = HBuilder $ do
   return $ HBuilderM  { hbInput  = maybe (return ()) (fillOneW acc) . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
+{-# INLINE mkHistWghMaybe #-}
 
 -- | Create histogram with monoidal bins
 mkHistMonoid1 :: (Bin bin, Unbox val, Monoid val) =>
@@ -271,6 +285,7 @@ mkHistMonoid1 bin out inp = HBuilder $ do
   return $ HBuilderM  { hbInput  = fillMonoid acc . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
+{-# INLINE mkHistMonoid1 #-}
 
 -- | Create histogram with monoidal bins. Takes many items at time.
 mkHistMonoid :: (Bin bin, Unbox val, Monoid val) =>
@@ -283,6 +298,7 @@ mkHistMonoid bin out inp = HBuilder $ do
   return $ HBuilderM  { hbInput  = mapM_ (fillMonoid acc) . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
+{-# INLINE mkHistMonoid #-}
 
 -- | Create histogram with monoidal bins
 mkHistMonoidMaybe :: (Bin bin, Unbox val, Monoid val) =>
@@ -295,6 +311,7 @@ mkHistMonoidMaybe bin out inp = HBuilder $ do
   return $ HBuilderM  { hbInput  = maybe (return ()) (fillMonoid acc) . inp
                       , hbOutput = fmap out (freezeHist acc)
                       }
+{-# INLINE mkHistMonoidMaybe #-}
 
 ----------------------------------------------------------------
 
