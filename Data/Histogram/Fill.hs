@@ -11,10 +11,10 @@
 --
 module Data.Histogram.Fill ( -- * Histogram builders API
                              HistBuilder(..)
+                           , FillableData(..)
                            , (<<-)
+                           , (<<-|)
                            , (<<?)
-                           , (<<-<)
-                           , (<<~)
                            , (-<<)
                              -- * Histogram builders
                              -- ** Stateful
@@ -60,6 +60,17 @@ import Data.Histogram.ST
 -- Type class
 ----------------------------------------------------------------
 
+-- | Data type which could be put into histogram.
+class FillableData d where
+    -- | Lift putter function to lift putter function to use data type.
+    fillData :: PrimMonad m => (a -> m ()) -> d a -> m ()
+
+instance FillableData Maybe where
+    fillData f (Just x) = f x
+    fillData _ Nothing  = return ()
+instance FillableData [] where
+    fillData = mapM_
+
 -- | Histogram builder typeclass. Instance of this class contain
 --   instructions how to build histograms.
 class HistBuilder h where
@@ -67,36 +78,36 @@ class HistBuilder h where
     modifyOut   :: (b -> b') -> h a b -> h a  b'
     -- | Convert input type of histogram from a to a'
     modifyIn    :: (a' -> a) -> h a b -> h a' b
-    -- | Make input function accept value only if it's Just a.
-    modifyMaybe :: h a b -> h (Maybe a) b
-    -- | Make ability input function accept list
-    modifyList :: h a b -> h [a] b
-    -- | Add cut to histogram. Only put value histogram if condition is true.
+    -- | Make input function accept value only 
+    modifyWith  :: FillableData d => h a b -> h (d a) b
+    -- | Add cut to histogram. Value would be putted into histogram only if condition is true.
     addCut      :: (a -> Bool) -> h a b -> h a b
+
 
 -- | Modify input of builder 
 (<<-) :: HistBuilder h => h a b -> (a' -> a) -> h a' b
 (<<-) = flip modifyIn
-infixl 5 <<-
+{-# INLINE (<<-) #-}
 
--- | Modify input of builder 
-(<<~) :: HistBuilder h => h a b -> (a' -> Maybe a) -> h a' b
-h <<~ f = modifyMaybe h <<- f
-infixl 5 <<~
-
--- | Modify input of builder 
-(<<-<) :: HistBuilder h => h a b -> (a' -> [a]) -> h a' b
-h <<-< f = modifyList h <<- f
-infixl 5 <<-<
+-- | Modify input of builder to use composite input
+(<<-|) :: (HistBuilder h, FillableData d) => h a b -> (a' -> d a) -> h a' b
+h <<-| f = modifyWith h <<- f
+{-# INLINE (<<-|) #-}
 
 -- | Add cut for input
 (<<?) :: HistBuilder h => h a b -> (a -> Bool) -> h a b
 (<<?) = flip addCut
-infixl 5 <<?
+{-# INLINE (<<?) #-}
 
 -- | Modify output of histogram. In fact it's same as '<$>' but have opposite fixity
 (-<<) :: HistBuilder h => (b -> b') -> h a b -> h a b'
 (-<<) = modifyOut
+{-# INLINE (-<<) #-}
+
+-- Fixity of operator
+infixl 5 <<-
+infixl 5 <<-|
+infixl 5 <<?
 infixr 4 -<<
 
 
@@ -112,11 +123,7 @@ data HBuilderM m a b = HBuilderM { hbInput  :: a -> m ()
 instance PrimMonad m => HistBuilder (HBuilderM m) where
     modifyIn  f h = h { hbInput  = hbInput h . f }
     addCut    f h = h { hbInput  = \x -> when (f x) (hbInput h x) }
-    modifyMaybe h = h { hbInput  = modified } 
-        where modified (Just x) = hbInput h x
-              modified Nothing  = return ()
-    modifyList h = h { hbInput = modified }
-        where modified = mapM_ (hbInput h)
+    modifyWith h = h { hbInput  = fillData (hbInput h) } 
     modifyOut f h = h { hbOutput = f `liftM` hbOutput h }
 
 instance PrimMonad m => Functor (HBuilderM m a) where
@@ -174,8 +181,7 @@ newtype HBuilder a b = HBuilder { toBuilderM :: (forall s . ST s (HBuilderM (ST 
 instance HistBuilder (HBuilder) where
     modifyIn  f (HBuilder h) = HBuilder (modifyIn  f <$> h)
     addCut    f (HBuilder h) = HBuilder (addCut    f <$> h)
-    modifyMaybe (HBuilder h) = HBuilder (modifyMaybe <$> h)
-    modifyList  (HBuilder h) = HBuilder (modifyList  <$> h)
+    modifyWith  (HBuilder h) = HBuilder (modifyWith <$> h)
     modifyOut f (HBuilder h) = HBuilder (modifyOut f <$> h)
 
 instance Functor (HBuilder a) where
