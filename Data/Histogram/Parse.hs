@@ -36,8 +36,8 @@ value str = do lift $ key str >> eq
 
 -- Return optional value
 maybeValue :: Read a => String -> ReadPrec (Maybe a)
-maybeValue str = do lift $ key str >> eq
-                    (lift $ ws >> eol >> return Nothing) <++ (Just `fmap` getVal)
+maybeValue str = do lift (key str >> eq)
+                    lift (ws >> eol >> return Nothing) <++ (Just `fmap` getVal)
 
 -- Keyword
 keyword :: String -> ReadPrec ()
