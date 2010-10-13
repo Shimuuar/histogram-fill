@@ -31,13 +31,13 @@ module Data.Histogram.Fill ( -- * Histogram builders API
                            , joinHBuilderMonoid
                            , treeHBuilder
                            , treeHBuilderMonoid
-                             -- * Fill histograms
-                           , fillBuilder
                              -- * Histogram constructors
                            , module Data.Histogram.Bin
                            , mkSimple
                            , mkWeighted
                            , mkMonoidal
+                             -- * Fill histograms
+                           , fillBuilder
                              -- * Auxillary functions
                            , forceInt
                            , forceDouble
@@ -208,16 +208,10 @@ treeHBuilderMonoid :: Monoid b' => [HBuilder a b -> HBuilder a' b'] -> HBuilder 
 treeHBuilderMonoid fs h = joinHBuilderMonoid $ map ($ h) fs
 {-# INLINE treeHBuilderMonoid #-}
 
-----------------------------------------------------------------
--- Actual filling of histograms
-----------------------------------------------------------------
 
-fillBuilder :: HBuilder a b -> [a] -> b
-fillBuilder hb xs = 
-    runST $ do h <- toBuilderM hb
-               mapM_ (feedOne h) xs
-               freezeHBuilderM h
-
+----------------------------------------------------------------
+-- Constructors
+----------------------------------------------------------------
 
 mkSimple :: (Bin bin, Unbox val, Num val
             ) => bin -> HBuilder (BinValue bin) (Histogram bin val)
@@ -243,6 +237,16 @@ mkMonoidal bin = HBuilder $ do acc <- newMHistogram mempty bin
                                                   , hbOutput = freezeHist acc
                                                   }
 {-# INLINE mkMonoidal #-}
+
+----------------------------------------------------------------
+-- Actual filling of histograms
+----------------------------------------------------------------
+
+fillBuilder :: HBuilder a b -> [a] -> b
+fillBuilder hb xs = 
+    runST $ do h <- toBuilderM hb
+               mapM_ (feedOne h) xs
+               freezeHBuilderM h
 
 ----------------------------------------------------------------
 
