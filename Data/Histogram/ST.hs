@@ -65,9 +65,9 @@ fillOneW (MHistogram bin uo arr) !(x,w)
 -- | Put one monoidal element
 fillMonoid :: (PrimMonad m, Monoid a, U.Unbox a, Bin bin) => MHistogram (PrimState m) bin a -> (BinValue bin, a) -> m ()
 fillMonoid (MHistogram bin uo arr) !(x,m)
-    | i < 0              = MU.unsafeWrite uo  1 . (flip mappend m)  =<< MU.unsafeRead uo  0
-    | i >= MU.length arr = MU.unsafeWrite uo  1 . (flip mappend m)  =<< MU.unsafeRead uo  1
-    | otherwise          = MU.unsafeWrite arr i . (flip mappend m)  =<< MU.unsafeRead arr i
+    | i < 0              = MU.unsafeWrite uo  1 . flip mappend m =<< MU.unsafeRead uo  0
+    | i >= MU.length arr = MU.unsafeWrite uo  1 . flip mappend m =<< MU.unsafeRead uo  1
+    | otherwise          = MU.unsafeWrite arr i . flip mappend m =<< MU.unsafeRead arr i
     where 
       i = toIndex bin x
 {-# INLINE fillMonoid #-}

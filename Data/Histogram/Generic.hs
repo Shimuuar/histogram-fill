@@ -82,7 +82,7 @@ histogramUO b uo v | nBins b == G.length v = Histogram b uo v
 
 instance (Show a, Show (BinValue bin), Show bin, Bin bin, Vector v a) => Show (Histogram v bin a) where
     show h@(Histogram bin uo _) = "# Histogram\n" ++ showUO uo ++ show bin ++
-                                  (unlines $ map showT $ asList h)
+                                  unlines (map showT $ asList h)
         where
           showT (x,y) = show x ++ "\t" ++ show y
           showUO (Just (u,o)) = "# Underflows = " ++ show u ++ "\n" ++
