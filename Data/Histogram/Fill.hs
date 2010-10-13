@@ -1,6 +1,4 @@
-{-# LANGUAGE GADTs        #-}
-{-# LANGUAGE Rank2Types   #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE Rank2Types #-}
 -- |
 -- Module     : Data.Histogram.Fill
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
