@@ -12,6 +12,9 @@
 module Data.Histogram.Fill ( -- * Histogram builders API
                              HistBuilder(..)
                            , (<<-)
+                           , (<<?)
+                           , (<<-<)
+                           , (<<~)
                            , (-<<)
                              -- * Histogram builders
                              -- ** Stateful
@@ -66,18 +69,36 @@ class HistBuilder h where
     modifyIn    :: (a' -> a) -> h a b -> h a' b
     -- | Make input function accept value only if it's Just a.
     modifyMaybe :: h a b -> h (Maybe a) b
+    -- | Make ability input function accept list
+    modifyList :: h a b -> h [a] b
     -- | Add cut to histogram. Only put value histogram if condition is true.
     addCut      :: (a -> Bool) -> h a b -> h a b
 
 -- | Modify input of builder 
 (<<-) :: HistBuilder h => h a b -> (a' -> a) -> h a' b
 (<<-) = flip modifyIn
-infixl 4 <<-
+infixl 5 <<-
+
+-- | Modify input of builder 
+(<<~) :: HistBuilder h => h a b -> (a' -> Maybe a) -> h a' b
+h <<~ f = modifyMaybe h <<- f
+infixl 5 <<~
+
+-- | Modify input of builder 
+(<<-<) :: HistBuilder h => h a b -> (a' -> [a]) -> h a' b
+h <<-< f = modifyList h <<- f
+infixl 5 <<-<
+
+-- | Add cut for input
+(<<?) :: HistBuilder h => h a b -> (a -> Bool) -> h a b
+(<<?) = flip addCut
+infixl 5 <<?
 
 -- | Modify output of histogram. In fact it's same as '<$>' but have opposite fixity
 (-<<) :: HistBuilder h => (b -> b') -> h a b -> h a b'
 (-<<) = modifyOut
 infixr 4 -<<
+
 
 ----------------------------------------------------------------
 -- ST based builder
@@ -94,6 +115,8 @@ instance PrimMonad m => HistBuilder (HBuilderM m) where
     modifyMaybe h = h { hbInput  = modified } 
         where modified (Just x) = hbInput h x
               modified Nothing  = return ()
+    modifyList h = h { hbInput = modified }
+        where modified = mapM_ (hbInput h)
     modifyOut f h = h { hbOutput = f `liftM` hbOutput h }
 
 instance PrimMonad m => Functor (HBuilderM m a) where
@@ -152,6 +175,7 @@ instance HistBuilder (HBuilder) where
     modifyIn  f (HBuilder h) = HBuilder (modifyIn  f <$> h)
     addCut    f (HBuilder h) = HBuilder (addCut    f <$> h)
     modifyMaybe (HBuilder h) = HBuilder (modifyMaybe <$> h)
+    modifyList  (HBuilder h) = HBuilder (modifyList  <$> h)
     modifyOut f (HBuilder h) = HBuilder (modifyOut f <$> h)
 
 instance Functor (HBuilder a) where
