@@ -24,7 +24,7 @@ module Data.Histogram.Bin ( -- * Type classes
                           , BinInt(..)
                           , binInt
                           -- ** Floating point bins
-                          , BinF
+                          , BinF(..)
                           , binF
                           , binFn
                           , binI2binF
