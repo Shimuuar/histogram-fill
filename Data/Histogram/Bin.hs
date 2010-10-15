@@ -171,7 +171,10 @@ instance Read BinInt where
 ----------------------------------------------------------------
 -- Floating point bin
 ----------------------------------------------------------------
--- | Floaintg point bins with equal sizes.
+-- | Floaintg point bins with equal sizes. 
+--
+-- Note that due to GHC bug #2271 this toIndex is really slow (20x
+-- slowdown with respect to BinD) and use of BinD is recommended
 data BinF f = BinF {-# UNPACK #-} !f   -- ^ Lower bound
                    {-# UNPACK #-} !f   -- ^ Size of bin
                    {-# UNPACK #-} !Int -- ^ Number of bins
@@ -257,7 +260,7 @@ binDn :: Double -- ^ Begin of range
       -> BinD
 binDn from step to = BinD from step (round $ (to - from) / step)
 
--- | Convert BinI to BinF
+-- | Convert BinI to BinD
 binI2binD :: BinI -> BinD
 binI2binD b@(BinI i _) = BinD (fromIntegral i) 1 (nBins b)
 
