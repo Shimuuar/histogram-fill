@@ -108,16 +108,18 @@ binI0 n = BinI 0 (n-1)
 instance Bin BinI where
     type BinValue BinI = Int
     toIndex   !(BinI base _) !x = x - base
-    {-# INLINE toIndex #-}
     fromIndex !(BinI base _) !x = x + base
     inRange   !(BinI x y) i     = i>=x && i<=y
-    {-# INLINE inRange #-}
     nBins     !(BinI x y) = y - x + 1
+    {-# INLINE toIndex #-}
+    {-# INLINE inRange #-}
 
 instance Bin1D BinI where
     binSize _ _ = 1
     binsList      b@(BinI lo _) = G.enumFromN lo (nBins b)
     binsListRange b@(BinI lo _) = G.generate (nBins b) (\i -> (lo+i, lo+i))
+    {-# INLINE binsList #-}
+    {-# INLINE binsListRange #-}
 
 instance Show BinI where
     show (BinI lo hi) = unlines [ "# BinI"
@@ -221,6 +223,8 @@ instance RealFrac f => Bin1D (BinF f) where
     binsListRange b@(BinF _ step n) = G.generate n toPair
         where
           toPair k = (x - step/2, x + step/2) where x = fromIndex b k
+    {-# INLINE binsList #-}
+    {-# INLINE binsListRange #-}
 
 instance Show f => Show (BinF f) where
     show (BinF base step n) = unlines [ "# BinF"
@@ -291,6 +295,8 @@ instance Bin1D BinD where
     binsListRange b@(BinD _ step n) = G.generate n toPair
         where
           toPair k = (x - step/2, x + step/2) where x = fromIndex b k
+    {-# INLINE binsList #-}
+    {-# INLINE binsListRange #-}
 
 
 instance Show BinD where
