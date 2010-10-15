@@ -43,8 +43,6 @@ module Data.Histogram.Bin ( -- * Type classes
                           , (><)
                           , nBins2D
                           , toIndex2D
-                          , binX
-                          , binY
                           , fmapBinX
                           , fmapBinY
                           ) where
@@ -349,20 +347,14 @@ instance Show LogBinD where
 ----------------------------------------------------------------
 
 -- | 2D bins. binX is binning along X axis and binY is one along Y axis. 
-data Bin2D binX binY = Bin2D !binX !binY
+data Bin2D binX binY = Bin2D { binX :: !binX -- ^ Binning algorithm for X axis
+                             , binY :: !binY -- ^ Binning algorithm for Y axis
+                             }
                        deriving (Eq,Typeable)
 
 -- | Alias for 'Bin2D'.
 (><) :: binX -> binY -> Bin2D binX binY
 (><) = Bin2D
-
--- | Get binning algorithm along X axis
-binX :: Bin2D bx by -> bx
-binX !(Bin2D bx _) = bx
-
--- | Get binning algorithm along Y axis
-binY :: Bin2D bx by -> by
-binY !(Bin2D _ by) = by
 
 instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
     type BinValue (Bin2D binX binY) = (BinValue binX, BinValue binY)
