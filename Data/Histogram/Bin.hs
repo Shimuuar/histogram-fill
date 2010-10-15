@@ -175,10 +175,7 @@ instance Read BinInt where
 data BinF f = BinF {-# UNPACK #-} !f 
                    {-# UNPACK #-} !f
                    {-# UNPACK #-} !Int
-              deriving Typeable
-
-instance Eq f => Eq (BinF f) where
-    (BinF lo hi n) == (BinF lo' hi' n') = lo == lo'  && hi == hi' && n == n'
+              deriving (Eq,Typeable)
                                           
 -- | Create bins.
 binF :: RealFrac f => 
@@ -242,10 +239,7 @@ instance (Read f, RealFrac f) => Read (BinF f) where
 -- | Floaintg point bins with equal sizes. If you work with Doubles
 -- this data type should be used instead of BinF.
 data BinD = BinD {-# UNPACK #-} !Double {-# UNPACK #-} !Double {-# UNPACK #-} !Int
-            deriving Typeable
-
-instance Eq BinD where
-    (BinD lo hi n) == (BinD lo' hi' n') = lo == lo'  && hi == hi' && n == n'
+            deriving (Eq,Typeable)
                                           
 -- | Create bins.
 binD :: Double -- ^ Lower bound of range
