@@ -1,5 +1,4 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE GADTs               #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE FlexibleContexts    #-}
@@ -175,9 +174,10 @@ instance Read BinInt where
 -- Floating point bin
 ----------------------------------------------------------------
 -- | Floaintg point bins with equal sizes.
-data BinF f where
-    BinF :: RealFrac f => !f -> !f -> !Int -> BinF f 
-    deriving Typeable
+data BinF f = BinF {-# UNPACK #-} !f 
+                   {-# UNPACK #-} !f
+                   {-# UNPACK #-} !Int
+              deriving Typeable
 
 instance Eq f => Eq (BinF f) where
     (BinF lo hi n) == (BinF lo' hi' n') = lo == lo'  && hi == hi' && n == n'
@@ -208,7 +208,7 @@ scaleBinF a b (BinF base step n)
     | b > 0     = BinF (a + b*base) (b*step) n
     | otherwise = error $ "scaleBinF: b must be positive (b = "++show b++")"
 
-instance Bin (BinF f) where
+instance RealFrac f => Bin (BinF f) where
     type BinValue (BinF f) = f 
     toIndex   !(BinF from step _) !x = floor $ (x-from) / step
     {-# INLINE toIndex #-}
@@ -217,7 +217,7 @@ instance Bin (BinF f) where
     {-# INLINE inRange #-}
     nBins     !(BinF _ _ n) = n
 
-instance Bin1D (BinF f) where
+instance RealFrac f => Bin1D (BinF f) where
     binSize (BinF _ step _) _ = step
     binsList      b@(BinF _    _ n) = G.generate n (fromIndex b)
     binsListRange b@(BinF _ step n) = G.generate n toPair
