@@ -172,9 +172,9 @@ instance Read BinInt where
 -- Floating point bin
 ----------------------------------------------------------------
 -- | Floaintg point bins with equal sizes.
-data BinF f = BinF {-# UNPACK #-} !f 
-                   {-# UNPACK #-} !f
-                   {-# UNPACK #-} !Int
+data BinF f = BinF {-# UNPACK #-} !f   -- ^ Lower bound
+                   {-# UNPACK #-} !f   -- ^ Size of bin
+                   {-# UNPACK #-} !Int -- ^ Number of bins
               deriving (Eq,Typeable)
                                           
 -- | Create bins.
@@ -238,7 +238,9 @@ instance (Read f, RealFrac f) => Read (BinF f) where
 ----------------------------------------------------------------
 -- | Floaintg point bins with equal sizes. If you work with Doubles
 -- this data type should be used instead of BinF.
-data BinD = BinD {-# UNPACK #-} !Double {-# UNPACK #-} !Double {-# UNPACK #-} !Int
+data BinD = BinD {-# UNPACK #-} !Double -- ^ Lower bound
+                 {-# UNPACK #-} !Double -- ^ Size of bin
+                 {-# UNPACK #-} !Int    -- ^ Number of bins
             deriving (Eq,Typeable)
                                           
 -- | Create bins.
