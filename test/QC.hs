@@ -104,28 +104,13 @@ instance Indexable Int where
 isIdentity :: Eq a => (a -> a) -> a -> Bool
 isIdentity f x = x == f x
 
--- Equality reflexivity
-prop_Eq :: Eq a => a -> Bool
-prop_Eq x = x == x
 
--- read . show == id
-prop_ReadShow :: (Read a, Show a, Eq a) => a -> Bool
-prop_ReadShow = isIdentity (read . show)
-
--- toIndex . fromIndex == id
-prop_ToFrom :: (Bin bin) => Int -> bin -> Bool
-prop_ToFrom x bin | inRange bin val = x == toIndex bin val
-                  | otherwise       = True -- Equality doesn't hold for out of range indices
-                    where val = fromIndex bin x
-
--- fromIndex . toIndex == id
--- Hold only for integral bins
-prop_FromTo :: (Bin bin, Eq (BinValue bin)) => BinValue bin -> bin -> Bool
-prop_FromTo x bin | inRange bin x = isIdentity (fromIndex bin . toIndex bin) x
-                  | otherwise     = True -- Doesn't hold for out of range indices
 
 ----------------------------------------------------------------
 
+-- Equality reflexivity
+prop_Eq :: Eq a => a -> Bool
+prop_Eq x = x == x
 
 testsEq :: [(String, IO ())]
 testsEq = [ title "==== Equality reflexivity ===="
@@ -139,6 +124,11 @@ testsEq = [ title "==== Equality reflexivity ===="
           , test "Bin2D"       (prop_Eq :: Bin2D BinI BinI -> Bool)
           ]
 
+
+-- read . show == id
+prop_ReadShow :: (Read a, Show a, Eq a) => a -> Bool
+prop_ReadShow = isIdentity (read . show)
+
 testsRead :: [(String, IO ())]
 testsRead = [ title "==== read . show == id ===="
             , test "BinI"        (prop_ReadShow  :: BinI            -> Bool)
@@ -148,6 +138,13 @@ testsRead = [ title "==== read . show == id ===="
             , test "BinF Float"  (prop_ReadShow  :: BinF Float      -> Bool)
             , test "BinD"        (prop_ReadShow  :: BinD            -> Bool)
             ]
+
+
+-- toIndex . fromIndex == id
+prop_ToFrom :: (Bin bin) => Int -> bin -> Bool
+prop_ToFrom x bin | inRange bin val = x == toIndex bin val
+                  | otherwise       = True -- Equality doesn't hold for out of range indices
+                    where val = fromIndex bin x
 
 testsToFrom :: [(String,IO())]
 testsToFrom = [ title "==== toIndex . fromIndex == id"
@@ -160,12 +157,20 @@ testsToFrom = [ title "==== toIndex . fromIndex == id"
               , test "LogBinD"     (prop_ToFrom :: Int -> LogBinD     -> Bool)
               ]
 
+
+-- fromIndex . toIndex == id
+-- Hold only for integral bins
+prop_FromTo :: (Bin bin, Eq (BinValue bin)) => BinValue bin -> bin -> Bool
+prop_FromTo x bin | inRange bin x = isIdentity (fromIndex bin . toIndex bin) x
+                  | otherwise     = True -- Doesn't hold for out of range indices
+
 testsFromTo :: [(String, IO ())]
 testsFromTo = [ title "==== fromIndex . toIdex == id ===="
               , test "BinI'"       (prop_FromTo :: Int       -> BinI            -> Bool)
               , test "BinIx'"      (prop_FromTo :: Int       -> BinIx Int       -> Bool)
               , test "Bin2D"       (prop_FromTo :: (Int,Int) -> Bin2D BinI BinI -> Bool)
               ]
+
 
 testsFMap :: [(String, IO ())]
 testsFMap = [ title "==== fmap preserves idenitity ===="
@@ -175,12 +180,14 @@ testsFMap = [ title "==== fmap preserves idenitity ===="
             , test "mapHistBin"  (isIdentity (histMapBin id) :: Histogram BinI Int -> Bool)
             ]
 
+
 testsHistogram :: [(String, IO ())]
 testsHistogram =
     [ title "==== Test for histograms ===="
     , test "equality"   (prop_Eq :: Histogram BinI Int -> Bool)
     , test "read/show"  (isIdentity (readHistogram . show) :: Histogram BinI Int -> Bool)
     ]
+
 
 testsFill :: [(String, IO ())]
 testsFill = [ title "==== Test for filling ===="
