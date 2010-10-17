@@ -59,14 +59,15 @@ import Data.Histogram.Parse
 
 
 ----------------------------------------------------------------
--- | Abstract binning algorithm. It provides way to map some values
--- onto continous range of integer values starting from zero. 
+-- | This type represent some abstract data binning algorithms.
+-- It maps somve value to integer indices. 
 -- 
 -- Following invariant is expected to hold: 
 -- 
 -- > toIndex . fromIndex == id
 -- 
--- Reverse is not nessearily true. 
+-- > inRange b x        <=>  0 <= toIndex b x < nBins b
+-- > not (inRange b x)  <=>  toIndex b x < 0 || toIndex b x >= nBins b
 class Bin b where
     -- | Type of value to bin
     type BinValue b
@@ -79,12 +80,17 @@ class Bin b where
     -- | Total number of bins
     nBins :: b -> Int
 
+
 ----------------------------------------------------------------
 -- | One dimensional binning algorithm. It means that bin values have
 -- some inherent ordering. For example all binning algorithms for real
 -- numbers could be members or this type class whereas binning
 -- algorithms for R^2 could not. 
 class Bin b => Bin1D b where
+    -- | Minimal accepted value of histogram
+    lowerLimit :: b -> BinValue b
+    -- | Maximal accepted value of histogram
+    upperLimit :: b -> BinValue b
     -- | Size of i'th bin.
     binSize :: b -> Int -> BinValue b
     -- | List of center of bins in ascending order.
@@ -115,6 +121,8 @@ instance Bin BinI where
     {-# INLINE inRange #-}
 
 instance Bin1D BinI where
+    lowerLimit (BinI i _) = i
+    upperLimit (BinI _ i) = i
     binSize _ _ = 1
     binsList      b@(BinI lo _) = G.enumFromN lo (nBins b)
     binsListRange b@(BinI lo _) = G.generate (nBins b) (\i -> let n = lo+i in (n,n))
@@ -218,6 +226,8 @@ instance RealFrac f => Bin (BinF f) where
     nBins     !(BinF _ _ n) = n
 
 instance RealFrac f => Bin1D (BinF f) where
+    lowerLimit (BinF from _    _) = from
+    upperLimit (BinF from step n) = from + step * fromIntegral n
     binSize (BinF _ step _) _ = step
     binsList      b@(BinF _    _ n) = G.generate n (fromIndex b)
     binsListRange b@(BinF _ step n) = G.generate n toPair
@@ -290,6 +300,8 @@ instance Bin BinD where
     nBins     !(BinD _ _ n) = n
 
 instance Bin1D BinD where
+    lowerLimit (BinD from _    _) = from
+    upperLimit (BinD from step n) = from + step * fromIntegral n
     binSize (BinD _ step _) _ = step
     binsList      b@(BinD _    _ n) = G.generate n (fromIndex b)
     binsListRange b@(BinD _ step n) = G.generate n toPair
