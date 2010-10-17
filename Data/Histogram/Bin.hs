@@ -200,7 +200,7 @@ binFn from step to = BinF from step (round $ (to - from) / step)
 
 -- | Convert BinI to BinF
 binI2binF :: RealFrac f => BinI -> BinF f
-binI2binF b@(BinI i _) = BinF (fromIntegral i) 1 (nBins b)
+binI2binF b@(BinI i _) = BinF (fromIntegral i - 0.5) 1 (nBins b)
 
 -- | 'scaleBinF a b' scales BinF using linear transform 'a+b*x'
 scaleBinF :: RealFrac f => f -> f -> BinF f -> BinF f
@@ -266,7 +266,7 @@ binDn from step to = BinD from step (round $ (to - from) / step)
 
 -- | Convert BinI to BinD
 binI2binD :: BinI -> BinD
-binI2binD b@(BinI i _) = BinD (fromIntegral i) 1 (nBins b)
+binI2binD b@(BinI i _) = BinD (fromIntegral i - 0.5) 1 (nBins b)
 
 -- | 'scaleBinF a b' scales BinF using linear transform 'a+b*x'
 scaleBinD :: Double -> Double -> BinD -> BinD
