@@ -117,7 +117,7 @@ instance Bin BinI where
 instance Bin1D BinI where
     binSize _ _ = 1
     binsList      b@(BinI lo _) = G.enumFromN lo (nBins b)
-    binsListRange b@(BinI lo _) = G.generate (nBins b) (\i -> (lo+i, lo+i))
+    binsListRange b@(BinI lo _) = G.generate (nBins b) (\i -> let n = lo+i in (n,n))
     {-# INLINE binsList #-}
     {-# INLINE binsListRange #-}
 
