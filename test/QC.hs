@@ -15,27 +15,32 @@ import System.Random
 import Data.Histogram
 import Data.Histogram.Fill
 import Data.Histogram.Bin
+import Data.Histogram.Bin.Indexable
 
 import Debug.Trace
+
 ----------------------------------------------------------------
 -- Helpers
+----------------------------------------------------------------
 
-equalTest :: Eq a => (a -> a) -> a -> Bool
-equalTest f x = x == f x
+test :: Testable prop => String -> prop -> (String, IO ())
+test s prop = (s, quickCheck prop)
 
-p :: Testable prop => prop -> IO ()
-p = quickCheck
+title :: String -> (String,IO ())
+title s = (s, return ())
 
 runTests :: [(String, IO ())] -> IO ()
 runTests = mapM_ $ \(name, test) -> putStrLn (" * " ++ name) >> test
 
-type Index = Int
+
 
 ----------------------------------------------------------------
--- Arbitrary Instance for BinI
+-- Arbitrary instances
+----------------------------------------------------------------
+
 instance Arbitrary BinI where
     arbitrary = do
-      let maxI = 100 
+      let maxI = 100
       lo <- choose (-maxI , maxI)
       hi <- choose (lo    , maxI)
       return $ BinI lo hi
@@ -48,17 +53,19 @@ instance Arbitrary BinInt where
       max  <- choose (base, base+2*maxI)
       return $ binInt base step max
 
-instance Arbitrary (BinIx a) where
-    arbitrary = BinIx <$> arbitrary
+instance (Indexable a, Arbitrary a) => Arbitrary (BinIx a) where
+    arbitrary = do a <- arbitrary
+                   b <- suchThat arbitrary ((>index a) . index)
+                   return $ binIx a b
 
 instance Arbitrary (BinF Float) where
-    arbitrary = do 
+    arbitrary = do
       lo <- choose (-1.0e+3-1 , 1.0e+3)
       n  <- choose (1, 10^3)
       hi <- choose (lo , 1.0e+3+1)
       return $ binF lo n hi
 instance Arbitrary (BinF Double) where
-    arbitrary = do 
+    arbitrary = do
       lo <- choose (-1.0e+6-1 , 1.0e+6)
       n  <- choose (1, 10^6)
       hi <- choose (lo , 1.0e+6+1)
@@ -84,113 +91,125 @@ instance (Bin bin, U.Unbox a, Arbitrary bin, Arbitrary a) => Arbitrary (Histogra
       bin <- suchThat arbitrary ((<333) . nBins)
       histogramUO bin <$> arbitrary <*> (U.fromList <$> vectorOf (nBins bin) arbitrary)
 
-----------------------------------------------------------------
--- Generic tests
+instance Indexable Int where
+  index   = id
+  deindex = id
 
--- equality reflexivity
-eqTest :: Eq a => a -> Bool
-eqTest x = x == x
+
+----------------------------------------------------------------
+-- Generic properties
+----------------------------------------------------------------
+
+-- Test that function is identity
+isIdentity :: Eq a => (a -> a) -> a -> Bool
+isIdentity f x = x == f x
+
+-- Equality reflexivity
+prop_Eq :: Eq a => a -> Bool
+prop_Eq x = x == x
 
 -- read . show == id
-readShowTest :: (Read a, Show a, Eq a) => a -> Bool
-readShowTest = equalTest (read . show) 
+prop_ReadShow :: (Read a, Show a, Eq a) => a -> Bool
+prop_ReadShow = isIdentity (read . show)
 
--- toIndex . fromIndex
-fromToIndexTest :: (Bin bin) => (Index, bin) -> Bool
-fromToIndexTest (x, bin) | inRange bin val = x == toIndex bin val 
-                         | otherwise       = True -- Equality doesn't hold for out of range indices
-                         where val = fromIndex bin x 
+-- toIndex . fromIndex == id
+prop_ToFrom :: (Bin bin) => Int -> bin -> Bool
+prop_ToFrom x bin | inRange bin val = x == toIndex bin val
+                  | otherwise       = True -- Equality doesn't hold for out of range indices
+                    where val = fromIndex bin x
 
--- fromIndex . toIndex // Hold only for integral bins
-toFromIndexTest :: (Bin bin, Eq (BinValue bin)) => (BinValue bin, bin) -> Bool
-toFromIndexTest (x, bin) | inRange bin x = equalTest (fromIndex bin . toIndex bin) x
-                         | otherwise     = True -- Doesn't hold for out of range indices
+-- fromIndex . toIndex == id
+-- Hold only for integral bins
+prop_FromTo :: (Bin bin, Eq (BinValue bin)) => BinValue bin -> bin -> Bool
+prop_FromTo x bin | inRange bin x = isIdentity (fromIndex bin . toIndex bin) x
+                  | otherwise     = True -- Doesn't hold for out of range indices
 
 ----------------------------------------------------------------
 
+
 testsEq :: [(String, IO ())]
-testsEq = [ ( "==== Equality reflexivity tests ====" , return ())
-          , ( "BinI"        , p (eqTest :: BinI            -> Bool))
-          , ( "BinInt"      , p (eqTest :: BinInt          -> Bool))
-          , ( "BinIx Int"   , p (eqTest :: BinIx Int       -> Bool))
-          , ( "BinF Double" , p (eqTest :: BinF Double     -> Bool))
-          , ( "BinF Float"  , p (eqTest :: BinF Float      -> Bool))
-          , ( "BinD"        , p (eqTest :: BinD            -> Bool))
-          , ( "LogBinD"     , p (eqTest :: LogBinD         -> Bool))
-          , ( "Bin2D"       , p (eqTest :: Bin2D BinI BinI -> Bool))
-          , ( "Histogram"   , p (eqTest :: Histogram BinI Int -> Bool))
+testsEq = [ title "==== Equality reflexivity ===="
+          , test "BinI"        (prop_Eq :: BinI            -> Bool)
+          , test "BinInt"      (prop_Eq :: BinInt          -> Bool)
+          , test "BinIx"       (prop_Eq :: BinIx Int       -> Bool)
+          , test "BinF Double" (prop_Eq :: BinF Double     -> Bool)
+          , test "BinF Float"  (prop_Eq :: BinF Float      -> Bool)
+          , test "BinD"        (prop_Eq :: BinD            -> Bool)
+          , test "LogBinD"     (prop_Eq :: LogBinD         -> Bool)
+          , test "Bin2D"       (prop_Eq :: Bin2D BinI BinI -> Bool)
           ]
+
 testsRead :: [(String, IO ())]
-testsRead = [ ( "==== Read/Show tests ====" , return ())
-            , ( "BinI"        , p (readShowTest  :: BinI            -> Bool))
-            , ( "BinInt"      , p (readShowTest  :: BinInt          -> Bool))            
-            , ( "BinIx Int"   , p (readShowTest  :: BinIx Int       -> Bool))
-            , ( "BinF Double" , p (readShowTest  :: BinF Double     -> Bool))
-            , ( "BinF Float"  , p (readShowTest  :: BinF Float      -> Bool))
-            , ( "BinD"        , p (readShowTest  :: BinD            -> Bool))
-            , ( "Histogram"   , p (equalTest (readHistogram . show) :: Histogram BinI Int -> Bool))
+testsRead = [ title "==== read . show == id ===="
+            , test "BinI"        (prop_ReadShow  :: BinI            -> Bool)
+            , test "BinInt"      (prop_ReadShow  :: BinInt          -> Bool)
+            , test "BinIx Int"   (prop_ReadShow  :: BinIx Int       -> Bool)
+            , test "BinF Double" (prop_ReadShow  :: BinF Double     -> Bool)
+            , test "BinF Float"  (prop_ReadShow  :: BinF Float      -> Bool)
+            , test "BinD"        (prop_ReadShow  :: BinD            -> Bool)
             ]
-testsIndexing :: [(String, IO ())]
-testsIndexing = [ ( "==== Bin {to,from}Index tests ====", return ())
-                -- Integral bins
-                , ( "BinI"        , p (fromToIndexTest :: (Index, BinI)        -> Bool))
-                , ( "BinI'"       , p (toFromIndexTest :: (Int,   BinI)        -> Bool))
-                , ( "BinIx"       , p (fromToIndexTest :: (Index, BinIx Int)   -> Bool))
-                , ( "BinIx'"      , p (toFromIndexTest :: (Int,   BinIx Int)   -> Bool))
-                , ( "BinInt"      , p (fromToIndexTest :: (Index, BinInt)      -> Bool))
-                -- Floating point bins
-                -- No test for Float because of roundoff errors
-                , ( "BinF Double" , p (fromToIndexTest :: (Index, BinF Double) -> Bool))
-                , ( "BinD"        , p (fromToIndexTest :: (Index, BinD)        -> Bool))
-                , ( "LogBinD"     , p (fromToIndexTest :: (Index, BinD)        -> Bool))
-                -- 2D bins
-                , ( "Bin2D"       , p (fromToIndexTest :: (Index, Bin2D BinI BinI) -> Bool))
-                , ( "Bin2D"       , p (toFromIndexTest :: ((Int,Int), Bin2D BinI BinI) -> Bool))
-                ]
+
+testsToFrom :: [(String,IO())]
+testsToFrom = [ title "==== toIndex . fromIndex == id"
+              , test "BinI"        (prop_ToFrom :: Int -> BinI        -> Bool)
+              , test "BinIx"       (prop_ToFrom :: Int -> BinIx Int   -> Bool)
+              , test "BinInt"      (prop_ToFrom :: Int -> BinInt      -> Bool)
+              , test "Bin2D"       (prop_ToFrom :: Int -> Bin2D BinI BinI -> Bool)
+              , test "BinF Double" (prop_ToFrom :: Int -> BinF Double -> Bool)
+              , test "BinD"        (prop_ToFrom :: Int -> BinD        -> Bool)
+              , test "LogBinD"     (prop_ToFrom :: Int -> LogBinD     -> Bool)
+              ]
+
+testsFromTo :: [(String, IO ())]
+testsFromTo = [ title "==== fromIndex . toIdex == id ===="
+              , test "BinI'"       (prop_FromTo :: Int       -> BinI            -> Bool)
+              , test "BinIx'"      (prop_FromTo :: Int       -> BinIx Int       -> Bool)
+              , test "Bin2D"       (prop_FromTo :: (Int,Int) -> Bin2D BinI BinI -> Bool)
+              ]
+
 testsFMap :: [(String, IO ())]
-testsFMap = [ ("==== Tests for fmap-like functions ====", return ())
-            , ("fmapBinX"    , p (equalTest (fmapBinX id) :: Bin2D BinI BinI -> Bool))
-            , ("fmapBinY"    , p (equalTest (fmapBinY id) :: Bin2D BinI BinI -> Bool))
-            , ("mapHist"     , p (equalTest (histMap  id) :: Histogram BinI Int -> Bool))
-            , ("mapHistBin"  , p (equalTest (histMapBin  id) :: Histogram BinI Int -> Bool))
+testsFMap = [ title "==== fmap preserves idenitity ===="
+            , test "fmapBinX"    (isIdentity (fmapBinX   id) :: Bin2D BinI BinI    -> Bool)
+            , test "fmapBinY"    (isIdentity (fmapBinY   id) :: Bin2D BinI BinI    -> Bool)
+            , test "mapHist"     (isIdentity (histMap    id) :: Histogram BinI Int -> Bool)
+            , test "mapHistBin"  (isIdentity (histMapBin id) :: Histogram BinI Int -> Bool)
             ]
 
 testsHistogram :: [(String, IO ())]
-testsHistogram = 
-    [ ("==== Test for histograms ====", return ())
-    -- , ("asList"        , p (asListTest  :: Histogram BinI Int -> Bool))
-    -- , ("asVectorPairs" , p (asPairVTest :: Histogram BinI Int -> Bool))
+testsHistogram =
+    [ title "==== Test for histograms ===="
+    , test "equality"   (prop_Eq :: Histogram BinI Int -> Bool)
+    , test "read/show"  (isIdentity (readHistogram . show) :: Histogram BinI Int -> Bool)
     ]
-    where
-      -- asListTest  h = let (i,x) = unzip $ asList h in length i == length x
-      -- asPairVTest h = let (i,x) = asPairVector h   in U.length i == U.length x
 
 testsFill :: [(String, IO ())]
-testsFill = [ ("==== Test for filling ====", return ())
+testsFill = [ title "==== Test for filling ===="
             -- Zeroness
-            , ("zeroness mkHist1",    p ((\b -> zeroTest $ mkHist1    b id id) :: BinI -> Bool))
-            , ("zeroness mkHist",     p ((\b -> zeroTest $ mkHist     b id id) :: BinI -> Bool))
-            , ("zeroness mkHistWgh1", p ((\b -> zeroTest $ mkHistWgh1 b id id) :: BinI -> Bool))
-            , ("zeroness mkHistWgh",  p ((\b -> zeroTest $ mkHistWgh  b id id) :: BinI -> Bool))
+            , test "zeroness mkSimple"   (prop_zeroness . mkSimple  )
+            , test "zeroness mkWeighted" (prop_zeroness . mkWeighted)
             -- Sizes match
-            , ("size mkHist1",    p ((\b -> sizeTest $ mkHist1    b id id) :: BinI -> Bool))
-            , ("size mkHist",     p ((\b -> sizeTest $ mkHist     b id id) :: BinI -> Bool))
-            , ("size mkHistWgh1", p ((\b -> sizeTest $ mkHistWgh1 b id id) :: BinI -> Bool))
-            , ("size mkHistWgh",  p ((\b -> sizeTest $ mkHistWgh  b id id) :: BinI -> Bool))
+            , test "size mkHist"    (prop_size . mkSimple  )
+            , test "size mkHistWgh" (prop_size . mkWeighted)
             ]
     where
       -- Test that empty histogram is filled with zeroes
-      zeroTest :: HBuilder i (Histogram BinI Int) -> Bool
-      zeroTest hb = outOfRange h == Just (0,0) && (U.all (==0) (histData h))
+      prop_zeroness :: HBuilder i (Histogram BinI Int) -> Bool
+      prop_zeroness hb = outOfRange h == Just (0,0) && (U.all (==0) (histData h))
           where h = fillBuilder hb []
       -- Test that array size and bin sizes match
-      sizeTest :: HBuilder i (Histogram BinI Int) -> Bool
-      sizeTest hb = nBins (bins h) == U.length (histData h)
+      prop_size :: HBuilder i (Histogram BinI Int) -> Bool
+      prop_size hb = nBins (bins h) == U.length (histData h)
           where h = fillBuilder hb []
 
 
 testsAll :: [(String, IO ())]
-testsAll = concat [ testsEq , testsRead , testsIndexing , testsFMap ]
+testsAll = concat [ testsEq
+                  , testsRead
+                  , testsToFrom
+                  , testsFromTo
+                  , testsFMap
+                  , testsFill
+                  ]
 
 main :: IO ()
 main = do
