@@ -196,6 +196,7 @@ instance Read BinInt where
 
 -- | Bin for types which are instnaces of Enum type class
 newtype BinEnum a = BinEnum BinI
+                    deriving (Eq,Typeable)
 
 -- | Create enum based bin
 binEnum :: Enum a => a -> a -> BinEnum a
