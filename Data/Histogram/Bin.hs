@@ -59,6 +59,9 @@ import Data.Histogram.Parse
 
 
 ----------------------------------------------------------------
+-- Type classes
+----------------------------------------------------------------
+
 -- | This type represent some abstract data binning algorithms.
 -- It maps somve value to integer indices. 
 -- 
@@ -81,7 +84,6 @@ class Bin b where
     nBins :: b -> Int
 
 
-----------------------------------------------------------------
 -- | One dimensional binning algorithm. It means that bin values have
 -- some inherent ordering. For example all binning algorithms for real
 -- numbers could be members or this type class whereas binning
@@ -99,12 +101,16 @@ class Bin b => Bin1D b where
     --   lower bound second is upper bound of bin
     binsListRange :: G.Vector v (BinValue b, BinValue b) => b -> v (BinValue b, BinValue b)
 
+
+
 ----------------------------------------------------------------
 -- Integer bin
 ----------------------------------------------------------------
 -- | Simple binning algorithm which map continous range of bins onto
 -- indices. Each number correcsponds to different bin
-data BinI = BinI {-# UNPACK #-} !Int {-# UNPACK #-} !Int
+data BinI = BinI 
+            {-# UNPACK #-} !Int -- ^ Lower bound (inclusive)
+            {-# UNPACK #-} !Int -- ^ Upper bound (inclusive)
             deriving (Eq,Typeable)
 
 -- | Construct BinI with n bins. Indexing starts from 0
@@ -126,7 +132,7 @@ instance Bin1D BinI where
     binSize _ _ = 1
     binsList      b@(BinI lo _) = G.enumFromN lo (nBins b)
     binsListRange b@(BinI lo _) = G.generate (nBins b) (\i -> let n = lo+i in (n,n))
-    {-# INLINE binsList #-}
+    {-# INLINE binsList      #-}
     {-# INLINE binsListRange #-}
 
 instance Show BinI where
@@ -136,6 +142,8 @@ instance Show BinI where
                                 ]
 instance Read BinI where
     readPrec = keyword "BinI" >> liftM2 BinI (value "Low") (value "High")
+
+
 
 ----------------------------------------------------------------
 -- Another form of Integer bin
@@ -233,7 +241,7 @@ instance RealFrac f => Bin1D (BinF f) where
     binsListRange b@(BinF _ step n) = G.generate n toPair
         where
           toPair k = (x - step/2, x + step/2) where x = fromIndex b k
-    {-# INLINE binsList #-}
+    {-# INLINE binsList      #-}
     {-# INLINE binsListRange #-}
 
 instance Show f => Show (BinF f) where
@@ -243,12 +251,9 @@ instance Show f => Show (BinF f) where
                                       , "# N    = " ++ show n
                                       ]
 instance (Read f, RealFrac f) => Read (BinF f) where
-    readPrec = do
-      keyword "BinF"
-      base <- value "Base"
-      step <- value "Step"
-      n    <- value "N"
-      return $ BinF base step n
+    readPrec = keyword "BinF" >> liftM3 BinF (value "Base") (value "Step") (value "N")
+
+
 
 ----------------------------------------------------------------
 -- Floating point bin /Specialized for Double
@@ -307,7 +312,7 @@ instance Bin1D BinD where
     binsListRange b@(BinD _ step n) = G.generate n toPair
         where
           toPair k = (x - step/2, x + step/2) where x = fromIndex b k
-    {-# INLINE binsList #-}
+    {-# INLINE binsList      #-}
     {-# INLINE binsListRange #-}
 
 
@@ -318,12 +323,8 @@ instance Show BinD where
                                       , "# N    = " ++ show n
                                       ]
 instance Read BinD where
-    readPrec = do
-      keyword "BinD"
-      base <- value "Base"
-      step <- value "Step"
-      n    <- value "N"
-      return $ BinD base step n
+    readPrec = keyword "BinD" >> liftM3 BinF (value "Base") (value "Step") (value "N")
+
 
 
 ----------------------------------------------------------------
