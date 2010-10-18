@@ -187,6 +187,35 @@ instance Read BinInt where
 
 
 ----------------------------------------------------------------
+-- Enumeration bin
+----------------------------------------------------------------
+
+-- | Bin for types which are instnaces of Enum type class
+newtype BinEnum a = BinEnum BinI
+
+-- | Create enum based bin
+binEnum :: Enum a => a -> a -> BinEnum a
+binEnum a b = BinEnum $ BinI (fromEnum a) (fromEnum b)
+
+-- | Use full range of data
+binEnumFull :: (Enum a, Bounded a) => BinEnum a
+binEnumFull = binEnum minBound maxBound
+
+instance Enum a => Bin (BinEnum a) where
+  type BinValue (BinEnum a) = a
+  toIndex   (BinEnum b) = toIndex b . fromEnum
+  fromIndex (BinEnum b) = toEnum . fromIndex b
+  inRange   (BinEnum b) = inRange b . fromEnum
+  nBins     (BinEnum b) = nBins b
+
+instance Show (BinEnum a) where
+  show (BinEnum b) = "# BinEnum\n" ++ show b
+instance Read (BinEnum a) where
+  readPrec = keyword "BinEnum" >> liftM BinEnum readPrec
+
+
+
+----------------------------------------------------------------
 -- Floating point bin
 ----------------------------------------------------------------
 
