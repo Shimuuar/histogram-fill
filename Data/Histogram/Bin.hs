@@ -23,6 +23,10 @@ module Data.Histogram.Bin ( -- * Type classes
                           -- ** Integer bins with non-1 size
                           , BinInt(..)
                           , binInt
+                          -- ** Enum based bin
+                          , BinEnum(..)
+                          , binEnum
+                          , binEnumFull
                           -- ** Floating point bins
                           , BinF(..)
                           , binF
