@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 -- |
 -- Module     : Data.Histogram
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -54,10 +53,11 @@ import Data.Histogram.Parse
 -- Data type and smart constructors
 ----------------------------------------------------------------
 
+-- FIXME: add Typeable instance
 -- | Immutable histogram. Histogram consists of binning algorithm,
 --   optional number of under and overflows, and data. 
 data Histogram v bin a = Histogram bin (Maybe (a,a)) (v a)
-                         deriving Eq
+                         deriving (Eq)
 
 -- | Create histogram from binning algorithm and vector with
 -- data. Overflows are set to Nothing. 
