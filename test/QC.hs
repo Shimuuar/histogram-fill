@@ -54,9 +54,7 @@ instance Arbitrary BinInt where
       return $ binInt base step max
 
 instance (Indexable a, Arbitrary a) => Arbitrary (BinIx a) where
-    arbitrary = do a <- arbitrary
-                   b <- suchThat arbitrary ((>index a) . index)
-                   return $ binIx a b
+    arbitrary = BinIx <$> arbitrary
 
 instance Arbitrary (BinF Float) where
     arbitrary = do
@@ -64,18 +62,21 @@ instance Arbitrary (BinF Float) where
       n  <- choose (1, 10^3)
       hi <- choose (lo , 1.0e+3+1)
       return $ binF lo n hi
+
 instance Arbitrary (BinF Double) where
     arbitrary = do
       lo <- choose (-1.0e+6-1 , 1.0e+6)
       n  <- choose (1, 10^6)
       hi <- choose (lo , 1.0e+6+1)
       return $ binF lo n hi
+
 instance Arbitrary BinD where
     arbitrary = do
       lo <- choose (-1.0e+6-1 , 1.0e+6)
       n  <- choose (1, 10^6)
       hi <- choose (lo , 1.0e+6+1)
       return $ binD lo n hi
+
 instance Arbitrary LogBinD where
     arbitrary = do
       lo <- choose (1.0e-6 , 1.0e+6)
@@ -131,12 +132,14 @@ prop_ReadShow = isIdentity (read . show)
 
 testsRead :: [(String, IO ())]
 testsRead = [ title "==== read . show == id ===="
-            , test "BinI"        (prop_ReadShow  :: BinI            -> Bool)
-            , test "BinInt"      (prop_ReadShow  :: BinInt          -> Bool)
-            , test "BinIx Int"   (prop_ReadShow  :: BinIx Int       -> Bool)
-            , test "BinF Double" (prop_ReadShow  :: BinF Double     -> Bool)
-            , test "BinF Float"  (prop_ReadShow  :: BinF Float      -> Bool)
-            , test "BinD"        (prop_ReadShow  :: BinD            -> Bool)
+            , test "BinI"            (prop_ReadShow  :: BinI            -> Bool)
+            , test "BinInt"          (prop_ReadShow  :: BinInt          -> Bool)
+            , test "BinIx Int"       (prop_ReadShow  :: BinIx Int       -> Bool)
+            , test "BinF Double"     (prop_ReadShow  :: BinF Double     -> Bool)
+            , test "BinF Float"      (prop_ReadShow  :: BinF Float      -> Bool)
+            , test "BinD"            (prop_ReadShow  :: BinD            -> Bool)
+            , test "LogBinD"         (prop_ReadShow  :: LogBinD         -> Bool)
+            , test "Bin2D BinI BinI" (prop_ReadShow  :: Bin2D BinI BinI -> Bool)
             ]
 
 
@@ -158,6 +161,7 @@ testsToFrom = [ title "==== toIndex . fromIndex == id"
               ]
 
 
+
 -- fromIndex . toIndex == id
 -- Hold only for integral bins
 prop_FromTo :: (Bin bin, Eq (BinValue bin)) => BinValue bin -> bin -> Bool
@@ -171,6 +175,26 @@ testsFromTo = [ title "==== fromIndex . toIdex == id ===="
               , test "Bin2D"       (prop_FromTo :: (Int,Int) -> Bin2D BinI BinI -> Bool)
               ]
 
+
+indexInRange :: Bin b => b -> Int -> Bool
+indexInRange b i = i >= 0  &&  i < nBins b
+
+-- inRange b x == indexInRange b x
+type Prop_InRange bin = bin -> BinValue bin -> Bool
+prop_InRange :: (Bin bin) => Prop_InRange bin 
+prop_InRange b x = inRange b x == indexInRange b (toIndex b x)
+
+testsInRange :: [(String,IO())]
+testsInRange = [ title "==== inRange b x == indexInRange b x ===="
+               , test "BinI"            (prop_InRange :: Prop_InRange BinI)
+               , test "BinInt"          (prop_InRange :: Prop_InRange BinInt)
+               , test "BinIx Int"       (prop_InRange :: Prop_InRange (BinIx Int))
+               , test "BinF Float"      (prop_InRange :: Prop_InRange (BinF Float))
+               , test "BinF Double"     (prop_InRange :: Prop_InRange (BinF Double))
+               , test "BinD"            (prop_InRange :: Prop_InRange BinD)
+               , test "LogBinD"         (prop_InRange :: Prop_InRange LogBinD)
+               , test "Bin2D BinI BinI" (prop_InRange :: Prop_InRange (Bin2D BinI BinI))
+               ]
 
 testsFMap :: [(String, IO ())]
 testsFMap = [ title "==== fmap preserves idenitity ===="
@@ -214,6 +238,7 @@ testsAll = concat [ testsEq
                   , testsRead
                   , testsToFrom
                   , testsFromTo
+                  , testsInRange
                   , testsFMap
                   , testsFill
                   ]
