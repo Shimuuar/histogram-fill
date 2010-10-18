@@ -53,8 +53,8 @@ instance Arbitrary BinInt where
       max  <- choose (base, base+2*maxI)
       return $ binInt base step max
 
-instance (Indexable a, Arbitrary a) => Arbitrary (BinIx a) where
-    arbitrary = BinIx <$> arbitrary
+instance Arbitrary (BinEnum a) where
+    arbitrary = BinEnum <$> arbitrary
 
 instance Arbitrary (BinF Float) where
     arbitrary = do
@@ -92,10 +92,6 @@ instance (Bin bin, U.Unbox a, Arbitrary bin, Arbitrary a) => Arbitrary (Histogra
       bin <- suchThat arbitrary ((<333) . nBins)
       histogramUO bin <$> arbitrary <*> (U.fromList <$> vectorOf (nBins bin) arbitrary)
 
-instance Indexable Int where
-  index   = id
-  deindex = id
-
 
 ----------------------------------------------------------------
 -- Generic properties
@@ -115,14 +111,14 @@ prop_Eq x = x == x
 
 testsEq :: [(String, IO ())]
 testsEq = [ title "==== Equality reflexivity ===="
-          , test "BinI"        (prop_Eq :: BinI            -> Bool)
-          , test "BinInt"      (prop_Eq :: BinInt          -> Bool)
-          , test "BinIx"       (prop_Eq :: BinIx Int       -> Bool)
-          , test "BinF Double" (prop_Eq :: BinF Double     -> Bool)
-          , test "BinF Float"  (prop_Eq :: BinF Float      -> Bool)
-          , test "BinD"        (prop_Eq :: BinD            -> Bool)
-          , test "LogBinD"     (prop_Eq :: LogBinD         -> Bool)
-          , test "Bin2D"       (prop_Eq :: Bin2D BinI BinI -> Bool)
+          , test "BinI"            (prop_Eq :: BinI            -> Bool)
+          , test "BinInt"          (prop_Eq :: BinInt          -> Bool)
+          , test "BinEnum Char"    (prop_Eq :: BinEnum Char    -> Bool)
+          , test "BinF Double"     (prop_Eq :: BinF Double     -> Bool)
+          , test "BinF Float"      (prop_Eq :: BinF Float      -> Bool)
+          , test "BinD"            (prop_Eq :: BinD            -> Bool)
+          , test "LogBinD"         (prop_Eq :: LogBinD         -> Bool)
+          , test "Bin2D BinI Bini" (prop_Eq :: Bin2D BinI BinI -> Bool)
           ]
 
 
@@ -134,7 +130,7 @@ testsRead :: [(String, IO ())]
 testsRead = [ title "==== read . show == id ===="
             , test "BinI"            (prop_ReadShow  :: BinI            -> Bool)
             , test "BinInt"          (prop_ReadShow  :: BinInt          -> Bool)
-            , test "BinIx Int"       (prop_ReadShow  :: BinIx Int       -> Bool)
+            , test "BinEnum Char"    (prop_ReadShow  :: BinEnum Char    -> Bool)
             , test "BinF Double"     (prop_ReadShow  :: BinF Double     -> Bool)
             , test "BinF Float"      (prop_ReadShow  :: BinF Float      -> Bool)
             , test "BinD"            (prop_ReadShow  :: BinD            -> Bool)
@@ -151,13 +147,13 @@ prop_ToFrom x bin | inRange bin val = x == toIndex bin val
 
 testsToFrom :: [(String,IO())]
 testsToFrom = [ title "==== toIndex . fromIndex == id"
-              , test "BinI"        (prop_ToFrom :: Int -> BinI        -> Bool)
-              , test "BinIx"       (prop_ToFrom :: Int -> BinIx Int   -> Bool)
-              , test "BinInt"      (prop_ToFrom :: Int -> BinInt      -> Bool)
-              , test "Bin2D"       (prop_ToFrom :: Int -> Bin2D BinI BinI -> Bool)
-              , test "BinF Double" (prop_ToFrom :: Int -> BinF Double -> Bool)
-              , test "BinD"        (prop_ToFrom :: Int -> BinD        -> Bool)
-              , test "LogBinD"     (prop_ToFrom :: Int -> LogBinD     -> Bool)
+              , test "BinI"            (prop_ToFrom :: Int -> BinI            -> Bool)
+              , test "BinEnum Char"    (prop_ToFrom :: Int -> BinEnum Char    -> Bool)
+              , test "BinInt"          (prop_ToFrom :: Int -> BinInt          -> Bool)
+              , test "BinF Double"     (prop_ToFrom :: Int -> BinF Double     -> Bool)
+              , test "BinD"            (prop_ToFrom :: Int -> BinD            -> Bool)
+              , test "LogBinD"         (prop_ToFrom :: Int -> LogBinD         -> Bool)
+              , test "Bin2D BinI BinI" (prop_ToFrom :: Int -> Bin2D BinI BinI -> Bool)
               ]
 
 
@@ -170,9 +166,9 @@ prop_FromTo x bin | inRange bin x = isIdentity (fromIndex bin . toIndex bin) x
 
 testsFromTo :: [(String, IO ())]
 testsFromTo = [ title "==== fromIndex . toIdex == id ===="
-              , test "BinI'"       (prop_FromTo :: Int       -> BinI            -> Bool)
-              , test "BinIx'"      (prop_FromTo :: Int       -> BinIx Int       -> Bool)
-              , test "Bin2D"       (prop_FromTo :: (Int,Int) -> Bin2D BinI BinI -> Bool)
+              , test "BinI"            (prop_FromTo :: Int       -> BinI            -> Bool)
+              , test "BinEnum Char"    (prop_FromTo :: Char      -> BinEnum Char    -> Bool)
+              , test "Bin2D BinI BinI" (prop_FromTo :: (Int,Int) -> Bin2D BinI BinI -> Bool)
               ]
 
 
@@ -188,7 +184,7 @@ testsInRange :: [(String,IO())]
 testsInRange = [ title "==== inRange b x == indexInRange b x ===="
                , test "BinI"            (prop_InRange :: Prop_InRange BinI)
                , test "BinInt"          (prop_InRange :: Prop_InRange BinInt)
-               , test "BinIx Int"       (prop_InRange :: Prop_InRange (BinIx Int))
+               , test "BinEnum Char"    (prop_InRange :: Prop_InRange (BinEnum Char))
                , test "BinF Float"      (prop_InRange :: Prop_InRange (BinF Float))
                , test "BinF Double"     (prop_InRange :: Prop_InRange (BinF Double))
                , test "BinD"            (prop_InRange :: Prop_InRange BinD)
