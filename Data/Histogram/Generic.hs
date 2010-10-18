@@ -42,7 +42,7 @@ import Control.Monad.ST    (runST)
 
 import qualified Data.Vector.Generic.Mutable as M
 import qualified Data.Vector.Generic         as G
-import Data.Typeable        (Typeable)
+import Data.Typeable        (Typeable1(..), Typeable2(..), mkTyConApp, mkTyCon)
 import Data.Vector.Generic  (Vector)
 import Text.Read
 
@@ -53,7 +53,6 @@ import Data.Histogram.Parse
 -- Data type and smart constructors
 ----------------------------------------------------------------
 
--- FIXME: add Typeable instance
 -- | Immutable histogram. Histogram consists of binning algorithm,
 --   optional number of under and overflows, and data. 
 data Histogram v bin a = Histogram bin (Maybe (a,a)) (v a)
@@ -89,6 +88,9 @@ instance (Show a, Show (BinValue bin), Show bin, Bin bin, Vector v a) => Show (H
                                 "# Overflows  = " ++ show o ++ "\n"
           showUO Nothing      = "# Underflows = \n" ++
                                 "# Overflows  = \n"
+
+instance Typeable1 v => Typeable2 (Histogram v) where
+  typeOf2 h = mkTyConApp (mkTyCon "Data.Histogram.Generic.Histogram") [typeOf1 (histData h)]
 
 -- Parse histogram header
 histHeader :: (Read bin, Read a, Bin bin, Vector v a) => ReadPrec (v a -> Histogram v bin a)
