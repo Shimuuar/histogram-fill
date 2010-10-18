@@ -160,11 +160,11 @@ binInt lo n hi = BinInt lo n nb
 instance Bin BinInt where
     type BinValue BinInt = Int
     toIndex   !(BinInt base sz _) !x = (x - base) `div` sz
-    {-# INLINE toIndex #-}
     fromIndex !(BinInt base sz _) !x = x * sz + base
     inRange   !(BinInt base sz n) i  = i>=base && i<(base+n*sz)
-    {-# INLINE inRange #-}
     nBins     !(BinInt _ _ n) = n
+    {-# INLINE toIndex #-}    
+    {-# INLINE inRange #-}
 
 instance Show BinInt where
     show (BinInt base sz n) = 
@@ -219,11 +219,11 @@ scaleBinF a b (BinF base step n)
 instance RealFrac f => Bin (BinF f) where
     type BinValue (BinF f) = f 
     toIndex   !(BinF from step _) !x = floor $ (x-from) / step
-    {-# INLINE toIndex #-}
     fromIndex !(BinF from step _) !i = (step/2) + (fromIntegral i * step) + from 
     inRange   !(BinF from step n) x  = x > from && x < from + step*fromIntegral n
-    {-# INLINE inRange #-}
     nBins     !(BinF _ _ n) = n
+    {-# INLINE toIndex #-}
+    {-# INLINE inRange #-}
 
 instance RealFrac f => Bin1D (BinF f) where
     lowerLimit (BinF from _    _) = from
@@ -293,11 +293,11 @@ floorD x | x < 0     = double2Int x - 1
 instance Bin BinD where
     type BinValue BinD = Double
     toIndex   !(BinD from step _) !x = floorD $ (x-from) / step
-    {-# INLINE toIndex #-}
     fromIndex !(BinD from step _) !i = (step/2) + (fromIntegral i * step) + from 
     inRange   !(BinD from step n) x  = x > from && x < from + step*fromIntegral n
-    {-# INLINE inRange #-}
     nBins     !(BinD _ _ n) = n
+    {-# INLINE toIndex #-}
+    {-# INLINE inRange #-}
 
 instance Bin1D BinD where
     lowerLimit (BinD from _    _) = from
@@ -344,11 +344,11 @@ logBinD lo n hi = LogBinD lo hi ((hi/lo) ** (1 / fromIntegral n)) n
 instance Bin LogBinD where
     type BinValue LogBinD = Double
     toIndex   !(LogBinD base _ step _) !x = floorD $ logBase step (x / base)
-    {-# INLINE toIndex #-}
     fromIndex !(LogBinD base _ step _) !i = base * step ^ i
     inRange   !(LogBinD lo hi _ _) x  = x >= lo && x < hi
-    {-# INLINE inRange #-}
     nBins     !(LogBinD _ _ _ n) = n
+    {-# INLINE toIndex #-}
+    {-# INLINE inRange #-}
 
 instance Show LogBinD where
     show (LogBinD lo hi step n) = 
@@ -362,6 +362,8 @@ instance Read LogBinD where
     readPrec = do 
       keyword "LogBinD"
       LogBinD `liftM` value "Lo" `ap` value "Hi" `ap` value "Step" `ap` value "N"
+
+
 ----------------------------------------------------------------
 -- 2D bin
 ----------------------------------------------------------------
@@ -381,12 +383,12 @@ instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
     toIndex !b@(Bin2D bx by) !(x,y) 
         | inRange bx x = toIndex bx x + toIndex by y  * fromIntegral (nBins bx)
         | otherwise    = maxBound
-    {-# INLINE toIndex #-}
     fromIndex b@(Bin2D bx by) i = let (ix,iy) = toIndex2D b i
                                   in  (fromIndex bx ix, fromIndex by iy)
     inRange (Bin2D bx by) !(x,y) = inRange bx x && inRange by y
-    {-# INLINE inRange #-}
     nBins (Bin2D bx by) = nBins bx * nBins by
+    {-# INLINE toIndex #-}
+    {-# INLINE inRange #-}
 
 toIndex2D :: (Bin binX, Bin binY) => Bin2D binX binY -> Int -> (Int,Int)
 toIndex2D b i = let (iy,ix) = divMod i (nBins $ binX b) in (ix,iy)
