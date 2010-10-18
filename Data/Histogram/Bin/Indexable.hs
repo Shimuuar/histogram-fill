@@ -3,7 +3,7 @@
 module Data.Histogram.Bin.Indexable (
     -- * Indexable bins
     Indexable(..)
-  , BinIx
+  , BinIx(..)
   , binIx
     -- * 2D indexable bins
   , Indexable2D(..)
