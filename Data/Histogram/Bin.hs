@@ -189,6 +189,7 @@ instance Read BinInt where
 ----------------------------------------------------------------
 -- Floating point bin
 ----------------------------------------------------------------
+
 -- | Floaintg point bins with equal sizes. 
 --
 -- Note that due to GHC bug #2271 this toIndex is really slow (20x
@@ -323,7 +324,7 @@ instance Show BinD where
                                       , "# N    = " ++ show n
                                       ]
 instance Read BinD where
-    readPrec = keyword "BinD" >> liftM3 BinF (value "Base") (value "Step") (value "N")
+    readPrec = keyword "BinD" >> liftM3 BinD (value "Base") (value "Step") (value "N")
 
 
 
