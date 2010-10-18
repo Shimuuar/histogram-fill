@@ -47,7 +47,7 @@ module Data.Histogram.Bin ( -- * Type classes
                           , fmapBinY
                           ) where
 
-import Control.Monad (liftM2, liftM3)
+import Control.Monad (liftM, liftM2, liftM3, ap)
 import GHC.Float     (double2Int)
 
 import qualified Data.Vector.Generic as G
@@ -358,7 +358,10 @@ instance Show LogBinD where
                 , "# Step = " ++ show step
                 , "# N    = " ++ show n
                 ]
-
+instance Read LogBinD where
+    readPrec = do 
+      keyword "LogBinD"
+      LogBinD `liftM` value "Lo" `ap` value "Hi" `ap` value "Step" `ap` value "N"
 ----------------------------------------------------------------
 -- 2D bin
 ----------------------------------------------------------------
