@@ -51,7 +51,7 @@ module Data.Histogram.Bin ( -- * Type classes
                           , fmapBinY
                           ) where
 
-import Control.Monad (liftM, liftM2, liftM3, ap)
+import Control.Monad (liftM, liftM2, liftM3)
 import GHC.Float     (double2Int)
 
 import qualified Data.Vector.Generic as G
@@ -388,17 +388,16 @@ instance Bin LogBinD where
     {-# INLINE inRange #-}
 
 instance Show LogBinD where
-    show (LogBinD lo hi step n) = 
+    show (LogBinD lo hi _ n) = 
         unlines [ "# LogBinD"
                 , "# Lo   = " ++ show lo
-                , "# Hi   = " ++ show hi
-                , "# Step = " ++ show step
                 , "# N    = " ++ show n
+                , "# Hi   = " ++ show hi
                 ]
 instance Read LogBinD where
     readPrec = do 
       keyword "LogBinD"
-      LogBinD `liftM` value "Lo" `ap` value "Hi" `ap` value "Step" `ap` value "N"
+      liftM3 logBinD (value "Lo") (value "N") (value "Hi")
 
 
 ----------------------------------------------------------------
