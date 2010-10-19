@@ -380,7 +380,7 @@ logBinD lo n hi = LogBinD lo hi ((hi/lo) ** (1 / fromIntegral n)) n
 instance Bin LogBinD where
     type BinValue LogBinD = Double
     toIndex   !(LogBinD base _ step _) !x = floorD $ logBase step (x / base)
-    fromIndex !(LogBinD base _ step _) !i | i >= 0    = base * step ^ i
+    fromIndex !(LogBinD base _ step _) !i | i >= 0    = base * step ** (fromIntegral i + 0.5)
                                           | otherwise = -1 / 0
     inRange   !(LogBinD lo hi _ _) x  = x >= lo && x < hi
     nBins     !(LogBinD _ _ _ n) = n
