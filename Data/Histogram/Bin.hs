@@ -3,15 +3,17 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveDataTypeable    #-}
+-- Requred for Bin2D conversions
+{-# LANGUAGE OverlappingInstances #-}
 -- |
 -- Module     : Data.Histogram.Bin
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- License    : BSD3
 -- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- Stability  : experimental
--- 
+--
 -- Binning algorithms. This is mapping from set of interest to integer
--- indices and approximate reverse. 
+-- indices and approximate reverse.
 
 module Data.Histogram.Bin ( -- * Type classes
                             Bin(..)
@@ -34,13 +36,11 @@ module Data.Histogram.Bin ( -- * Type classes
                           , BinF(..)
                           , binF
                           , binFn
-                          , binI2binF
                           , scaleBinF
-                          -- *** Specialized for Double 
+                          -- *** Specialized for Double
                           , BinD(..)
                           , binD
                           , binDn
-                          , binI2binD
                           , scaleBinD
                           -- ** Log scale point
                           , LogBinD(..)
@@ -71,9 +71,9 @@ import Data.Histogram.Parse
 ----------------------------------------------------------------
 
 -- | This type represent some abstract data binning algorithms.
---   It maps some value to integer indices. 
+--   It maps some value to integer indices.
 --
---   Following invariant is expected to hold: 
+--   Following invariant is expected to hold:
 --
 --   > toIndex . fromIndex == id
 class Bin b where
@@ -86,7 +86,7 @@ class Bin b where
   --   to "center" of bin. Definition of center is left for definition
   --   of instance. Funtion may fail for invalid indices but
   --   encouraged not to do so.
-  fromIndex :: b -> Int -> BinValue b 
+  fromIndex :: b -> Int -> BinValue b
   -- | Check whether value in range. Values which lay in range must
   --   produce valid indices and conversely value which produce
   --   valid index must be in range.
@@ -141,7 +141,7 @@ class (Bin b, Bin b') => ConvertBin b b' where
 ----------------------------------------------------------------
 -- | Simple binning algorithm which map continous range of bins onto
 -- indices. Each number correcsponds to different bin
-data BinI = BinI 
+data BinI = BinI
             {-# UNPACK #-} !Int -- ^ Lower bound (inclusive)
             {-# UNPACK #-} !Int -- ^ Upper bound (inclusive)
             deriving (Eq,Typeable)
@@ -188,7 +188,7 @@ instance Read BinI where
 ----------------------------------------------------------------
 
 -- | Integer bins with size which differ from 1.
-data BinInt = BinInt 
+data BinInt = BinInt
               {-# UNPACK #-} !Int -- ^ Low bound
               {-# UNPACK #-} !Int -- ^ Bin size
               {-# UNPACK #-} !Int -- ^ Number of bins
@@ -201,7 +201,7 @@ binInt :: Int                   -- ^ Lower bound
        -> BinInt
 binInt lo n hi = BinInt lo n nb
   where
-    nb = (hi-lo) `div` n 
+    nb = (hi-lo) `div` n
 
 instance Bin BinInt where
   type BinValue BinInt = Int
@@ -209,7 +209,7 @@ instance Bin BinInt where
   fromIndex !(BinInt base sz _) !x = x * sz + base
   inRange   !(BinInt base sz n) i  = i>=base && i<(base+n*sz)
   nBins     !(BinInt _ _ n) = n
-  {-# INLINE toIndex #-}    
+  {-# INLINE toIndex #-}
   {-# INLINE inRange #-}
 
 instance Bin1D BinInt where
@@ -224,7 +224,7 @@ instance UniformBin1D BinInt where
   binSize (BinInt _ sz _) = sz
 
 instance Show BinInt where
-  show (BinInt base sz n) = 
+  show (BinInt base sz n) =
     unlines [ "# BinInt"
             , "# Base = " ++ show base
             , "# Step = " ++ show sz
@@ -275,7 +275,7 @@ instance Read (BinEnum a) where
 -- Floating point bin
 ----------------------------------------------------------------
 
--- | Floaintg point bins with equal sizes. 
+-- | Floaintg point bins with equal sizes.
 --
 -- Note that due to GHC bug #2271 this toIndex is really slow (20x
 -- slowdown with respect to BinD) and use of BinD is recommended
@@ -283,9 +283,9 @@ data BinF f = BinF {-# UNPACK #-} !f   -- ^ Lower bound
                    {-# UNPACK #-} !f   -- ^ Size of bin
                    {-# UNPACK #-} !Int -- ^ Number of bins
               deriving (Eq,Typeable)
-                                          
+
 -- | Create bins.
-binF :: RealFrac f => 
+binF :: RealFrac f =>
         f   -- ^ Lower bound of range
      -> Int -- ^ Number of bins
      -> f   -- ^ Upper bound of range
@@ -297,23 +297,19 @@ binFn :: RealFrac f =>
          f -- ^ Begin of range
       -> f -- ^ Size of step
       -> f -- ^ Approximation of end of range
-      -> BinF f 
+      -> BinF f
 binFn from step to = BinF from step (round $ (to - from) / step)
-
--- | Convert BinI to BinF
-binI2binF :: RealFrac f => BinI -> BinF f
-binI2binF b@(BinI i _) = BinF (fromIntegral i - 0.5) 1 (nBins b)
 
 -- | 'scaleBinF a b' scales BinF using linear transform 'a+b*x'
 scaleBinF :: RealFrac f => f -> f -> BinF f -> BinF f
-scaleBinF a b (BinF base step n) 
+scaleBinF a b (BinF base step n)
     | b > 0     = BinF (a + b*base) (b*step) n
     | otherwise = error $ "scaleBinF: b must be positive (b = "++show b++")"
 
 instance RealFrac f => Bin (BinF f) where
-  type BinValue (BinF f) = f 
+  type BinValue (BinF f) = f
   toIndex   !(BinF from step _) !x = floor $ (x-from) / step
-  fromIndex !(BinF from step _) !i = (step/2) + (fromIntegral i * step) + from 
+  fromIndex !(BinF from step _) !i = (step/2) + (fromIntegral i * step) + from
   inRange   !(BinF from step n) x  = x > from && x < from + step*fromIntegral n
   nBins     !(BinF _ _ n) = n
   {-# INLINE toIndex #-}
@@ -353,7 +349,7 @@ data BinD = BinD {-# UNPACK #-} !Double -- ^ Lower bound
                  {-# UNPACK #-} !Double -- ^ Size of bin
                  {-# UNPACK #-} !Int    -- ^ Number of bins
             deriving (Eq,Typeable)
-                                          
+
 -- | Create bins.
 binD :: Double -- ^ Lower bound of range
      -> Int    -- ^ Number of bins
@@ -368,13 +364,9 @@ binDn :: Double -- ^ Begin of range
       -> BinD
 binDn from step to = BinD from step (round $ (to - from) / step)
 
--- | Convert BinI to BinD
-binI2binD :: BinI -> BinD
-binI2binD b@(BinI i _) = BinD (fromIntegral i - 0.5) 1 (nBins b)
-
 -- | 'scaleBinF a b' scales BinF using linear transform 'a+b*x'
 scaleBinD :: Double -> Double -> BinD -> BinD
-scaleBinD a b (BinD base step n) 
+scaleBinD a b (BinD base step n)
     | b > 0     = BinD (a + b*base) (b*step) n
     | otherwise = error $ "scaleBinF: b must be positive (b = "++show b++")"
 
@@ -387,7 +379,7 @@ floorD x | x < 0     = double2Int x - 1
 instance Bin BinD where
   type BinValue BinD = Double
   toIndex   !(BinD from step _) !x = floorD $ (x-from) / step
-  fromIndex !(BinD from step _) !i = (step/2) + (fromIntegral i * step) + from 
+  fromIndex !(BinD from step _) !i = (step/2) + (fromIntegral i * step) + from
   inRange   !(BinD from step n) x  = x > from && x < from + step*fromIntegral n
   nBins     !(BinD _ _ n) = n
   {-# INLINE toIndex #-}
@@ -430,7 +422,7 @@ data LogBinD = LogBinD
                Int    -- ^ Number of bins
                deriving (Eq,Typeable)
 
--- | Create log-scale bins. 
+-- | Create log-scale bins.
 logBinD :: Double -> Int -> Double -> LogBinD
 logBinD lo n hi = LogBinD lo hi ((hi/lo) ** (1 / fromIntegral n)) n
 
@@ -447,7 +439,7 @@ instance Bin LogBinD where
 instance Bin1D LogBinD where
   lowerLimit (LogBinD lo _  _ _) = lo
   upperLimit (LogBinD _  hi _ _) = hi
-  binsListRange b@(LogBinD base _ step n) = G.unfoldrN n next base
+  binsListRange (LogBinD base _ step n) = G.unfoldrN n next base
     where
       next x = let x' = x * step in Just ((x,x'), x')
   {-# INLINE binsListRange #-}
@@ -456,14 +448,14 @@ instance VariableBin1D LogBinD where
   binSizeN (LogBinD base _ step _) n = let x = base * step ^ n in x*step - x
 
 instance Show LogBinD where
-  show (LogBinD lo hi _ n) = 
+  show (LogBinD lo hi _ n) =
     unlines [ "# LogBinD"
             , "# Lo   = " ++ show lo
             , "# N    = " ++ show n
             , "# Hi   = " ++ show hi
             ]
 instance Read LogBinD where
-  readPrec = do 
+  readPrec = do
     keyword "LogBinD"
     liftM3 logBinD (value "Lo") (value "N") (value "Hi")
 
@@ -472,7 +464,7 @@ instance Read LogBinD where
 -- 2D bin
 ----------------------------------------------------------------
 
--- | 2D bins. binX is binning along X axis and binY is one along Y axis. 
+-- | 2D bins. binX is binning along X axis and binY is one along Y axis.
 data Bin2D binX binY = Bin2D { binX :: !binX -- ^ Binning algorithm for X axis
                              , binY :: !binY -- ^ Binning algorithm for Y axis
                              }
@@ -484,7 +476,7 @@ data Bin2D binX binY = Bin2D { binX :: !binX -- ^ Binning algorithm for X axis
 
 instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
   type BinValue (Bin2D binX binY) = (BinValue binX, BinValue binY)
-  toIndex !(Bin2D bx by) !(x,y) 
+  toIndex !(Bin2D bx by) !(x,y)
         | inRange bx x = toIndex bx x + toIndex by y  * fromIntegral (nBins bx)
         | otherwise    = maxBound
   fromIndex b@(Bin2D bx by) i = let (ix,iy) = toIndex2D b i
@@ -504,10 +496,10 @@ nBins2D (Bin2D bx by) = (nBins bx, nBins by)
 -- | Apply function to X binning algorithm. If new binning algorithm
 --   have different number of bins will fail.
 fmapBinX :: (Bin bx, Bin bx') => (bx -> bx') -> Bin2D bx by -> Bin2D bx' by
-fmapBinX f (Bin2D bx by) 
+fmapBinX f (Bin2D bx by)
     | nBins bx' /= nBins bx = error "fmapBinX: new binnig algorithm has different number of bins"
     | otherwise             = Bin2D bx' by
-    where 
+    where
       bx' = f bx
 
 -- | Apply function to Y binning algorithm. If new binning algorithm
@@ -516,7 +508,7 @@ fmapBinY ::(Bin by, Bin by') => (by -> by') -> Bin2D bx by -> Bin2D bx by'
 fmapBinY f (Bin2D bx by)
     | nBins by' /= nBins by = error "fmapBinY: new binnig algorithm has different number of bins"
     | otherwise             = Bin2D bx by'
-    where 
+    where
       by' = f by
 
 instance (Show b1, Show b2) => Show (Bin2D b1 b2) where
@@ -534,3 +526,24 @@ instance (Read b1, Read b2) => Read (Bin2D b1 b2) where
     keyword "Y"
     b2 <- readPrec
     return $ Bin2D b1 b2
+
+----------------------------------------------------------------
+-- Bin conversion
+----------------------------------------------------------------
+
+instance RealFrac f => ConvertBin BinI (BinF f) where
+  convertBin b = BinF (fromIntegral (lowerLimit b) - 0.5) 1 (nBins b)
+instance RealFrac f => ConvertBin BinInt (BinF f) where
+  convertBin b = BinF (fromIntegral (lowerLimit b) - 0.5) (fromIntegral $ binSize b) (nBins b)
+
+instance ConvertBin BinI BinD where
+  convertBin b = BinD (fromIntegral (lowerLimit b) - 0.5) 1 (nBins b)
+instance ConvertBin BinInt BinD where
+  convertBin b = BinD (fromIntegral (lowerLimit b) - 0.5) (fromIntegral $ binSize b) (nBins b)
+
+instance (ConvertBin bx bx', Bin by) => ConvertBin (Bin2D bx by) (Bin2D bx' by) where
+  convertBin = fmapBinX convertBin
+instance (ConvertBin by by', Bin bx) => ConvertBin (Bin2D bx by) (Bin2D bx by') where
+  convertBin = fmapBinY convertBin
+instance (ConvertBin bx bx', ConvertBin by by') => ConvertBin (Bin2D bx by) (Bin2D bx' by') where
+  convertBin (Bin2D bx by) = Bin2D (convertBin bx) (convertBin by)
