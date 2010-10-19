@@ -1,8 +1,8 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies        #-}
-{-# LANGUAGE BangPatterns        #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE DeriveDataTypeable  #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
 -- |
 -- Module     : Data.Histogram.Bin
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -16,6 +16,9 @@
 module Data.Histogram.Bin ( -- * Type classes
                             Bin(..)
                           , Bin1D(..)
+                          , UniformBin1D(..)
+                          , VariableBin1D(..)
+                          , ConvertBin(..)
                           -- * Bin types
                           -- ** Integer bins
                           , BinI(..)
@@ -55,6 +58,7 @@ import Control.Monad (liftM, liftM2, liftM3)
 import GHC.Float     (double2Int)
 
 import qualified Data.Vector.Generic as G
+import           Data.Vector.Generic    (Vector)
 import Data.Typeable                    (Typeable)
 import Text.Read                        (Read(..))
 
@@ -67,45 +71,70 @@ import Data.Histogram.Parse
 ----------------------------------------------------------------
 
 -- | This type represent some abstract data binning algorithms.
--- It maps somve value to integer indices. 
--- 
--- Following invariant is expected to hold: 
--- 
--- > toIndex . fromIndex == id
--- 
--- > inRange b x        <=>  0 <= toIndex b x < nBins b
--- > not (inRange b x)  <=>  toIndex b x < 0 || toIndex b x >= nBins b
+--   It maps some value to integer indices. 
+--
+--   Following invariant is expected to hold: 
+--
+--   > toIndex . fromIndex == id
 class Bin b where
-    -- | Type of value to bin
-    type BinValue b
-    -- | Convert from value to index. No bound checking performed
-    toIndex :: b -> BinValue b -> Int
-    -- | Convert from index to value. 
-    fromIndex :: b -> Int -> BinValue b 
-    -- | Check whether value in range.
-    inRange :: b -> BinValue b -> Bool
-    -- | Total number of bins
-    nBins :: b -> Int
+  -- | Type of value to bin
+  type BinValue b
+  -- | Convert from value to index. No bound checking
+  --   performed. Function must not fail for any input.
+  toIndex :: b -> BinValue b -> Int
+  -- | Convert from index to value. Returned value should correspond
+  --   to "center" of bin. Definition of center is left for definition
+  --   of instance. Funtion may fail for invalid indices but
+  --   encouraged not to do so.
+  fromIndex :: b -> Int -> BinValue b 
+  -- | Check whether value in range. Values which lay in range must
+  --   produce valid indices and conversely value which produce
+  --   valid index must be in range.
+  inRange :: b -> BinValue b -> Bool
+  -- | Total number of bins
+  nBins :: b -> Int
 
 
 -- | One dimensional binning algorithm. It means that bin values have
--- some inherent ordering. For example all binning algorithms for real
--- numbers could be members or this type class whereas binning
--- algorithms for R^2 could not. 
+--   some inherent ordering. For example all binning algorithms for
+--   real numbers could be members or this type class whereas binning
+--   algorithms for R^2 could not.
 class Bin b => Bin1D b where
-    -- | Minimal accepted value of histogram
-    lowerLimit :: b -> BinValue b
-    -- | Maximal accepted value of histogram
-    upperLimit :: b -> BinValue b
-    -- | Size of i'th bin.
-    binSize :: b -> Int -> BinValue b
-    -- | List of center of bins in ascending order.
-    binsList :: G.Vector v (BinValue b) => b -> v (BinValue b)
-    -- | List of bins in ascending order. First element of tuple is
-    --   lower bound second is upper bound of bin
-    binsListRange :: G.Vector v (BinValue b, BinValue b) => b -> v (BinValue b, BinValue b)
+  -- | Minimal accepted value of histogram
+  lowerLimit :: b -> BinValue b
+  -- | Maximal accepted value of histogram
+  upperLimit :: b -> BinValue b
+  -- | List of center of bins in ascending order. Default
+  --   implementation is:
+  --
+  --   > binsList b = G.generate (nBins b) (fromIndex b)
+  binsList :: Vector v (BinValue b) => b -> v (BinValue b)
+  binsList b = G.generate (nBins b) (fromIndex b)
+  -- | List of bins in ascending order. First element of tuple is
+  --   lower bound second is upper bound of bin
+  binsListRange :: Vector v (BinValue b, BinValue b) => b -> v (BinValue b, BinValue b)
+  {-# INLINE binsList #-}
 
 
+-- | 1D binning algorithms with variable bin size
+class Bin1D b => VariableBin1D b where
+  -- | Size of n'th bin.
+  binSizeN :: b -> Int -> BinValue b
+
+
+-- | 1D binning algorithms with constant size bins. Constant sized
+--   bins could be thought as specialization of variable-sized bins
+--   therefore a superclass constraint.
+class VariableBin1D b => UniformBin1D b where
+  -- | Size of bin. Default implementation just uses 0 bin.
+  binSize :: b -> BinValue b
+  binSize b = binSizeN b 0
+
+
+-- | Class for conversion between binning algorithms
+class (Bin b, Bin b') => ConvertBin b b' where
+  -- | Convert bins
+  convertBin :: b -> b'
 
 ----------------------------------------------------------------
 -- Integer bin
@@ -133,7 +162,6 @@ instance Bin BinI where
 instance Bin1D BinI where
     lowerLimit (BinI i _) = i
     upperLimit (BinI _ i) = i
-    binSize _ _ = 1
     binsList      b@(BinI lo _) = G.enumFromN lo (nBins b)
     binsListRange b@(BinI lo _) = G.generate (nBins b) (\i -> let n = lo+i in (n,n))
     {-# INLINE binsList      #-}
@@ -271,7 +299,6 @@ instance RealFrac f => Bin (BinF f) where
 instance RealFrac f => Bin1D (BinF f) where
     lowerLimit (BinF from _    _) = from
     upperLimit (BinF from step n) = from + step * fromIntegral n
-    binSize (BinF _ step _) _ = step
     binsList      b@(BinF _    _ n) = G.generate n (fromIndex b)
     binsListRange b@(BinF _ step n) = G.generate n toPair
         where
@@ -342,7 +369,6 @@ instance Bin BinD where
 instance Bin1D BinD where
     lowerLimit (BinD from _    _) = from
     upperLimit (BinD from step n) = from + step * fromIntegral n
-    binSize (BinD _ step _) _ = step
     binsList      b@(BinD _    _ n) = G.generate n (fromIndex b)
     binsListRange b@(BinD _ step n) = G.generate n toPair
         where
