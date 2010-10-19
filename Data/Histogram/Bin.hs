@@ -33,17 +33,17 @@ module Data.Histogram.Bin ( -- * Type classes
                           , binEnum
                           , binEnumFull
                           -- ** Floating point bins
-                          , BinF(..)
+                          , BinF
                           , binF
                           , binFn
                           , scaleBinF
                           -- *** Specialized for Double
-                          , BinD(..)
+                          , BinD
                           , binD
                           , binDn
                           , scaleBinD
                           -- ** Log scale point
-                          , LogBinD(..)
+                          , LogBinD
                           , logBinD
                           -- ** 2D bins
                           , Bin2D(..)
