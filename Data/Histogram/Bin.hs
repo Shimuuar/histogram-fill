@@ -151,29 +151,35 @@ binI0 :: Int -> BinI
 binI0 n = BinI 0 (n-1)
 
 instance Bin BinI where
-    type BinValue BinI = Int
-    toIndex   !(BinI base _) !x = x - base
-    fromIndex !(BinI base _) !x = x + base
-    inRange   !(BinI x y) i     = i>=x && i<=y
-    nBins     !(BinI x y) = y - x + 1
-    {-# INLINE toIndex #-}
-    {-# INLINE inRange #-}
+  type BinValue BinI = Int
+  toIndex   !(BinI base _) !x = x - base
+  fromIndex !(BinI base _) !x = x + base
+  inRange   !(BinI x y) i     = i>=x && i<=y
+  nBins     !(BinI x y) = y - x + 1
+  {-# INLINE toIndex #-}
+  {-# INLINE inRange #-}
 
 instance Bin1D BinI where
-    lowerLimit (BinI i _) = i
-    upperLimit (BinI _ i) = i
-    binsList      b@(BinI lo _) = G.enumFromN lo (nBins b)
-    binsListRange b@(BinI lo _) = G.generate (nBins b) (\i -> let n = lo+i in (n,n))
-    {-# INLINE binsList      #-}
-    {-# INLINE binsListRange #-}
+  lowerLimit (BinI i _) = i
+  upperLimit (BinI _ i) = i
+  binsList      b@(BinI lo _) = G.enumFromN lo (nBins b)
+  binsListRange b@(BinI lo _) = G.generate (nBins b) (\i -> let n = lo+i in (n,n))
+  {-# INLINE binsList      #-}
+  {-# INLINE binsListRange #-}
+
+instance VariableBin1D BinI where
+  binSizeN _ _ = 1
+
+instance UniformBin1D BinI where
+  binSize _ = 1
 
 instance Show BinI where
-    show (BinI lo hi) = unlines [ "# BinI"
-                                , "# Low  = " ++ show lo
-                                , "# High = " ++ show hi
-                                ]
+  show (BinI lo hi) = unlines [ "# BinI"
+                              , "# Low  = " ++ show lo
+                              , "# High = " ++ show hi
+                              ]
 instance Read BinI where
-    readPrec = keyword "BinI" >> liftM2 BinI (value "Low") (value "High")
+  readPrec = keyword "BinI" >> liftM2 BinI (value "Low") (value "High")
 
 
 
@@ -198,24 +204,35 @@ binInt lo n hi = BinInt lo n nb
     nb = (hi-lo) `div` n 
 
 instance Bin BinInt where
-    type BinValue BinInt = Int
-    toIndex   !(BinInt base sz _) !x = (x - base) `div` sz
-    fromIndex !(BinInt base sz _) !x = x * sz + base
-    inRange   !(BinInt base sz n) i  = i>=base && i<(base+n*sz)
-    nBins     !(BinInt _ _ n) = n
-    {-# INLINE toIndex #-}    
-    {-# INLINE inRange #-}
+  type BinValue BinInt = Int
+  toIndex   !(BinInt base sz _) !x = (x - base) `div` sz
+  fromIndex !(BinInt base sz _) !x = x * sz + base
+  inRange   !(BinInt base sz n) i  = i>=base && i<(base+n*sz)
+  nBins     !(BinInt _ _ n) = n
+  {-# INLINE toIndex #-}    
+  {-# INLINE inRange #-}
+
+instance Bin1D BinInt where
+  lowerLimit      (BinInt base _  _) = base
+  upperLimit      (BinInt base sz n) = base + sz * n - 1
+  binsListRange b@(BinInt _    sz n) = G.generate n (\i -> let x = fromIndex b i in (x,x + sz - 1))
+
+instance VariableBin1D BinInt where
+  binSizeN (BinInt _ sz _) _ = sz
+
+instance UniformBin1D BinInt where
+  binSize (BinInt _ sz _) = sz
 
 instance Show BinInt where
-    show (BinInt base sz n) = 
-      unlines [ "# BinInt"
-              , "# Base = " ++ show base
-              , "# Step = " ++ show sz
-              , "# Bins = " ++ show n
-              ]
+  show (BinInt base sz n) = 
+    unlines [ "# BinInt"
+            , "# Base = " ++ show base
+            , "# Step = " ++ show sz
+            , "# Bins = " ++ show n
+            ]
 
 instance Read BinInt where
-    readPrec = keyword "BinInt" >> liftM3 BinInt (value "Base") (value "Step") (value "Bins")
+  readPrec = keyword "BinInt" >> liftM3 BinInt (value "Base") (value "Step") (value "Bins")
 
 
 ----------------------------------------------------------------
@@ -240,6 +257,12 @@ instance Enum a => Bin (BinEnum a) where
   fromIndex (BinEnum b) = toEnum . fromIndex b
   inRange   (BinEnum b) = inRange b . fromEnum
   nBins     (BinEnum b) = nBins b
+
+instance Enum a => Bin1D (BinEnum a) where
+  lowerLimit (BinEnum b) = toEnum $ lowerLimit b
+  upperLimit (BinEnum b) = toEnum $ upperLimit b
+  binsListRange b        = G.generate (nBins b) (\n -> let x = fromIndex b n in (x,x))
+  {-# INLINE binsListRange #-}
 
 instance Show (BinEnum a) where
   show (BinEnum b) = "# BinEnum\n" ++ show b
@@ -288,32 +311,36 @@ scaleBinF a b (BinF base step n)
     | otherwise = error $ "scaleBinF: b must be positive (b = "++show b++")"
 
 instance RealFrac f => Bin (BinF f) where
-    type BinValue (BinF f) = f 
-    toIndex   !(BinF from step _) !x = floor $ (x-from) / step
-    fromIndex !(BinF from step _) !i = (step/2) + (fromIntegral i * step) + from 
-    inRange   !(BinF from step n) x  = x > from && x < from + step*fromIntegral n
-    nBins     !(BinF _ _ n) = n
-    {-# INLINE toIndex #-}
-    {-# INLINE inRange #-}
+  type BinValue (BinF f) = f 
+  toIndex   !(BinF from step _) !x = floor $ (x-from) / step
+  fromIndex !(BinF from step _) !i = (step/2) + (fromIntegral i * step) + from 
+  inRange   !(BinF from step n) x  = x > from && x < from + step*fromIntegral n
+  nBins     !(BinF _ _ n) = n
+  {-# INLINE toIndex #-}
+  {-# INLINE inRange #-}
 
 instance RealFrac f => Bin1D (BinF f) where
-    lowerLimit (BinF from _    _) = from
-    upperLimit (BinF from step n) = from + step * fromIntegral n
-    binsList      b@(BinF _    _ n) = G.generate n (fromIndex b)
-    binsListRange b@(BinF _ step n) = G.generate n toPair
-        where
-          toPair k = (x - step/2, x + step/2) where x = fromIndex b k
-    {-# INLINE binsList      #-}
-    {-# INLINE binsListRange #-}
+  lowerLimit (BinF from _    _) = from
+  upperLimit (BinF from step n) = from + step * fromIntegral n
+  binsListRange !b@(BinF _ step n) = G.generate n toPair
+    where
+      toPair k = (x - step/2, x + step/2) where x = fromIndex b k
+  {-# INLINE binsListRange #-}
+
+instance RealFrac f => VariableBin1D (BinF f) where
+  binSizeN (BinF _ step _) _ = step
+
+instance RealFrac f => UniformBin1D (BinF f) where
+  binSize (BinF _ step _) = step
 
 instance Show f => Show (BinF f) where
-    show (BinF base step n) = unlines [ "# BinF"
-                                      , "# Base = " ++ show base
-                                      , "# Step = " ++ show step
-                                      , "# N    = " ++ show n
-                                      ]
+  show (BinF base step n) = unlines [ "# BinF"
+                                    , "# Base = " ++ show base
+                                    , "# Step = " ++ show step
+                                    , "# N    = " ++ show n
+                                    ]
 instance (Read f, RealFrac f) => Read (BinF f) where
-    readPrec = keyword "BinF" >> liftM3 BinF (value "Base") (value "Step") (value "N")
+  readPrec = keyword "BinF" >> liftM3 BinF (value "Base") (value "Step") (value "N")
 
 
 
@@ -358,33 +385,37 @@ floorD x | x < 0     = double2Int x - 1
 {-# INLINE floorD #-}
 
 instance Bin BinD where
-    type BinValue BinD = Double
-    toIndex   !(BinD from step _) !x = floorD $ (x-from) / step
-    fromIndex !(BinD from step _) !i = (step/2) + (fromIntegral i * step) + from 
-    inRange   !(BinD from step n) x  = x > from && x < from + step*fromIntegral n
-    nBins     !(BinD _ _ n) = n
-    {-# INLINE toIndex #-}
-    {-# INLINE inRange #-}
+  type BinValue BinD = Double
+  toIndex   !(BinD from step _) !x = floorD $ (x-from) / step
+  fromIndex !(BinD from step _) !i = (step/2) + (fromIntegral i * step) + from 
+  inRange   !(BinD from step n) x  = x > from && x < from + step*fromIntegral n
+  nBins     !(BinD _ _ n) = n
+  {-# INLINE toIndex #-}
+  {-# INLINE inRange #-}
 
 instance Bin1D BinD where
-    lowerLimit (BinD from _    _) = from
-    upperLimit (BinD from step n) = from + step * fromIntegral n
-    binsList      b@(BinD _    _ n) = G.generate n (fromIndex b)
-    binsListRange b@(BinD _ step n) = G.generate n toPair
-        where
-          toPair k = (x - step/2, x + step/2) where x = fromIndex b k
-    {-# INLINE binsList      #-}
-    {-# INLINE binsListRange #-}
+  lowerLimit (BinD from _    _) = from
+  upperLimit (BinD from step n) = from + step * fromIntegral n
+  binsListRange b@(BinD _ step n) = G.generate n toPair
+    where
+      toPair k = (x - step/2, x + step/2) where x = fromIndex b k
+  {-# INLINE binsListRange #-}
 
+
+instance VariableBin1D BinD where
+  binSizeN (BinD _ step _) _ = step
+
+instance UniformBin1D BinD where
+  binSize (BinD _ step _) = step
 
 instance Show BinD where
-    show (BinD base step n) = unlines [ "# BinD"
-                                      , "# Base = " ++ show base
-                                      , "# Step = " ++ show step
-                                      , "# N    = " ++ show n
-                                      ]
+  show (BinD base step n) = unlines [ "# BinD"
+                                    , "# Base = " ++ show base
+                                    , "# Step = " ++ show step
+                                    , "# N    = " ++ show n
+                                    ]
 instance Read BinD where
-    readPrec = keyword "BinD" >> liftM3 BinD (value "Base") (value "Step") (value "N")
+  readPrec = keyword "BinD" >> liftM3 BinD (value "Base") (value "Step") (value "N")
 
 
 
@@ -404,26 +435,37 @@ logBinD :: Double -> Int -> Double -> LogBinD
 logBinD lo n hi = LogBinD lo hi ((hi/lo) ** (1 / fromIntegral n)) n
 
 instance Bin LogBinD where
-    type BinValue LogBinD = Double
-    toIndex   !(LogBinD base _ step _) !x = floorD $ logBase step (x / base)
-    fromIndex !(LogBinD base _ step _) !i | i >= 0    = base * step ** (fromIntegral i + 0.5)
-                                          | otherwise = -1 / 0
-    inRange   !(LogBinD lo hi _ _) x  = x >= lo && x < hi
-    nBins     !(LogBinD _ _ _ n) = n
-    {-# INLINE toIndex #-}
-    {-# INLINE inRange #-}
+  type BinValue LogBinD = Double
+  toIndex   !(LogBinD base _ step _) !x = floorD $ logBase step (x / base)
+  fromIndex !(LogBinD base _ step _) !i | i >= 0    = base * step ** (fromIntegral i + 0.5)
+                                        | otherwise = -1 / 0
+  inRange   !(LogBinD lo hi _ _) x  = x >= lo && x < hi
+  nBins     !(LogBinD _ _ _ n) = n
+  {-# INLINE toIndex #-}
+  {-# INLINE inRange #-}
+
+instance Bin1D LogBinD where
+  lowerLimit (LogBinD lo _  _ _) = lo
+  upperLimit (LogBinD _  hi _ _) = hi
+  binsListRange b@(LogBinD base _ step n) = G.unfoldrN n next base
+    where
+      next x = let x' = x * step in Just ((x,x'), x')
+  {-# INLINE binsListRange #-}
+
+instance VariableBin1D LogBinD where
+  binSizeN (LogBinD base _ step _) n = let x = base * step ^ n in x*step - x
 
 instance Show LogBinD where
-    show (LogBinD lo hi _ n) = 
-        unlines [ "# LogBinD"
-                , "# Lo   = " ++ show lo
-                , "# N    = " ++ show n
-                , "# Hi   = " ++ show hi
-                ]
+  show (LogBinD lo hi _ n) = 
+    unlines [ "# LogBinD"
+            , "# Lo   = " ++ show lo
+            , "# N    = " ++ show n
+            , "# Hi   = " ++ show hi
+            ]
 instance Read LogBinD where
-    readPrec = do 
-      keyword "LogBinD"
-      liftM3 logBinD (value "Lo") (value "N") (value "Hi")
+  readPrec = do 
+    keyword "LogBinD"
+    liftM3 logBinD (value "Lo") (value "N") (value "Hi")
 
 
 ----------------------------------------------------------------
@@ -441,16 +483,16 @@ data Bin2D binX binY = Bin2D { binX :: !binX -- ^ Binning algorithm for X axis
 (><) = Bin2D
 
 instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
-    type BinValue (Bin2D binX binY) = (BinValue binX, BinValue binY)
-    toIndex !(Bin2D bx by) !(x,y) 
+  type BinValue (Bin2D binX binY) = (BinValue binX, BinValue binY)
+  toIndex !(Bin2D bx by) !(x,y) 
         | inRange bx x = toIndex bx x + toIndex by y  * fromIntegral (nBins bx)
         | otherwise    = maxBound
-    fromIndex b@(Bin2D bx by) i = let (ix,iy) = toIndex2D b i
-                                  in  (fromIndex bx ix, fromIndex by iy)
-    inRange (Bin2D bx by) !(x,y) = inRange bx x && inRange by y
-    nBins (Bin2D bx by) = nBins bx * nBins by
-    {-# INLINE toIndex #-}
-    {-# INLINE inRange #-}
+  fromIndex b@(Bin2D bx by) i = let (ix,iy) = toIndex2D b i
+                                in  (fromIndex bx ix, fromIndex by iy)
+  inRange (Bin2D bx by) !(x,y) = inRange bx x && inRange by y
+  nBins (Bin2D bx by) = nBins bx * nBins by
+  {-# INLINE toIndex #-}
+  {-# INLINE inRange #-}
 
 toIndex2D :: (Bin binX, Bin binY) => Bin2D binX binY -> Int -> (Int,Int)
 toIndex2D b i = let (iy,ix) = divMod i (nBins $ binX b) in (ix,iy)
@@ -478,17 +520,17 @@ fmapBinY f (Bin2D bx by)
       by' = f by
 
 instance (Show b1, Show b2) => Show (Bin2D b1 b2) where
-    show (Bin2D b1 b2) = concat [ "# Bin2D\n"
-                                , "# X\n"
-                                , show b1
-                                , "# Y\n"
-                                , show b2
-                                ]
+  show (Bin2D b1 b2) = concat [ "# Bin2D\n"
+                              , "# X\n"
+                              , show b1
+                              , "# Y\n"
+                              , show b2
+                              ]
 instance (Read b1, Read b2) => Read (Bin2D b1 b2) where
-    readPrec = do
-      keyword "Bin2D"
-      keyword "X"
-      b1 <- readPrec
-      keyword "Y"
-      b2 <- readPrec
-      return $ Bin2D b1 b2
+  readPrec = do
+    keyword "Bin2D"
+    keyword "X"
+    b1 <- readPrec
+    keyword "Y"
+    b2 <- readPrec
+    return $ Bin2D b1 b2
