@@ -477,7 +477,7 @@ data Bin2D binX binY = Bin2D { binX :: !binX -- ^ Binning algorithm for X axis
 instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
   type BinValue (Bin2D binX binY) = (BinValue binX, BinValue binY)
   toIndex !(Bin2D bx by) !(x,y)
-        | inRange bx x = toIndex bx x + toIndex by y  * fromIntegral (nBins bx)
+        | inRange bx x = toIndex bx x + toIndex by y * nBins bx
         | otherwise    = maxBound
   fromIndex b@(Bin2D bx by) i = let (ix,iy) = toIndex2D b i
                                 in  (fromIndex bx ix, fromIndex by iy)
@@ -486,8 +486,10 @@ instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
   {-# INLINE toIndex #-}
   {-# INLINE inRange #-}
 
+-- | Convert index into pair of indices for X and Y axes
 toIndex2D :: (Bin binX, Bin binY) => Bin2D binX binY -> Int -> (Int,Int)
-toIndex2D b i = let (iy,ix) = divMod i (nBins $ binX b) in (ix,iy)
+toIndex2D !b !i = let (iy,ix) = divMod i (nBins $ binX b) in (ix,iy)
+{-# INLINE toIndex2D #-}
 
 -- | 2-dimensional size of binning algorithm
 nBins2D :: (Bin bx, Bin by) => Bin2D bx by -> (Int,Int)
