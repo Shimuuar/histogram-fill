@@ -36,11 +36,13 @@ module Data.Histogram.Bin ( -- * Type classes
                           , BinF
                           , binF
                           , binFn
+                          , binFstep
                           , scaleBinF
                           -- *** Specialized for Double
                           , BinD
                           , binD
                           , binDn
+                          , binDstep
                           , scaleBinD
                           -- ** Log scale point
                           , LogBinD
@@ -300,6 +302,14 @@ binFn :: RealFrac f =>
       -> BinF f
 binFn from step to = BinF from step (round $ (to - from) / step)
 
+-- | Create bins
+binFstep :: RealFrac f =>
+            f      -- ^ Begin of range
+         -> f      -- ^ Size of step
+         -> Int    -- ^ Number of bins
+         -> BinF f
+binFstep = BinF
+
 -- | 'scaleBinF a b' scales BinF using linear transform 'a+b*x'
 scaleBinF :: RealFrac f => f -> f -> BinF f -> BinF f
 scaleBinF a b (BinF base step n)
@@ -363,6 +373,13 @@ binDn :: Double -- ^ Begin of range
       -> Double -- ^ Approximation of end of range
       -> BinD
 binDn from step to = BinD from step (round $ (to - from) / step)
+
+-- | Create bins
+binDstep :: Double -- ^ Begin of range
+         -> Double -- ^ Size of step
+         -> Int    -- ^ Number of bins
+         -> BinD
+binDstep = BinD
 
 -- | 'scaleBinF a b' scales BinF using linear transform 'a+b*x'
 scaleBinD :: Double -> Double -> BinD -> BinD
