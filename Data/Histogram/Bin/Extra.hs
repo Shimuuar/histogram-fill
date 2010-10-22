@@ -12,7 +12,11 @@
 --
 -- Extra binning algorithms
 
-module Data.Histogram.Bin.Extra ( BinPermute(permutedBin, permuteTo, permuteFrom)
+module Data.Histogram.Bin.Extra ( Enum2D(..)
+                                , BinEnum2D
+                                , binEnum2D
+                                , BinPermute(permutedBin, permuteTo, permuteFrom)
+                                , permuteByTable
                                 , permuteBin
                                 ) where
 
