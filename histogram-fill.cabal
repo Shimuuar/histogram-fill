@@ -12,8 +12,6 @@ Synopsis:       Library for histograms creation.
 Description:    
   This is library for histograms filling. Its aim to provide
   convenient way to create and fill histograms. 
-  .
-  This is very much work in progress so expect API breakage in future relesases.
 
 source-repository head
   type:     hg
