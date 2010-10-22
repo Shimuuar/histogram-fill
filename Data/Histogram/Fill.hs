@@ -49,8 +49,9 @@ import Control.Monad       (when,liftM,liftM2)
 import Control.Monad.ST 
 import Control.Monad.Primitive
 
-import Data.Monoid         (Monoid(..))
-import Data.Vector.Unboxed (Unbox)
+import Data.Monoid            (Monoid(..))
+import Data.Monoid.Statistics (StatMonoid)
+import Data.Vector.Unboxed    (Unbox)
 
 import Data.Histogram
 import Data.Histogram.Bin
@@ -237,6 +238,14 @@ mkMonoidal bin = HBuilder $ do acc <- newMHistogram mempty bin
                                                   , hbOutput = freezeHist acc
                                                   }
 {-# INLINE mkMonoidal #-}
+
+mkMonoidalAcc :: (Bin bin, Unbox val, StatMonoid val a
+                 ) => bin -> HBuilder (BinValue bin,a) (Histogram bin val)
+mkMonoidalAcc bin = HBuilder $ do acc <- newMHistogram mempty bin
+                                  return $ HBuilderM { hbInput  = fillMonoidAccum acc
+                                                     , hbOutput = freezeHist acc
+                                                     }
+{-# INLINE mkMonoidalAcc #-}
 
 ----------------------------------------------------------------
 -- Actual filling of histograms

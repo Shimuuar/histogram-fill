@@ -18,7 +18,10 @@ source-repository head
   location: http://bitbucket.org/Shimuuar/histogram-fill
 
 Library
-  Build-Depends:        base >=3 && <5, primitive, vector
+  Build-Depends:        base >=3 && <5,
+                        primitive,
+                        vector,
+                        monoid-statistics == 0.1.*
   Exposed-modules:      Data.Histogram
                         Data.Histogram.Generic
                         Data.Histogram.Fill
