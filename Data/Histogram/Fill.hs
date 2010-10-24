@@ -27,6 +27,8 @@ module Data.Histogram.Fill ( -- * Histogram builders API
                            , treeHBuilderMonoidM
                              -- ** Stateless
                            , HBuilder
+                           , toHBuilderST
+                           , toHBuilderIO
                            , joinHBuilder
                            , joinHBuilderMonoid
                            , treeHBuilder
@@ -177,8 +179,19 @@ treeHBuilderMonoidM fs h = joinHBuilderMonoidM $ map ($ h) fs
 ----------------------------------------------------------------
 
 -- | Stateless histogram builder
-newtype HBuilder a b = HBuilder { toBuilderM :: (forall s . ST s (HBuilderM (ST s) a b)) }
+newtype HBuilder a b = HBuilder { toHBuilderST :: (forall s . ST s (HBuilderM (ST s) a b)) 
+                                  -- ^ Convert builder to stateful builder in 'ST' monad
+                                }
 
+-- | Convert builder to builder in IO monad
+toHBuilderIO :: HBuilder a b -> IO (HBuilderM IO a b)
+toHBuilderIO (HBuilder h) = do 
+  builder <- stToIO h
+  return (HBuilderM 
+          (stToIO . hbInput builder) 
+          (stToIO $ hbOutput builder))
+{-# INLINE toHBuilderIO #-}
+  
 instance HistBuilder (HBuilder) where
     modifyIn  f (HBuilder h) = HBuilder (modifyIn  f <$> h)
     addCut    f (HBuilder h) = HBuilder (addCut    f <$> h)
@@ -193,7 +206,7 @@ instance Applicative (HBuilder a) where
 
 -- | Join list of builders
 joinHBuilder :: [HBuilder a b] -> HBuilder a [b]
-joinHBuilder hs = HBuilder (joinHBuilderM <$> mapM toBuilderM hs)
+joinHBuilder hs = HBuilder (joinHBuilderM <$> mapM toHBuilderST hs)
 {-# INLINE joinHBuilder #-}
 
 -- | Join list of builders
@@ -253,7 +266,7 @@ mkMonoidalAcc bin = HBuilder $ do acc <- newMHistogram mempty bin
 
 fillBuilder :: HBuilder a b -> [a] -> b
 fillBuilder hb xs = 
-    runST $ do h <- toBuilderM hb
+    runST $ do h <- toHBuilderST hb
                mapM_ (feedOne h) xs
                freezeHBuilderM h
 
