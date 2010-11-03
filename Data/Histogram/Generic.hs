@@ -192,7 +192,7 @@ sliceY (Histogram b _ a) = map mkSlice [0 .. ny-1]
     where
       (nx, ny) = nBins2D b
       mkSlice i = ( fromIndex (binY b) i
-                  , Histogram (binX b) Nothing (G.slice nx (nx*i) a) )
+                  , Histogram (binX b) Nothing (G.slice (nx*i) nx a) )
 
 -- | Slice 2D histogram along X axis.
 sliceX :: (Vector v a, Bin bX, Bin bY) => Histogram v (Bin2D bX bY) a -> [(BinValue bX, Histogram v bY a)]
