@@ -144,8 +144,8 @@ class (Bin b, Bin b') => ConvertBin b b' where
 -- | Simple binning algorithm which map continous range of bins onto
 -- indices. Each number correcsponds to different bin
 data BinI = BinI
-            {-# UNPACK #-} !Int -- ^ Lower bound (inclusive)
-            {-# UNPACK #-} !Int -- ^ Upper bound (inclusive)
+            {-# UNPACK #-} !Int -- Lower bound (inclusive)
+            {-# UNPACK #-} !Int -- Upper bound (inclusive)
             deriving (Eq,Typeable)
 
 -- | Construct BinI with n bins. Indexing starts from 0
@@ -191,9 +191,9 @@ instance Read BinI where
 
 -- | Integer bins with size which differ from 1.
 data BinInt = BinInt
-              {-# UNPACK #-} !Int -- ^ Low bound
-              {-# UNPACK #-} !Int -- ^ Bin size
-              {-# UNPACK #-} !Int -- ^ Number of bins
+              {-# UNPACK #-} !Int -- Low bound
+              {-# UNPACK #-} !Int -- Bin size
+              {-# UNPACK #-} !Int -- Number of bins
               deriving (Eq,Typeable)
 
 -- | Construct BinInt.
@@ -281,9 +281,9 @@ instance Read (BinEnum a) where
 --
 -- Note that due to GHC bug #2271 this toIndex is really slow (20x
 -- slowdown with respect to BinD) and use of BinD is recommended
-data BinF f = BinF {-# UNPACK #-} !f   -- ^ Lower bound
-                   {-# UNPACK #-} !f   -- ^ Size of bin
-                   {-# UNPACK #-} !Int -- ^ Number of bins
+data BinF f = BinF {-# UNPACK #-} !f   -- Lower bound
+                   {-# UNPACK #-} !f   -- Size of bin
+                   {-# UNPACK #-} !Int -- Number of bins
               deriving (Eq,Typeable)
 
 -- | Create bins.
@@ -355,9 +355,9 @@ instance (Read f, RealFrac f) => Read (BinF f) where
 ----------------------------------------------------------------
 -- | Floaintg point bins with equal sizes. If you work with Doubles
 -- this data type should be used instead of BinF.
-data BinD = BinD {-# UNPACK #-} !Double -- ^ Lower bound
-                 {-# UNPACK #-} !Double -- ^ Size of bin
-                 {-# UNPACK #-} !Int    -- ^ Number of bins
+data BinD = BinD {-# UNPACK #-} !Double -- Lower bound
+                 {-# UNPACK #-} !Double -- Size of bin
+                 {-# UNPACK #-} !Int    -- Number of bins
             deriving (Eq,Typeable)
 
 -- | Create bins.
@@ -433,10 +433,10 @@ instance Read BinD where
 ----------------------------------------------------------------
 -- | Logarithmic scale bins.
 data LogBinD = LogBinD
-               Double -- ^ Low border
-               Double -- ^ Hi border
-               Double -- ^ Increment ratio
-               Int    -- ^ Number of bins
+               Double -- Low border
+               Double -- Hi border
+               Double -- Increment ratio
+               Int    -- Number of bins
                deriving (Eq,Typeable)
 
 -- | Create log-scale bins.
