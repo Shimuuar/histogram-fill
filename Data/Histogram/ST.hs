@@ -14,7 +14,7 @@ module Data.Histogram.ST ( -- * Mutable histograms
                          , fillOne
                          , fillOneW
                          , fillMonoid
-                         , fillMonoidAccum
+                         -- , fillMonoidAccum
                          , unsafeFreezeHist
                          , freezeHist
                          ) where
@@ -22,7 +22,7 @@ module Data.Histogram.ST ( -- * Mutable histograms
 import Control.Monad.Primitive
 
 import Data.Monoid
-import Data.Monoid.Statistics
+-- import Data.Monoid.Statistics
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as MU
 import qualified Data.Vector.Generic as G
@@ -75,16 +75,16 @@ fillMonoid (MHistogram bin uo arr) !(x,m)
       i = toIndex bin x
 {-# INLINE fillMonoid #-}
 
--- | Add one element to monoidal accumulator
-fillMonoidAccum :: (PrimMonad m, StatMonoid val a, U.Unbox val, Bin bin) 
-                => MHistogram (PrimState m) bin val -> (BinValue bin, a) -> m ()
-fillMonoidAccum (MHistogram bin uo arr) !(x,a)
-    | i < 0              = MU.unsafeWrite uo  0 . pappend a =<< MU.unsafeRead uo  0
-    | i >= MU.length arr = MU.unsafeWrite uo  1 . pappend a =<< MU.unsafeRead uo  1
-    | otherwise          = MU.unsafeWrite arr i . pappend a =<< MU.unsafeRead arr i
-    where 
-      i = toIndex bin x
-{-# INLINE fillMonoidAccum #-}
+-- -- | Add one element to monoidal accumulator
+-- fillMonoidAccum :: (PrimMonad m, StatMonoid val a, U.Unbox val, Bin bin) 
+--                 => MHistogram (PrimState m) bin val -> (BinValue bin, a) -> m ()
+-- fillMonoidAccum (MHistogram bin uo arr) !(x,a)
+--     | i < 0              = MU.unsafeWrite uo  0 . pappend a =<< MU.unsafeRead uo  0
+--     | i >= MU.length arr = MU.unsafeWrite uo  1 . pappend a =<< MU.unsafeRead uo  1
+--     | otherwise          = MU.unsafeWrite arr i . pappend a =<< MU.unsafeRead arr i
+--     where 
+--       i = toIndex bin x
+-- {-# INLINE fillMonoidAccum #-}
     
 -- | Create immutable histogram from mutable one. This operation is
 -- unsafe! Accumulator mustn't be used after that
