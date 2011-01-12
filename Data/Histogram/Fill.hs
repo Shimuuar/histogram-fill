@@ -38,6 +38,7 @@ module Data.Histogram.Fill ( -- * Histogram builders API
                            , mkSimple
                            , mkWeighted
                            , mkMonoidal
+                           , mkFolder
                              -- * Fill histograms
                            , fillBuilder
                              -- * Auxillary functions
@@ -51,6 +52,7 @@ import Control.Monad       (when,liftM,liftM2)
 import Control.Monad.ST 
 import Control.Monad.Primitive
 
+import Data.STRef
 import Data.Monoid            (Monoid(..))
 -- import Data.Monoid.Statistics (StatMonoid)
 import Data.Vector.Unboxed    (Unbox)
@@ -251,6 +253,17 @@ mkMonoidal bin = HBuilder $ do acc <- newMHistogram mempty bin
                                                   , hbOutput = freezeHist acc
                                                   }
 {-# INLINE mkMonoidal #-}
+
+
+-- | Create histogram builder which just does ordinary pure fold. It
+-- is intended for use when some fold should be performed together
+-- with histogram filling
+mkFolder :: b -> (a -> b -> b) -> HBuilder a b
+mkFolder a f = HBuilder $ do ref <- newSTRef a
+                             return $ HBuilderM { hbInput  = \x -> modifySTRef ref (f x)
+                                                , hbOutput = readSTRef ref
+                                                }
+{-# INLINE mkFolder #-}
 
 -- mkMonoidalAcc :: (Bin bin, Unbox val, StatMonoid val a
 --                  ) => bin -> HBuilder (BinValue bin,a) (Histogram bin val)
