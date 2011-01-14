@@ -73,8 +73,10 @@ class FillableData d where
 instance FillableData Maybe where
     fillData f (Just x) = f x
     fillData _ Nothing  = return ()
+    {-# INLINE fillData #-}
 instance FillableData [] where
     fillData = mapM_
+    {-# INLINE fillData #-}
 
 -- | Histogram builder typeclass. Instance of this class contain
 --   instructions how to build histograms.
