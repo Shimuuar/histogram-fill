@@ -55,7 +55,8 @@ import Data.STRef
 import Data.Monoid            (Monoid(..))
 -- import Data.Monoid.Statistics (StatMonoid)
 import Data.Vector.Unboxed    (Unbox)
-import qualified Data.Foldable as F (Foldable,mapM_)
+import qualified Data.Foldable    as F (Foldable,mapM_)
+import qualified Data.Traversable as F (Traversable,mapM)
 
 import Data.Histogram
 import Data.Histogram.Bin
@@ -153,9 +154,9 @@ freezeHBuilderM = hbOutput
 {-# INLINE freezeHBuilderM #-}
 
 -- | Join list of builders into one builder
-joinHBuilderM :: PrimMonad m => [HBuilderM m a b] -> HBuilderM m a [b]
-joinHBuilderM hs = HBuilderM { hbInput  = \x -> mapM_ (flip hbInput x) hs
-                             , hbOutput = mapM hbOutput hs
+joinHBuilderM :: (F.Traversable f, PrimMonad m) => f (HBuilderM m a b) -> HBuilderM m a (f b)
+joinHBuilderM hs = HBuilderM { hbInput  = \x -> F.mapM_ (flip hbInput x) hs
+                             , hbOutput = F.mapM hbOutput hs
                              }
 {-# INLINE joinHBuilderM #-}
 
@@ -212,8 +213,8 @@ instance Monoid b => Monoid (HBuilder a b) where
     {-# INLINE mconcat #-}
 
 -- | Join list of builders
-joinHBuilder :: [HBuilder a b] -> HBuilder a [b]
-joinHBuilder hs = HBuilder (joinHBuilderM <$> mapM toHBuilderST hs)
+joinHBuilder :: F.Traversable f => f (HBuilder a b) -> HBuilder a (f b)
+joinHBuilder hs = HBuilder (joinHBuilderM <$> F.mapM toHBuilderST hs)
 {-# INLINE joinHBuilder #-}
 
 -- | Join list of builders
