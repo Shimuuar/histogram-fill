@@ -144,7 +144,15 @@ instance PrimMonad m => Applicative (HBuilderM m a) where
                                         b <- hbOutput g
                                         return (a b)
                         }
-                                        
+
+instance (PrimMonad m, Monoid b) => Monoid (HBuilderM m a b) where
+  mempty = HBuilderM { hbInput  = \_ -> return ()
+                     , hbOutput = return mempty
+                     }
+  mappend h1 h2 = mappend <$> h1 <*> h2
+  mconcat = joinHBuilderMonoidM
+  {-# INLINE mempty #-}
+
 -- | Put one value into histogram
 feedOne :: PrimMonad m => HBuilderM m a b -> a -> m ()
 feedOne = hbInput
@@ -207,6 +215,11 @@ instance Functor (HBuilder a) where
 instance Applicative (HBuilder a) where
     pure x  = HBuilder (return $ pure x)
     (HBuilder f) <*> (HBuilder g) = HBuilder $ liftM2 (<*>) f g 
+instance Monoid b => Monoid (HBuilder a b) where
+    mempty      = HBuilder (return mempty)
+    mappend h g = mappend <$> h <*> g
+    mconcat     = joinHBuilderMonoid
+    {-# INLINE mempty #-}
 
 -- | Join list of builders
 joinHBuilder :: [HBuilder a b] -> HBuilder a [b]
