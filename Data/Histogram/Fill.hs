@@ -146,12 +146,13 @@ instance PrimMonad m => Applicative (HBuilderM m a) where
                         }
 
 instance (PrimMonad m, Monoid b) => Monoid (HBuilderM m a b) where
-  mempty = HBuilderM { hbInput  = \_ -> return ()
-                     , hbOutput = return mempty
-                     }
-  mappend h1 h2 = mappend <$> h1 <*> h2
-  mconcat = joinHBuilderMonoidM
-  {-# INLINE mempty #-}
+    mempty = HBuilderM { hbInput  = \_ -> return ()
+                       , hbOutput = return mempty
+                       }
+    mappend h1 h2 = mappend <$> h1 <*> h2
+    mconcat = fmap mconcat . joinHBuilderM
+    {-# INLINE mempty  #-}
+    {-# INLINE mconcat #-}
 
 -- | Put one value into histogram
 feedOne :: PrimMonad m => HBuilderM m a b -> a -> m ()
@@ -173,8 +174,9 @@ joinHBuilderM hs = HBuilderM { hbInput  = \x -> mapM_ (flip hbInput x) hs
 
 -- | Join list of builders into one builders
 joinHBuilderMonoidM :: (PrimMonad m, Monoid b) => [HBuilderM m a b] -> HBuilderM m a b
-joinHBuilderMonoidM = fmap mconcat . joinHBuilderM
+joinHBuilderMonoidM = mconcat
 {-# INLINE joinHBuilderMonoidM #-}
+{-# DEPRECATED joinHBuilderMonoidM "Use mconcat instead. Will be removed in 0.5" #-}
 
 treeHBuilderM :: PrimMonad m => [HBuilderM m a b -> HBuilderM m a' b'] -> HBuilderM m a b -> HBuilderM m a' [b']
 treeHBuilderM fs h = joinHBuilderM $ map ($ h) fs
@@ -218,8 +220,9 @@ instance Applicative (HBuilder a) where
 instance Monoid b => Monoid (HBuilder a b) where
     mempty      = HBuilder (return mempty)
     mappend h g = mappend <$> h <*> g
-    mconcat     = joinHBuilderMonoid
-    {-# INLINE mempty #-}
+    mconcat     = fmap mconcat . joinHBuilder
+    {-# INLINE mempty  #-}
+    {-# INLINE mconcat #-}
 
 -- | Join list of builders
 joinHBuilder :: [HBuilder a b] -> HBuilder a [b]
@@ -228,8 +231,9 @@ joinHBuilder hs = HBuilder (joinHBuilderM <$> mapM toHBuilderST hs)
 
 -- | Join list of builders
 joinHBuilderMonoid :: Monoid b => [HBuilder a b] -> HBuilder a b
-joinHBuilderMonoid = modifyOut mconcat . joinHBuilder
+joinHBuilderMonoid = mconcat
 {-# INLINE joinHBuilderMonoid #-}
+{-# DEPRECATED joinHBuilderMonoid "Use mconcat instead. Will be removed in 0.5" #-}
 
 treeHBuilder :: [HBuilder a b -> HBuilder a' b'] -> HBuilder a b -> HBuilder a' [b']
 treeHBuilder fs h = joinHBuilder $ map ($ h) fs
