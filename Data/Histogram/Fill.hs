@@ -248,25 +248,25 @@ mkSimple :: (Bin bin, Unbox val, Num val
             ) => bin -> HBuilder (BinValue bin) (Histogram bin val)
 mkSimple bin = 
   HBuilder $ do acc <- newMHistogram 0 bin
-                return $ HBuilderM { hbInput  = fillOne acc
-                                   , hbOutput = freezeHist acc
-                                   }
+                return HBuilderM { hbInput  = fillOne acc
+                                 , hbOutput = freezeHist acc
+                                 }
 {-# INLINE mkSimple #-}
 
 mkWeighted :: (Bin bin, Unbox val, Num val
               ) => bin -> HBuilder (BinValue bin,val) (Histogram bin val)
 mkWeighted bin = HBuilder $ do acc <- newMHistogram 0 bin
-                               return $ HBuilderM { hbInput  = fillOneW acc
-                                                  , hbOutput = freezeHist acc
-                                                  }
+                               return HBuilderM { hbInput  = fillOneW acc
+                                                , hbOutput = freezeHist acc
+                                                }
 {-# INLINE mkWeighted #-}
 
 mkMonoidal :: (Bin bin, Unbox val, Monoid val
               ) => bin -> HBuilder (BinValue bin,val) (Histogram bin val)
 mkMonoidal bin = HBuilder $ do acc <- newMHistogram mempty bin
-                               return $ HBuilderM { hbInput  = fillMonoid acc
-                                                  , hbOutput = freezeHist acc
-                                                  }
+                               return HBuilderM { hbInput  = fillMonoid acc
+                                                , hbOutput = freezeHist acc
+                                                }
 {-# INLINE mkMonoidal #-}
 
 
@@ -275,9 +275,9 @@ mkMonoidal bin = HBuilder $ do acc <- newMHistogram mempty bin
 -- with histogram filling
 mkFolder :: b -> (a -> b -> b) -> HBuilder a b
 mkFolder a f = HBuilder $ do ref <- newSTRef a
-                             return $ HBuilderM { hbInput  = \x -> modifySTRef ref (f x)
-                                                , hbOutput = readSTRef ref
-                                                }
+                             return HBuilderM { hbInput  = \x -> modifySTRef ref (f x)
+                                              , hbOutput = readSTRef ref
+                                              }
 {-# INLINE mkFolder #-}
 
 -- mkMonoidalAcc :: (Bin bin, Unbox val, StatMonoid val a
