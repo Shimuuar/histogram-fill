@@ -21,7 +21,6 @@ module Data.Histogram.Fill ( -- * Histogram builders API
                            , feedOne
                            , freezeHBuilderM
                            , joinHBuilderM
-                           , joinHBuilderMonoidM
                            , treeHBuilderM
                            , treeHBuilderMonoidM
                              -- ** Stateless
@@ -29,7 +28,6 @@ module Data.Histogram.Fill ( -- * Histogram builders API
                            , toHBuilderST
                            , toHBuilderIO
                            , joinHBuilder
-                           , joinHBuilderMonoid
                            , treeHBuilder
                            , treeHBuilderMonoid
                              -- * Histogram constructors
@@ -44,6 +42,9 @@ module Data.Histogram.Fill ( -- * Histogram builders API
                            , forceInt
                            , forceDouble
                            , forceFloat
+                             -- * Deprecated
+                           , joinHBuilderMonoidM
+                           , joinHBuilderMonoid
                            ) where
 
 import Control.Applicative
@@ -160,12 +161,6 @@ joinHBuilderM hs = HBuilderM { hbInput  = \x -> F.mapM_ (flip hbInput x) hs
                              }
 {-# INLINE joinHBuilderM #-}
 
--- | Join list of builders into one builders
-joinHBuilderMonoidM :: (PrimMonad m, Monoid b) => [HBuilderM m a b] -> HBuilderM m a b
-joinHBuilderMonoidM = mconcat
-{-# INLINE joinHBuilderMonoidM #-}
-{-# DEPRECATED joinHBuilderMonoidM "Use mconcat instead. Will be removed in 0.5" #-}
-
 treeHBuilderM :: PrimMonad m => [HBuilderM m a b -> HBuilderM m a' b'] -> HBuilderM m a b -> HBuilderM m a' [b']
 treeHBuilderM fs h = joinHBuilderM $ map ($ h) fs
 {-# INLINE treeHBuilderM #-}
@@ -216,12 +211,6 @@ instance Monoid b => Monoid (HBuilder a b) where
 joinHBuilder :: F.Traversable f => f (HBuilder a b) -> HBuilder a (f b)
 joinHBuilder hs = HBuilder (joinHBuilderM <$> F.mapM toHBuilderST hs)
 {-# INLINE joinHBuilder #-}
-
--- | Join list of builders
-joinHBuilderMonoid :: Monoid b => [HBuilder a b] -> HBuilder a b
-joinHBuilderMonoid = mconcat
-{-# INLINE joinHBuilderMonoid #-}
-{-# DEPRECATED joinHBuilderMonoid "Use mconcat instead. Will be removed in 0.5" #-}
 
 treeHBuilder :: [HBuilder a b -> HBuilder a' b'] -> HBuilder a b -> HBuilder a' [b']
 treeHBuilder fs h = joinHBuilder $ map ($ h) fs
@@ -303,3 +292,16 @@ forceDouble = id
 -- | Function used to restrict type of histrogram.
 forceFloat :: Histogram bin Float -> Histogram bin Float
 forceFloat = id
+
+----------------------------------------------------------------
+-- | Join list of builders into one builders
+joinHBuilderMonoidM :: (PrimMonad m, Monoid b) => [HBuilderM m a b] -> HBuilderM m a b
+joinHBuilderMonoidM = mconcat
+{-# INLINE joinHBuilderMonoidM #-}
+{-# DEPRECATED joinHBuilderMonoidM "Use mconcat instead. Will be removed in 0.5" #-}
+
+-- | Join list of builders
+joinHBuilderMonoid :: Monoid b => [HBuilder a b] -> HBuilder a b
+joinHBuilderMonoid = mconcat
+{-# INLINE joinHBuilderMonoid #-}
+{-# DEPRECATED joinHBuilderMonoid "Use mconcat instead. Will be removed in 0.5" #-}
