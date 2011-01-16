@@ -22,14 +22,12 @@ module Data.Histogram.Fill ( -- * Histogram builders API
                            , freezeHBuilderM
                            , joinHBuilderM
                            , treeHBuilderM
-                           , treeHBuilderMonoidM
                              -- ** Stateless
                            , HBuilder
                            , toHBuilderST
                            , toHBuilderIO
                            , joinHBuilder
                            , treeHBuilder
-                           , treeHBuilderMonoid
                              -- * Histogram constructors
                            , module Data.Histogram.Bin
                            , mkSimple
@@ -45,6 +43,8 @@ module Data.Histogram.Fill ( -- * Histogram builders API
                              -- * Deprecated
                            , joinHBuilderMonoidM
                            , joinHBuilderMonoid
+                           , treeHBuilderMonoidM
+                           , treeHBuilderMonoid
                            ) where
 
 import Control.Applicative
@@ -161,15 +161,9 @@ joinHBuilderM hs = HBuilderM { hbInput  = \x -> F.mapM_ (flip hbInput x) hs
                              }
 {-# INLINE joinHBuilderM #-}
 
-treeHBuilderM :: PrimMonad m => [HBuilderM m a b -> HBuilderM m a' b'] -> HBuilderM m a b -> HBuilderM m a' [b']
-treeHBuilderM fs h = joinHBuilderM $ map ($ h) fs
+treeHBuilderM :: (PrimMonad m, F.Traversable f) => f (HBuilderM m a b -> HBuilderM m a' b') -> HBuilderM m a b -> HBuilderM m a' (f b')
+treeHBuilderM fs h = joinHBuilderM $ fmap ($ h) fs
 {-# INLINE treeHBuilderM #-}
-
-treeHBuilderMonoidM :: (PrimMonad m, Monoid b') => 
-                        [HBuilderM m a b -> HBuilderM m a' b'] -> HBuilderM m a b -> HBuilderM m a' b'
-treeHBuilderMonoidM fs h = joinHBuilderMonoidM $ map ($ h) fs
-{-# INLINE treeHBuilderMonoidM #-}
-
 
 ----------------------------------------------------------------
 -- Stateless 
@@ -212,13 +206,10 @@ joinHBuilder :: F.Traversable f => f (HBuilder a b) -> HBuilder a (f b)
 joinHBuilder hs = HBuilder (joinHBuilderM <$> F.mapM toHBuilderST hs)
 {-# INLINE joinHBuilder #-}
 
-treeHBuilder :: [HBuilder a b -> HBuilder a' b'] -> HBuilder a b -> HBuilder a' [b']
-treeHBuilder fs h = joinHBuilder $ map ($ h) fs
+treeHBuilder :: F.Traversable f => f (HBuilder a b -> HBuilder a' b') -> HBuilder a b -> HBuilder a' (f b')
+treeHBuilder fs h = joinHBuilder $ fmap ($ h) fs
 {-# INLINE treeHBuilder #-}
 
-treeHBuilderMonoid :: Monoid b' => [HBuilder a b -> HBuilder a' b'] -> HBuilder a b -> HBuilder a' b'
-treeHBuilderMonoid fs h = joinHBuilderMonoid $ map ($ h) fs
-{-# INLINE treeHBuilderMonoid #-}
 
 
 ----------------------------------------------------------------
@@ -305,3 +296,14 @@ joinHBuilderMonoid :: Monoid b => [HBuilder a b] -> HBuilder a b
 joinHBuilderMonoid = mconcat
 {-# INLINE joinHBuilderMonoid #-}
 {-# DEPRECATED joinHBuilderMonoid "Use mconcat instead. Will be removed in 0.5" #-}
+
+treeHBuilderMonoidM :: (PrimMonad m, Monoid b') => 
+                        [HBuilderM m a b -> HBuilderM m a' b'] -> HBuilderM m a b -> HBuilderM m a' b'
+treeHBuilderMonoidM fs h = joinHBuilderMonoidM $ map ($ h) fs
+{-# INLINE treeHBuilderMonoidM #-}
+{-# DEPRECATED treeHBuilderMonoidM "Will be removed in 0.5" #-}
+
+treeHBuilderMonoid :: Monoid b' => [HBuilder a b -> HBuilder a' b'] -> HBuilder a b -> HBuilder a' b'
+treeHBuilderMonoid fs h = joinHBuilderMonoid $ map ($ h) fs
+{-# INLINE treeHBuilderMonoid #-}
+{-# DEPRECATED treeHBuilderMonoid "Will be removed in 0.5" #-}
