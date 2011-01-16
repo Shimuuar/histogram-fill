@@ -49,7 +49,7 @@ module Data.Histogram.Fill ( -- * Histogram builders API
 
 import Control.Applicative
 import Control.Monad       (when,liftM,liftM2)
-import Control.Monad.ST 
+import Control.Monad.ST
 import Control.Monad.Primitive
 
 import Data.STRef
@@ -74,13 +74,13 @@ class HistBuilder h where
     modifyOut   :: (b -> b') -> h a b -> h a  b'
     -- | Convert input type of histogram from a to a'
     modifyIn    :: (a' -> a) -> h a b -> h a' b
-    -- | Make input function accept value only 
+    -- | Make input function accept value only
     modifyWith  :: F.Foldable f => h a b -> h (f a) b
     -- | Add cut to histogram. Value would be putted into histogram only if condition is true.
     addCut      :: (a -> Bool) -> h a b -> h a b
 
 
--- | Modify input of builder 
+-- | Modify input of builder
 (<<-) :: HistBuilder h => h a b -> (a' -> a) -> h a' b
 (<<-) = flip modifyIn
 {-# INLINE (<<-) #-}
@@ -119,7 +119,7 @@ data HBuilderM m a b = HBuilderM { hbInput  :: a -> m ()
 instance PrimMonad m => HistBuilder (HBuilderM m) where
     modifyIn  f h = h { hbInput  = hbInput h . f }
     addCut    f h = h { hbInput  = \x -> when (f x) (hbInput h x) }
-    modifyWith  h = h { hbInput  = F.mapM_ (hbInput h) } 
+    modifyWith  h = h { hbInput  = F.mapM_ (hbInput h) }
     modifyOut f h = h { hbOutput = f `liftM` hbOutput h }
 
 instance PrimMonad m => Functor (HBuilderM m a) where
@@ -166,23 +166,23 @@ treeHBuilderM fs h = joinHBuilderM $ fmap ($ h) fs
 {-# INLINE treeHBuilderM #-}
 
 ----------------------------------------------------------------
--- Stateless 
+-- Stateless
 ----------------------------------------------------------------
 
 -- | Stateless histogram builder
-newtype HBuilder a b = HBuilder { toHBuilderST :: (forall s . ST s (HBuilderM (ST s) a b)) 
+newtype HBuilder a b = HBuilder { toHBuilderST :: (forall s . ST s (HBuilderM (ST s) a b))
                                   -- ^ Convert builder to stateful builder in 'ST' monad
                                 }
 
 -- | Convert builder to builder in IO monad
 toHBuilderIO :: HBuilder a b -> IO (HBuilderM IO a b)
-toHBuilderIO (HBuilder h) = do 
+toHBuilderIO (HBuilder h) = do
   builder <- stToIO h
-  return (HBuilderM 
-          (stToIO . hbInput builder) 
+  return (HBuilderM
+          (stToIO . hbInput builder)
           (stToIO $ hbOutput builder))
 {-# INLINE toHBuilderIO #-}
-  
+
 instance HistBuilder (HBuilder) where
     modifyIn  f (HBuilder h) = HBuilder (modifyIn  f <$> h)
     addCut    f (HBuilder h) = HBuilder (addCut    f <$> h)
@@ -193,7 +193,7 @@ instance Functor (HBuilder a) where
     fmap = modifyOut
 instance Applicative (HBuilder a) where
     pure x  = HBuilder (return $ pure x)
-    (HBuilder f) <*> (HBuilder g) = HBuilder $ liftM2 (<*>) f g 
+    (HBuilder f) <*> (HBuilder g) = HBuilder $ liftM2 (<*>) f g
 instance Monoid b => Monoid (HBuilder a b) where
     mempty      = HBuilder (return mempty)
     mappend h g = mappend <$> h <*> g
@@ -218,7 +218,7 @@ treeHBuilder fs h = joinHBuilder $ fmap ($ h) fs
 
 mkSimple :: (Bin bin, Unbox val, Num val
             ) => bin -> HBuilder (BinValue bin) (Histogram bin val)
-mkSimple bin = 
+mkSimple bin =
   HBuilder $ do acc <- newMHistogram 0 bin
                 return HBuilderM { hbInput  = fillOne acc
                                  , hbOutput = freezeHist acc
@@ -265,7 +265,7 @@ mkFolder a f = HBuilder $ do ref <- newSTRef a
 ----------------------------------------------------------------
 
 fillBuilder :: HBuilder a b -> [a] -> b
-fillBuilder hb xs = 
+fillBuilder hb xs =
     runST $ do h <- toHBuilderST hb
                mapM_ (feedOne h) xs
                freezeHBuilderM h
@@ -297,7 +297,7 @@ joinHBuilderMonoid = mconcat
 {-# INLINE joinHBuilderMonoid #-}
 {-# DEPRECATED joinHBuilderMonoid "Use mconcat instead. Will be removed in 0.5" #-}
 
-treeHBuilderMonoidM :: (PrimMonad m, Monoid b') => 
+treeHBuilderMonoidM :: (PrimMonad m, Monoid b') =>
                         [HBuilderM m a b -> HBuilderM m a' b'] -> HBuilderM m a b -> HBuilderM m a' b'
 treeHBuilderMonoidM fs h = joinHBuilderMonoidM $ map ($ h) fs
 {-# INLINE treeHBuilderMonoidM #-}
