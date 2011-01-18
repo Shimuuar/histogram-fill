@@ -9,13 +9,14 @@
 -- Module with algorithms for histogram filling. This is pure wrapper
 -- around stateful histograms.
 --
-module Data.Histogram.Fill ( -- * Histogram builders API
+module Data.Histogram.Fill ( -- * Builder class
                              HistBuilder(..)
                            , (<<-)
                            , (<<-|)
                            , (<<?)
                            , (-<<)
                              -- * Histogram builders
+                             -- $examples
                              -- ** Stateful
                            , HBuilderM
                            , feedOne
@@ -37,6 +38,7 @@ module Data.Histogram.Fill ( -- * Histogram builders API
                              -- * Fill histograms
                            , fillBuilder
                              -- * Auxillary functions
+                             -- $auxillary
                            , forceInt
                            , forceDouble
                            , forceFloat
@@ -67,17 +69,23 @@ import Data.Histogram.ST
 -- Type class
 ----------------------------------------------------------------
 
--- | Histogram builder typeclass. Instance of this class contain
---   instructions how to build histograms.
+-- | Type class for stateful accumulators which are called builders
+--   here. It's parametrized by two types. First one is type of values
+--   which are fed to accumulator and second one is type of values
+--   which could be extracted from it.
+--
+--   Every instance of 'HBuilder' should be instance of 'Functor' too
+--   and 'fmap' == 'modifyOut'.
 class HistBuilder h where
-    -- | Convert output of histogram
-    modifyOut   :: (b -> b') -> h a b -> h a  b'
-    -- | Convert input type of histogram from a to a'
-    modifyIn    :: (a' -> a) -> h a b -> h a' b
-    -- | Make input function accept value only
-    modifyWith  :: F.Foldable f => h a b -> h (f a) b
-    -- | Add cut to histogram. Value would be putted into histogram only if condition is true.
-    addCut      :: (a -> Bool) -> h a b -> h a b
+    -- | Apply function to output of histogram.
+    modifyOut     :: (b -> b') -> h a b -> h a  b'
+    -- | Change input of builder by applying function to it.
+    modifyIn      :: (a' -> a) -> h a b -> h a' b
+    -- | Put all values in container into builder 
+    fromContainer :: F.Foldable f => h a b -> h (f a) b
+    -- | Add cut to histogram. Value would be putted into histogram
+    --   only if condition is true. 
+    addCut        :: (a -> Bool) -> h a b -> h a b
 
 
 -- | Modify input of builder
@@ -87,7 +95,7 @@ class HistBuilder h where
 
 -- | Modify input of builder to use composite input
 (<<-|) :: (HistBuilder h, F.Foldable f) => h a b -> (a' -> f a) -> h a' b
-h <<-| f = modifyWith h <<- f
+h <<-| f = fromContainer h <<- f
 {-# INLINE (<<-|) #-}
 
 -- | Add cut for input
@@ -107,20 +115,29 @@ infixl 5 <<?
 infixr 4 -<<
 
 
+-- $examples
+--
+-- Example
+
 ----------------------------------------------------------------
--- ST based builder
+-- Monadic builder
 ----------------------------------------------------------------
 
--- | Stateful histogram builder.
+-- | Stateful histogram builder. There is no direct way to construct
+--   such builder. Only way to do it is to create 'HBuilder' and use
+--   'toHBuilderST' or 'toHBuilderIO'.
+--
+--   It's useful when result should be extracted many times from the
+--   same accumulator.
 data HBuilderM m a b = HBuilderM { hbInput  :: a -> m ()
                                  , hbOutput :: m b
                                  }
 
 instance PrimMonad m => HistBuilder (HBuilderM m) where
-    modifyIn  f h = h { hbInput  = hbInput h . f }
-    addCut    f h = h { hbInput  = \x -> when (f x) (hbInput h x) }
-    modifyWith  h = h { hbInput  = F.mapM_ (hbInput h) }
-    modifyOut f h = h { hbOutput = f `liftM` hbOutput h }
+    modifyIn    f h = h { hbInput  = hbInput h . f }
+    addCut      f h = h { hbInput  = \x -> when (f x) (hbInput h x) }
+    fromContainer h = h { hbInput  = F.mapM_ (hbInput h) }
+    modifyOut   f h = h { hbOutput = f `liftM` hbOutput h }
 
 instance PrimMonad m => Functor (HBuilderM m a) where
     fmap = modifyOut
@@ -143,7 +160,7 @@ instance (PrimMonad m, Monoid b) => Monoid (HBuilderM m a b) where
     {-# INLINE mempty  #-}
     {-# INLINE mconcat #-}
 
--- | Put one value into histogram
+-- | Put one item into histogram
 feedOne :: PrimMonad m => HBuilderM m a b -> a -> m ()
 feedOne = hbInput
 {-# INLINE feedOne #-}
@@ -154,13 +171,14 @@ freezeHBuilderM :: PrimMonad m => HBuilderM m a b -> m b
 freezeHBuilderM = hbOutput
 {-# INLINE freezeHBuilderM #-}
 
--- | Join list of builders into one builder
+-- | Join histogram builders
 joinHBuilderM :: (F.Traversable f, PrimMonad m) => f (HBuilderM m a b) -> HBuilderM m a (f b)
 joinHBuilderM hs = HBuilderM { hbInput  = \x -> F.mapM_ (flip hbInput x) hs
                              , hbOutput = F.mapM hbOutput hs
                              }
 {-# INLINE joinHBuilderM #-}
 
+-- | Apply functions to builder
 treeHBuilderM :: (PrimMonad m, F.Traversable f) => f (HBuilderM m a b -> HBuilderM m a' b') -> HBuilderM m a b -> HBuilderM m a' (f b')
 treeHBuilderM fs h = joinHBuilderM $ fmap ($ h) fs
 {-# INLINE treeHBuilderM #-}
@@ -184,10 +202,10 @@ toHBuilderIO (HBuilder h) = do
 {-# INLINE toHBuilderIO #-}
 
 instance HistBuilder (HBuilder) where
-    modifyIn  f (HBuilder h) = HBuilder (modifyIn  f <$> h)
-    addCut    f (HBuilder h) = HBuilder (addCut    f <$> h)
-    modifyWith  (HBuilder h) = HBuilder (modifyWith <$> h)
-    modifyOut f (HBuilder h) = HBuilder (modifyOut f <$> h)
+    modifyIn    f (HBuilder h) = HBuilder (modifyIn  f <$> h)
+    addCut      f (HBuilder h) = HBuilder (addCut    f <$> h)
+    fromContainer (HBuilder h) = HBuilder (fromContainer <$> h)
+    modifyOut   f (HBuilder h) = HBuilder (modifyOut f <$> h)
 
 instance Functor (HBuilder a) where
     fmap = modifyOut
@@ -201,11 +219,12 @@ instance Monoid b => Monoid (HBuilder a b) where
     {-# INLINE mempty  #-}
     {-# INLINE mconcat #-}
 
--- | Join list of builders
+-- | Join histogram builders
 joinHBuilder :: F.Traversable f => f (HBuilder a b) -> HBuilder a (f b)
 joinHBuilder hs = HBuilder (joinHBuilderM <$> F.mapM toHBuilderST hs)
 {-# INLINE joinHBuilder #-}
 
+-- | Apply function to builder
 treeHBuilder :: F.Traversable f => f (HBuilder a b -> HBuilder a' b') -> HBuilder a b -> HBuilder a' (f b')
 treeHBuilder fs h = joinHBuilder $ fmap ($ h) fs
 {-# INLINE treeHBuilder #-}
@@ -216,6 +235,8 @@ treeHBuilder fs h = joinHBuilder $ fmap ($ h) fs
 -- Constructors
 ----------------------------------------------------------------
 
+-- | Create builder. Bin content will be incremented by 1 for each
+--   item put into histogram
 mkSimple :: (Bin bin, Unbox val, Num val
             ) => bin -> HBuilder (BinValue bin) (Histogram bin val)
 mkSimple bin =
@@ -225,6 +246,8 @@ mkSimple bin =
                                  }
 {-# INLINE mkSimple #-}
 
+-- | Create builder. Bin content will incremented by weight supplied
+--   for each item put into histogram
 mkWeighted :: (Bin bin, Unbox val, Num val
               ) => bin -> HBuilder (BinValue bin,val) (Histogram bin val)
 mkWeighted bin = HBuilder $ do acc <- newMHistogram 0 bin
@@ -233,6 +256,8 @@ mkWeighted bin = HBuilder $ do acc <- newMHistogram 0 bin
                                                 }
 {-# INLINE mkWeighted #-}
 
+-- | Create builder. New value wil be mappended to current content of
+--   a bin for each item put into histogram
 mkMonoidal :: (Bin bin, Unbox val, Monoid val
               ) => bin -> HBuilder (BinValue bin,val) (Histogram bin val)
 mkMonoidal bin = HBuilder $ do acc <- newMHistogram mempty bin
@@ -265,7 +290,7 @@ mkFolder a f = HBuilder $ do ref <- newSTRef a
 ----------------------------------------------------------------
 
 -- | Fill histogram builder.
-fillBuilder :: (Foldable f, HBuilder a b) -> f a -> b
+fillBuilder :: F.Foldable f => HBuilder a b -> f a -> b
 fillBuilder hb xs =
     runST $ do h <- toHBuilderST hb
                F.mapM_ (feedOne h) xs
@@ -273,7 +298,19 @@ fillBuilder hb xs =
 
 ----------------------------------------------------------------
 
--- | Function used to restrict type of histrogram.
+-- $auxillary
+--
+-- In some cases builder constructors do not constrain output type
+-- enough. Output type is still parametric in value type of histogram.
+-- Functions below are just 'id' function with more restrictive
+-- signature.
+--
+-- In example below 'forceInt' used to fix type of histogram to
+-- 'Histogram BinI Int'. Without it compiler cannot infer type of
+-- intermediate histogram.
+--
+-- > show . forceInt -<< mkSimple (BinI 1 10)
+
 forceInt :: Histogram bin Int -> Histogram bin Int
 forceInt = id
 
