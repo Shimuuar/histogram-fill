@@ -264,10 +264,11 @@ mkFolder a f = HBuilder $ do ref <- newSTRef a
 -- Actual filling of histograms
 ----------------------------------------------------------------
 
-fillBuilder :: HBuilder a b -> [a] -> b
+-- | Fill histogram builder.
+fillBuilder :: (Foldable f, HBuilder a b) -> f a -> b
 fillBuilder hb xs =
     runST $ do h <- toHBuilderST hb
-               mapM_ (feedOne h) xs
+               F.mapM_ (feedOne h) xs
                freezeHBuilderM h
 
 ----------------------------------------------------------------
@@ -276,11 +277,9 @@ fillBuilder hb xs =
 forceInt :: Histogram bin Int -> Histogram bin Int
 forceInt = id
 
--- | Function used to restrict type of histrogram.
 forceDouble :: Histogram bin Double -> Histogram bin Double
 forceDouble = id
 
--- | Function used to restrict type of histrogram.
 forceFloat :: Histogram bin Float -> Histogram bin Float
 forceFloat = id
 
