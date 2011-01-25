@@ -9,14 +9,13 @@
 -- Module with algorithms for histogram filling. This is pure wrapper
 -- around stateful histograms.
 --
-module Data.Histogram.Fill ( -- * Builder class
+module Data.Histogram.Fill ( -- * Builder type class
                              HistBuilder(..)
                            , (<<-)
                            , (<<-|)
                            , (<<?)
                            , (-<<)
                              -- * Histogram builders
-                             -- $examples
                              -- ** Stateful
                            , HBuilderM
                            , feedOne
@@ -46,7 +45,9 @@ module Data.Histogram.Fill ( -- * Builder class
                            , joinHBuilderMonoidM
                            , joinHBuilderMonoid
                            , treeHBuilderMonoidM
-                           , treeHBuilderMonoid
+                           , treeHBuilderMonoid 
+                             -- * Examples
+                             -- $examples
                            ) where
 
 import Control.Applicative
@@ -69,13 +70,14 @@ import Data.Histogram.ST
 -- Type class
 ----------------------------------------------------------------
 
--- | Type class for stateful accumulators which are called builders
---   here. It's parametrized by two types. First one is type of values
---   which are fed to accumulator and second one is type of values
---   which could be extracted from it.
+-- | Type class for stateful accumulators. In this module they are
+--   called builders. Every builder is parametrized by two
+--   types. First one is type of values which are fed to accumulator
+--   and second one is type of values which could be extracted from
+--   it.
 --
 --   Every instance of 'HBuilder' should be instance of 'Functor' too
---   and 'fmap' == 'modifyOut'.
+--   and satisfy 'fmap' == 'modifyOut'.
 class HistBuilder h where
     -- | Apply function to output of histogram.
     modifyOut     :: (b -> b') -> h a b -> h a  b'
@@ -117,7 +119,62 @@ infixr 4 -<<
 
 -- $examples
 --
--- Example
+-- All examples will make use of operators to create builders. It's
+-- possible to avoid their use but operators offer clear notation and
+-- compose nicely in pipeline. Also note that data flows from right to
+-- left as with '.' operator.
+--
+-- First example just counts ints in in [0..4] inclusive range.
+-- 'fillBuilder' is used to put all values into accumulator.
+--
+-- > ghci> let h = forceInt -<< mkSimple (BinI 0 4)
+-- > ghci> fillBuilder h [0,0,0,1,1,2,3,4,4,4]
+-- > # Histogram
+-- > # Underflows = 0
+-- > # Overflows  = 0
+-- > # BinI
+-- > # Low  = 0
+-- > # High = 4
+-- > 0       3
+-- > 1       2
+-- > 2       1
+-- > 3       1
+-- > 4       3
+--
+-- More involved example only accept even numbers. Filtering could be
+-- achieved with either 'addCut' or '<<?' operator.
+--
+-- > forceInt -<< mkSimple (BinI 0 4) <<? even
+--
+-- Although for example above same result could be acheved by
+-- filtering of input it doesn't work when multiple histograms with
+-- different cuts are filled simultaneously.
+--
+-- Next example illustrate use of applicative interface. Here two
+-- histograms are filled at the same time. First accept only even
+-- numbers and second only odd ones. Results are put into the tuple.
+--
+-- > (,) <$> 
+-- >   (forceInt -<< mkSimple (BinI 0 4) <<? even)
+-- >   (forceInt -<< mkSimple (BinI 0 4) <<? odd)
+--
+-- Another approach is to use 'joinHBuilder' to simultaneously fill
+-- list (or any other 'Travesable'). 
+--
+-- > joinHBuilder [
+-- >     forceInt -<< mkSimple (BinI 0 4) <<? even
+-- >   , forceInt -<< mkSimple (BinI 0 4) <<? odd
+-- >   ]
+--
+-- If one wants to collect result from many histograms he can take an
+-- advantage of 'Monoid' instance of 'HBuilder'. Example below
+-- concatenates string outputs of individual histograms.
+--
+-- > mconcat [
+-- >     show . forceInt -<< mkSimple (BinI 0 4) <<? even
+-- >   , show . forceInt -<< mkSimple (BinI 0 4) <<? odd
+-- >   ]
+
 
 ----------------------------------------------------------------
 -- Monadic builder
@@ -171,7 +228,7 @@ freezeHBuilderM :: PrimMonad m => HBuilderM m a b -> m b
 freezeHBuilderM = hbOutput
 {-# INLINE freezeHBuilderM #-}
 
--- | Join histogram builders
+-- | Join histogram builders in container
 joinHBuilderM :: (F.Traversable f, PrimMonad m) => f (HBuilderM m a b) -> HBuilderM m a (f b)
 joinHBuilderM hs = HBuilderM { hbInput  = \x -> F.mapM_ (flip hbInput x) hs
                              , hbOutput = F.mapM hbOutput hs
@@ -189,7 +246,7 @@ treeHBuilderM fs h = joinHBuilderM $ fmap ($ h) fs
 
 -- | Stateless histogram builder
 newtype HBuilder a b = HBuilder { toHBuilderST :: (forall s . ST s (HBuilderM (ST s) a b))
-                                  -- ^ Convert builder to stateful builder in 'ST' monad
+                                  -- ^ Convert builder to stateful builder in ST monad
                                 }
 
 -- | Convert builder to builder in IO monad
@@ -219,7 +276,7 @@ instance Monoid b => Monoid (HBuilder a b) where
     {-# INLINE mempty  #-}
     {-# INLINE mconcat #-}
 
--- | Join histogram builders
+-- | Join hitogram builders in container.
 joinHBuilder :: F.Traversable f => f (HBuilder a b) -> HBuilder a (f b)
 joinHBuilder hs = HBuilder (joinHBuilderM <$> F.mapM toHBuilderST hs)
 {-# INLINE joinHBuilder #-}
