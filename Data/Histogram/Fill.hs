@@ -6,8 +6,7 @@
 -- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- Stability  : experimental
 --
--- Module with algorithms for histogram filling. This is pure wrapper
--- around stateful histograms.
+-- Stateful and pure (still stateful under the hood) accumulators. 
 --
 module Data.Histogram.Fill ( -- * Builder type class
                              HistBuilder(..)
