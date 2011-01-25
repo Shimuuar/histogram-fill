@@ -72,8 +72,8 @@ import Data.Histogram.Parse
 -- Type classes
 ----------------------------------------------------------------
 
--- | This type represent some abstract data binning algorithms.
---   It maps some value to integer indices.
+-- | This type represent some abstract data binning algorithms. Such
+--   algorithm maps sets of values to integer indices.
 --
 --   Following invariant is expected to hold:
 --
@@ -81,11 +81,11 @@ import Data.Histogram.Parse
 class Bin b where
   -- | Type of value to bin
   type BinValue b
-  -- | Convert from value to index. No bound checking
-  --   performed. Function must not fail for any input.
+  -- | Convert from value to index. Function must not fail for any
+  --   input and should produce out of range indices for invalid input.
   toIndex :: b -> BinValue b -> Int
   -- | Convert from index to value. Returned value should correspond
-  --   to "center" of bin. Definition of center is left for definition
+  --   to center of bin. Definition of center is left for definition
   --   of instance. Funtion may fail for invalid indices but
   --   encouraged not to do so.
   fromIndex :: b -> Int -> BinValue b
@@ -143,6 +143,10 @@ class (Bin b, Bin b') => ConvertBin b b' where
 ----------------------------------------------------------------
 -- | Simple binning algorithm which map continous range of bins onto
 -- indices. Each number correcsponds to different bin
+--
+-- 1. Lower bound (inclusive)
+--
+-- 2. Upper bound (inclusive)
 data BinI = BinI
             {-# UNPACK #-} !Int -- Lower bound (inclusive)
             {-# UNPACK #-} !Int -- Upper bound (inclusive)
@@ -190,6 +194,12 @@ instance Read BinI where
 ----------------------------------------------------------------
 
 -- | Integer bins with size which differ from 1.
+--
+-- 1. Low bound
+--
+-- 2. Bin size
+--
+-- 3. Number of bins
 data BinInt = BinInt
               {-# UNPACK #-} !Int -- Low bound
               {-# UNPACK #-} !Int -- Bin size
@@ -281,6 +291,12 @@ instance Read (BinEnum a) where
 --
 -- Note that due to GHC bug #2271 this toIndex is really slow (20x
 -- slowdown with respect to BinD) and use of BinD is recommended
+--
+-- 1. Lower bound
+--
+-- 2. Size of bin
+--
+-- 3. Number of bins
 data BinF f = BinF {-# UNPACK #-} !f   -- Lower bound
                    {-# UNPACK #-} !f   -- Size of bin
                    {-# UNPACK #-} !Int -- Number of bins
@@ -355,6 +371,12 @@ instance (Read f, RealFrac f) => Read (BinF f) where
 ----------------------------------------------------------------
 -- | Floaintg point bins with equal sizes. If you work with Doubles
 -- this data type should be used instead of BinF.
+--
+-- 1. Lower bound
+--
+-- 2. Size of bin
+--
+-- 3. Number of bins
 data BinD = BinD {-# UNPACK #-} !Double -- Lower bound
                  {-# UNPACK #-} !Double -- Size of bin
                  {-# UNPACK #-} !Int    -- Number of bins
@@ -432,6 +454,14 @@ instance Read BinD where
 -- Log-scale bin
 ----------------------------------------------------------------
 -- | Logarithmic scale bins.
+--
+-- 1. Lower bound
+--
+-- 2. Upper bound
+--
+-- 2. Increment ratio
+--
+-- 3. Number of bins
 data LogBinD = LogBinD
                Double -- Low border
                Double -- Hi border
