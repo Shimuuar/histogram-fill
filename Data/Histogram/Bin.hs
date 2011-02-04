@@ -163,7 +163,6 @@ instance Bin BinI where
   inRange   !(BinI x y) i     = i>=x && i<=y
   nBins     !(BinI x y) = y - x + 1
   {-# INLINE toIndex #-}
-  {-# INLINE inRange #-}
 
 instance Bin1D BinI where
   lowerLimit (BinI i _) = i
@@ -222,7 +221,6 @@ instance Bin BinInt where
   inRange   !(BinInt base sz n) i  = i>=base && i<(base+n*sz)
   nBins     !(BinInt _ _ n) = n
   {-# INLINE toIndex #-}
-  {-# INLINE inRange #-}
 
 instance Bin1D BinInt where
   lowerLimit      (BinInt base _  _) = base
@@ -339,7 +337,6 @@ instance RealFrac f => Bin (BinF f) where
   inRange   !(BinF from step n) x  = x > from && x < from + step*fromIntegral n
   nBins     !(BinF _ _ n) = n
   {-# INLINE toIndex #-}
-  {-# INLINE inRange #-}
 
 instance RealFrac f => Bin1D (BinF f) where
   lowerLimit (BinF from _    _) = from
@@ -422,7 +419,6 @@ instance Bin BinD where
   inRange   !(BinD from step n) x  = x > from && x < from + step*fromIntegral n
   nBins     !(BinD _ _ n) = n
   {-# INLINE toIndex #-}
-  {-# INLINE inRange #-}
 
 instance Bin1D BinD where
   lowerLimit (BinD from _    _) = from
@@ -481,7 +477,6 @@ instance Bin LogBinD where
   inRange   !(LogBinD lo hi _ _) x  = x >= lo && x < hi
   nBins     !(LogBinD _ _ _ n) = n
   {-# INLINE toIndex #-}
-  {-# INLINE inRange #-}
 
 instance Bin1D LogBinD where
   lowerLimit (LogBinD lo _  _ _) = lo
@@ -531,7 +526,6 @@ instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
   inRange (Bin2D bx by) !(x,y) = inRange bx x && inRange by y
   nBins (Bin2D bx by) = nBins bx * nBins by
   {-# INLINE toIndex #-}
-  {-# INLINE inRange #-}
 
 -- | Convert index into pair of indices for X and Y axes
 toIndex2D :: (Bin binX, Bin binY) => Bin2D binX binY -> Int -> (Int,Int)
