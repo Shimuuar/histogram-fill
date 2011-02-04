@@ -40,11 +40,6 @@ module Data.Histogram.Fill ( -- * Builder type class
                            , forceInt
                            , forceDouble
                            , forceFloat
-                             -- * Deprecated
-                           , joinHBuilderMonoidM
-                           , joinHBuilderMonoid
-                           , treeHBuilderMonoidM
-                           , treeHBuilderMonoid 
                              -- * Examples
                              -- $examples
                            ) where
@@ -375,27 +370,3 @@ forceDouble = id
 
 forceFloat :: Histogram bin Float -> Histogram bin Float
 forceFloat = id
-
-----------------------------------------------------------------
--- | Join list of builders into one builders
-joinHBuilderMonoidM :: (PrimMonad m, Monoid b) => [HBuilderM m a b] -> HBuilderM m a b
-joinHBuilderMonoidM = mconcat
-{-# INLINE joinHBuilderMonoidM #-}
-{-# DEPRECATED joinHBuilderMonoidM "Use mconcat instead. Will be removed in 0.5" #-}
-
--- | Join list of builders
-joinHBuilderMonoid :: Monoid b => [HBuilder a b] -> HBuilder a b
-joinHBuilderMonoid = mconcat
-{-# INLINE joinHBuilderMonoid #-}
-{-# DEPRECATED joinHBuilderMonoid "Use mconcat instead. Will be removed in 0.5" #-}
-
-treeHBuilderMonoidM :: (PrimMonad m, Monoid b') =>
-                        [HBuilderM m a b -> HBuilderM m a' b'] -> HBuilderM m a b -> HBuilderM m a' b'
-treeHBuilderMonoidM fs h = joinHBuilderMonoidM $ map ($ h) fs
-{-# INLINE treeHBuilderMonoidM #-}
-{-# DEPRECATED treeHBuilderMonoidM "Will be removed in 0.5" #-}
-
-treeHBuilderMonoid :: Monoid b' => [HBuilder a b -> HBuilder a' b'] -> HBuilder a b -> HBuilder a' b'
-treeHBuilderMonoid fs h = joinHBuilderMonoid $ map ($ h) fs
-{-# INLINE treeHBuilderMonoid #-}
-{-# DEPRECATED treeHBuilderMonoid "Will be removed in 0.5" #-}
