@@ -221,7 +221,6 @@ instance Bin BinInt where
   type BinValue BinInt = Int
   toIndex   !(BinInt base sz _) !x = (x - base) `div` sz
   fromIndex !(BinInt base sz _) !x = x * sz + base
-  inRange   !(BinInt base sz n) i  = i>=base && i<(base+n*sz)
   nBins     !(BinInt _ _ n) = n
   {-# INLINE toIndex #-}
 
@@ -337,7 +336,6 @@ instance RealFrac f => Bin (BinF f) where
   type BinValue (BinF f) = f
   toIndex   !(BinF from step _) !x = floor $ (x-from) / step
   fromIndex !(BinF from step _) !i = (step/2) + (fromIntegral i * step) + from
-  inRange   !(BinF from step n) x  = x > from && x < from + step*fromIntegral n
   nBins     !(BinF _ _ n) = n
   {-# INLINE toIndex #-}
 
@@ -419,7 +417,6 @@ instance Bin BinD where
   type BinValue BinD = Double
   toIndex   !(BinD from step _) !x = floorD $ (x-from) / step
   fromIndex !(BinD from step _) !i = (step/2) + (fromIntegral i * step) + from
-  inRange   !(BinD from step n) x  = x > from && x < from + step*fromIntegral n
   nBins     !(BinD _ _ n) = n
   {-# INLINE toIndex #-}
 
