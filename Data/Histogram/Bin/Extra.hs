@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DeriveDataTypeable  #-}
 -- |
 -- Module     : Data.Histogram.Bin
 -- Copyright  : Copyright (c) 2010, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -27,6 +28,8 @@ import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as M
 import           Data.Vector.Generic            ((!))
+import Data.Typeable                    (Typeable)
+import Data.Data                        (Data)
 import Text.Read
 
 import Data.Histogram.Bin
@@ -54,6 +57,7 @@ instance (Enum a, Enum b) => Enum2D (a,b) where
 
 -- | Binning for 2D enumerations
 newtype BinEnum2D i = BinEnum2D (Bin2D BinI BinI)
+                      deriving (Eq,Data,Typeable)
 
 -- | Construct indexed bin
 binEnum2D :: Enum2D i => i -> i -> BinEnum2D i
@@ -88,6 +92,7 @@ data BinPermute b = BinPermute { permutedBin :: b            -- ^ Original bin
                                , permuteTo   :: U.Vector Int -- ^ Maps original bin's indices to new indices
                                , permuteFrom :: U.Vector Int -- ^ Inverse of pervious table
                                }
+                    deriving (Eq,Data,Typeable)
 
 instance Bin b => Bin (BinPermute b) where
   type BinValue (BinPermute b) = BinValue b

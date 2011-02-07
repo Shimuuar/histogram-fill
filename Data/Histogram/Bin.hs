@@ -62,6 +62,7 @@ import GHC.Float     (double2Int)
 import qualified Data.Vector.Generic as G
 import           Data.Vector.Generic    (Vector)
 import Data.Typeable                    (Typeable)
+import Data.Data                        (Data)
 import Text.Read                        (Read(..))
 
 import Data.Histogram.Parse
@@ -96,6 +97,8 @@ class Bin b where
   -- inRange b x &#8660; toIndex b x &#8712; [0,nBins b)
   inRange :: b -> BinValue b -> Bool
   inRange b x = i >= 0 && i < nBins b where i = toIndex b x
+
+
 
 -- | One dimensional binning algorithm. It means that bin values have
 --   some inherent ordering. For example all binning algorithms for
@@ -150,7 +153,7 @@ class (Bin b, Bin b') => ConvertBin b b' where
 data BinI = BinI
             {-# UNPACK #-} !Int -- Lower bound (inclusive)
             {-# UNPACK #-} !Int -- Upper bound (inclusive)
-            deriving (Eq,Typeable)
+            deriving (Eq,Data,Typeable)
 
 -- | Construct BinI with n bins. Indexing starts from 0
 binI0 :: Int -> BinI
@@ -203,7 +206,7 @@ data BinInt = BinInt
               {-# UNPACK #-} !Int -- Low bound
               {-# UNPACK #-} !Int -- Bin size
               {-# UNPACK #-} !Int -- Number of bins
-              deriving (Eq,Typeable)
+              deriving (Eq,Data,Typeable)
 
 -- | Construct BinInt.
 binInt :: Int                   -- ^ Lower bound
@@ -251,7 +254,7 @@ instance Read BinInt where
 
 -- | Bin for types which are instnaces of Enum type class
 newtype BinEnum a = BinEnum BinI
-                    deriving (Eq,Typeable)
+                    deriving (Eq,Data,Typeable)
 
 -- | Create enum based bin
 binEnum :: Enum a => a -> a -> BinEnum a
@@ -298,7 +301,7 @@ instance Read (BinEnum a) where
 data BinF f = BinF {-# UNPACK #-} !f   -- Lower bound
                    {-# UNPACK #-} !f   -- Size of bin
                    {-# UNPACK #-} !Int -- Number of bins
-              deriving (Eq,Typeable)
+              deriving (Eq,Data,Typeable)
 
 -- | Create bins.
 binF :: RealFrac f =>
@@ -377,7 +380,7 @@ instance (Read f, RealFrac f) => Read (BinF f) where
 data BinD = BinD {-# UNPACK #-} !Double -- Lower bound
                  {-# UNPACK #-} !Double -- Size of bin
                  {-# UNPACK #-} !Int    -- Number of bins
-            deriving (Eq,Typeable)
+            deriving (Eq,Data,Typeable)
 
 -- | Create bins.
 binD :: Double -- ^ Lower bound of range
@@ -510,7 +513,7 @@ instance Read LogBinD where
 data Bin2D binX binY = Bin2D { binX :: !binX -- ^ Binning algorithm for X axis
                              , binY :: !binY -- ^ Binning algorithm for Y axis
                              }
-                       deriving (Eq,Typeable)
+                       deriving (Eq,Data,Typeable)
 
 -- | Alias for 'Bin2D'.
 (><) :: binX -> binY -> Bin2D binX binY
