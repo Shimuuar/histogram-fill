@@ -25,7 +25,7 @@ module Data.Histogram.Generic (
     -- ** Convert to other data types
   , asList
   , asVector
-    -- * Slicing histograms
+    -- * Splitting 2D histograms
   , sliceX
   , sliceY
     -- * Modify histogram
@@ -37,13 +37,11 @@ module Data.Histogram.Generic (
 
 import Control.Applicative ((<$>),(<*>))
 import Control.Arrow       ((***))
-import Control.Monad       (ap, forM_)
-import Control.Monad.ST    (runST)
+import Control.Monad       (ap)
 
-import qualified Data.Vector.Generic.Mutable as M
 import qualified Data.Vector.Generic         as G
 import Data.Typeable        (Typeable1(..), Typeable2(..), mkTyConApp, mkTyCon)
-import Data.Vector.Generic  (Vector)
+import Data.Vector.Generic  (Vector,(!))
 import Text.Read
 
 import Data.Histogram.Bin
@@ -201,6 +199,4 @@ sliceX (Histogram b _ a) = map mkSlice [0 .. nx-1]
       (nx, ny)  = nBins2D b
       mkSlice i = ( fromIndex (binX b) i
                   , Histogram (binY b) Nothing (mkArray i))
-      mkArray x = runST $ do arr <- M.new ny
-                             forM_ [0 .. ny-1] $ \y -> M.write arr y (a G.! (y*nx + x))
-                             G.unsafeFreeze arr
+      mkArray x = G.generate ny (\y -> a ! (y*nx + x))
