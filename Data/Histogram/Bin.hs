@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 -- Requred for Bin2D conversions
 {-# LANGUAGE OverlappingInstances #-}
 -- |
@@ -201,6 +202,11 @@ instance VariableBin BinI where
 instance UniformBin BinI where
   binSize _ = 1
 
+instance GrowBin BinI where
+  zeroBin    (BinI l _) = BinI l l
+  appendBin  (BinI l u) = BinI l (u+1)
+  prependBin (BinI l u) = BinI (l-1) u
+
 instance Show BinI where
   show (BinI lo hi) = unlines [ "# BinI"
                               , "# Low  = " ++ show lo
@@ -251,6 +257,11 @@ instance Bin1D BinInt where
   lowerLimit (BinInt base _  _) = base
   upperLimit (BinInt base sz n) = base + sz * n - 1
 
+instance GrowBin BinInt where
+  zeroBin    (BinInt l sz _) = BinInt l sz 0
+  appendBin  (BinInt l sz n) = BinInt l sz (n+1)
+  prependBin (BinInt l sz n) = BinInt (l-sz) sz (n+1)
+
 instance VariableBin BinInt where
   binSizeN (BinInt _ sz _) _ = sz
 
@@ -275,7 +286,7 @@ instance Read BinInt where
 
 -- | Bin for types which are instnaces of Enum type class
 newtype BinEnum a = BinEnum BinI
-                    deriving (Eq,Data,Typeable)
+                    deriving (Eq,Data,Typeable,GrowBin)
 
 -- | Create enum based bin
 binEnum :: Enum a => a -> a -> BinEnum a
@@ -369,6 +380,11 @@ instance RealFrac f => Bin1D (BinF f) where
   lowerLimit (BinF from _    _) = from
   upperLimit (BinF from step n) = from + step * fromIntegral n
 
+instance RealFrac f => GrowBin (BinF f) where
+  zeroBin    (BinF from step n) = BinF from step 0
+  appendBin  (BinF from step n) = BinF from step (n+1)
+  prependBin (BinF from step n) = BinF (from-step) step (n+1)
+
 instance RealFrac f => VariableBin (BinF f) where
   binSizeN (BinF _ step _) _ = step
 
@@ -448,6 +464,11 @@ instance IntervalBin BinD where
 instance Bin1D BinD where
   lowerLimit (BinD from _    _) = from
   upperLimit (BinD from step n) = from + step * fromIntegral n
+
+instance GrowBin BinD where
+  zeroBin    (BinD from step n) = BinD from step 0
+  appendBin  (BinD from step n) = BinD from step (n+1)
+  prependBin (BinD from step n) = BinD (from-step) step (n+1)
 
 instance VariableBin BinD where
   binSizeN (BinD _ step _) _ = step
