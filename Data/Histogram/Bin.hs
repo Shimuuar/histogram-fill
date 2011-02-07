@@ -17,9 +17,14 @@
 
 module Data.Histogram.Bin ( -- * Type classes
                             Bin(..)
+                            -- ** 1D bins
+                          , IntervalBin(..)
                           , Bin1D(..)
-                          , UniformBin1D(..)
-                          , VariableBin1D(..)
+                          , GrowBin(..)
+                            -- ** Bin sizes
+                          , UniformBin(..)
+                          , VariableBin(..)
+                            -- ** Conversion
                           , ConvertBin(..)
                           -- * Bin types
                           -- ** Integer bins
@@ -98,31 +103,41 @@ class Bin b where
   inRange :: b -> BinValue b -> Bool
   inRange b x = i >= 0 && i < nBins b where i = toIndex b x
 
+---- 1D bins ---------------------------------------------------
+
+-- | For binning algorithms which work with bin values which have some
+--   natural ordering and every bin is continous interval.
+class Bin b => IntervalBin b where
+  -- | Interval for n'th bin
+  binInterval :: b -> Int -> (BinValue b, BinValue b)
+  -- | List of all bins. Could be overridden for efficiency.
+  binsList :: Vector v (BinValue b, BinValue b) => b -> v (BinValue b, BinValue b)
+  binsList b = G.generate (nBins b) (binInterval b)
+  {-# INLINE binsList #-}
 
 
--- | One dimensional binning algorithm. It means that bin values have
---   some inherent ordering. For example all binning algorithms for
---   real numbers could be members or this type class whereas binning
---   algorithms for R^2 could not.
-class Bin b => Bin1D b where
+-- | IntervalBin for which domain is single inerval
+class IntervalBin b => Bin1D b where
   -- | Minimal accepted value of histogram
   lowerLimit :: b -> BinValue b
   -- | Maximal accepted value of histogram
   upperLimit :: b -> BinValue b
-  -- | List of center of bins in ascending order. Default
-  --   implementation is:
-  --
-  --   > binsList b = G.generate (nBins b) (fromIndex b)
-  binsList :: Vector v (BinValue b) => b -> v (BinValue b)
-  binsList b = G.generate (nBins b) (fromIndex b)
-  -- | List of bins in ascending order. First element of tuple is
-  --   lower bound second is upper bound of bin
-  binsListRange :: Vector v (BinValue b, BinValue b) => b -> v (BinValue b, BinValue b)
-  {-# INLINE binsList #-}
 
+
+-- | Binning algorithm which individual 
+class Bin1D b => GrowBin b where
+  -- | Set numbers to zero. By convention bins are shrinked to lower bound
+  zeroBin    :: b -> b
+  -- | Append one bin at upper bound
+  appendBin  :: b -> b
+  -- | Prepend one bin at lower bin
+  prependBin :: b -> b
+
+
+---- Bin sizes ------------------------------------------------
 
 -- | 1D binning algorithms with variable bin size
-class Bin1D b => VariableBin1D b where
+class Bin b => VariableBin b where
   -- | Size of n'th bin.
   binSizeN :: b -> Int -> BinValue b
 
@@ -130,16 +145,22 @@ class Bin1D b => VariableBin1D b where
 -- | 1D binning algorithms with constant size bins. Constant sized
 --   bins could be thought as specialization of variable-sized bins
 --   therefore a superclass constraint.
-class VariableBin1D b => UniformBin1D b where
-  -- | Size of bin. Default implementation just uses 0 bin.
+class VariableBin b => UniformBin b where
+  -- | Size of bin. Default implementation just uses 0th bin.
   binSize :: b -> BinValue b
   binSize b = binSizeN b 0
 
 
--- | Class for conversion between binning algorithms
+---- Conversion ------------------------------------------------
+
+-- | Class for conversion between binning algorithms.
 class (Bin b, Bin b') => ConvertBin b b' where
   -- | Convert bins
   convertBin :: b -> b'
+
+binsCenters :: (Bin b, Vector v (BinValue b)) => b -> v (BinValue b)
+binsCenters b = G.generate (nBins b) (fromIndex b)
+{-# INLINE binsCenters #-}
 
 ----------------------------------------------------------------
 -- Integer bin
@@ -167,18 +188,17 @@ instance Bin BinI where
   nBins     !(BinI x y) = y - x + 1
   {-# INLINE toIndex #-}
 
+instance IntervalBin BinI where
+  binInterval b i = (n,n) where n = fromIndex b i
+
 instance Bin1D BinI where
   lowerLimit (BinI i _) = i
   upperLimit (BinI _ i) = i
-  binsList      b@(BinI lo _) = G.enumFromN lo (nBins b)
-  binsListRange b@(BinI lo _) = G.generate (nBins b) (\i -> let n = lo+i in (n,n))
-  {-# INLINE binsList      #-}
-  {-# INLINE binsListRange #-}
 
-instance VariableBin1D BinI where
+instance VariableBin BinI where
   binSizeN _ _ = 1
 
-instance UniformBin1D BinI where
+instance UniformBin BinI where
   binSize _ = 1
 
 instance Show BinI where
@@ -224,15 +244,17 @@ instance Bin BinInt where
   nBins     !(BinInt _ _ n) = n
   {-# INLINE toIndex #-}
 
-instance Bin1D BinInt where
-  lowerLimit      (BinInt base _  _) = base
-  upperLimit      (BinInt base sz n) = base + sz * n - 1
-  binsListRange b@(BinInt _    sz n) = G.generate n (\i -> let x = fromIndex b i in (x,x + sz - 1))
+instance IntervalBin BinInt where
+  binInterval b i = (n, n + binSize b - 1) where n = fromIndex b i
 
-instance VariableBin1D BinInt where
+instance Bin1D BinInt where
+  lowerLimit (BinInt base _  _) = base
+  upperLimit (BinInt base sz n) = base + sz * n - 1
+
+instance VariableBin BinInt where
   binSizeN (BinInt _ sz _) _ = sz
 
-instance UniformBin1D BinInt where
+instance UniformBin BinInt where
   binSize (BinInt _ sz _) = sz
 
 instance Show BinInt where
@@ -270,11 +292,12 @@ instance Enum a => Bin (BinEnum a) where
   inRange   (BinEnum b) = inRange b . fromEnum
   nBins     (BinEnum b) = nBins b
 
+instance Enum a => IntervalBin (BinEnum a) where
+  binInterval b x = (n,n) where n = fromIndex b x
+
 instance Enum a => Bin1D (BinEnum a) where
   lowerLimit (BinEnum b) = toEnum $ lowerLimit b
   upperLimit (BinEnum b) = toEnum $ upperLimit b
-  binsListRange b        = G.generate (nBins b) (\n -> let x = fromIndex b n in (x,x))
-  {-# INLINE binsListRange #-}
 
 instance Show (BinEnum a) where
   show (BinEnum b) = "# BinEnum\n" ++ show b
@@ -339,18 +362,17 @@ instance RealFrac f => Bin (BinF f) where
   nBins     !(BinF _ _ n) = n
   {-# INLINE toIndex #-}
 
+instance RealFrac f => IntervalBin (BinF f) where
+  binInterval (BinF from step _) i = (x, x + step) where x = from + step * fromIntegral i
+
 instance RealFrac f => Bin1D (BinF f) where
   lowerLimit (BinF from _    _) = from
   upperLimit (BinF from step n) = from + step * fromIntegral n
-  binsListRange !b@(BinF _ step n) = G.generate n toPair
-    where
-      toPair k = (x - step/2, x + step/2) where x = fromIndex b k
-  {-# INLINE binsListRange #-}
 
-instance RealFrac f => VariableBin1D (BinF f) where
+instance RealFrac f => VariableBin (BinF f) where
   binSizeN (BinF _ step _) _ = step
 
-instance RealFrac f => UniformBin1D (BinF f) where
+instance RealFrac f => UniformBin (BinF f) where
   binSize (BinF _ step _) = step
 
 instance Show f => Show (BinF f) where
@@ -420,19 +442,17 @@ instance Bin BinD where
   nBins     !(BinD _ _ n) = n
   {-# INLINE toIndex #-}
 
+instance IntervalBin BinD where
+  binInterval (BinD from step _) i = (x, x + step) where x = from + step * fromIntegral i
+
 instance Bin1D BinD where
   lowerLimit (BinD from _    _) = from
   upperLimit (BinD from step n) = from + step * fromIntegral n
-  binsListRange b@(BinD _ step n) = G.generate n toPair
-    where
-      toPair k = (x - step/2, x + step/2) where x = fromIndex b k
-  {-# INLINE binsListRange #-}
 
-
-instance VariableBin1D BinD where
+instance VariableBin BinD where
   binSizeN (BinD _ step _) _ = step
 
-instance UniformBin1D BinD where
+instance UniformBin BinD where
   binSize (BinD _ step _) = step
 
 instance Show BinD where
@@ -478,15 +498,14 @@ instance Bin LogBinD where
   nBins     !(LogBinD _ _ _ n) = n
   {-# INLINE toIndex #-}
 
+instance IntervalBin LogBinD where
+  binInterval (LogBinD base _ step _) i = (x, x*step) where x = base * step ** (fromIntegral i)
+
 instance Bin1D LogBinD where
   lowerLimit (LogBinD lo _  _ _) = lo
   upperLimit (LogBinD _  hi _ _) = hi
-  binsListRange (LogBinD base _ step n) = G.unfoldrN n next base
-    where
-      next x = let x' = x * step in Just ((x,x'), x')
-  {-# INLINE binsListRange #-}
 
-instance VariableBin1D LogBinD where
+instance VariableBin LogBinD where
   binSizeN (LogBinD base _ step _) n = let x = base * step ^ n in x*step - x
 
 instance Show LogBinD where

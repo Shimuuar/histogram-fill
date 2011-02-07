@@ -101,26 +101,13 @@ instance Bin b => Bin (BinPermute b) where
   inRange   (BinPermute b _ _)     x = inRange b x
   nBins = nBins . permutedBin
 
-instance (Bin1D b) => Bin1D (BinPermute b) where
-  lowerLimit = lowerLimit . permutedBin
-  upperLimit = upperLimit . permutedBin
-  binsList (BinPermute b _ a) = res
-    where
-      res = G.generate (nBins b) fun
-      arr = binsList b `asTypeOf` res
-      fun i = arr ! (a ! i)
-  binsListRange (BinPermute b _ a) = res
-    where
-      res = G.generate (nBins b) fun
-      arr = binsListRange b `asTypeOf` res
-      fun i = arr ! (a ! i)
-  {-# INLINE binsList      #-}
-  {-# INLINE binsListRange #-}
+instance IntervalBin b => IntervalBin (BinPermute b) where
+  binInterval b i = binInterval (permutedBin b) (permuteFrom b ! i)
 
-instance VariableBin1D b => VariableBin1D (BinPermute b) where
+instance VariableBin b => VariableBin (BinPermute b) where
   binSizeN b i = binSizeN (permutedBin b) (permuteFrom b ! i)
   
-instance UniformBin1D b => UniformBin1D (BinPermute b) where
+instance UniformBin b => UniformBin (BinPermute b) where
   binSize = binSize . permutedBin
   
 
