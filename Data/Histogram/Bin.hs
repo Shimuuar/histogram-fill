@@ -18,6 +18,7 @@
 
 module Data.Histogram.Bin ( -- * Type classes
                             Bin(..)
+                          , binsCenters
                             -- ** 1D bins
                           , IntervalBin(..)
                           , Bin1D(..)
