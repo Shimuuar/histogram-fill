@@ -124,8 +124,10 @@ class IntervalBin b => Bin1D b where
   lowerLimit :: b -> BinValue b
   -- | Maximal accepted value of histogram
   upperLimit :: b -> BinValue b
+  -- | Slice bin by indices
+  unsafeSliceBin :: Int -> Int -> b -> b
 
-
+  
 -- | Binning algorithm which individual 
 class Bin1D b => GrowBin b where
   -- | Set numbers to zero. By convention bins are shrinked to lower bound
@@ -196,6 +198,7 @@ instance IntervalBin BinI where
 instance Bin1D BinI where
   lowerLimit (BinI i _) = i
   upperLimit (BinI _ i) = i
+  unsafeSliceBin i j (BinI l _) = BinI (l+i) (j-i+1)
 
 instance VariableBin BinI where
   binSizeN _ _ = 1
@@ -257,6 +260,7 @@ instance IntervalBin BinInt where
 instance Bin1D BinInt where
   lowerLimit (BinInt base _  _) = base
   upperLimit (BinInt base sz n) = base + sz * n - 1
+  unsafeSliceBin i j (BinInt base sz _) = BinInt (base + i*sz) sz (j-i+1)
 
 instance GrowBin BinInt where
   zeroBin    (BinInt l sz _) = BinInt l sz 0
@@ -310,6 +314,7 @@ instance Enum a => IntervalBin (BinEnum a) where
 instance Enum a => Bin1D (BinEnum a) where
   lowerLimit (BinEnum b) = toEnum $ lowerLimit b
   upperLimit (BinEnum b) = toEnum $ upperLimit b
+  unsafeSliceBin i j (BinEnum b) = BinEnum $ unsafeSliceBin i j b
 
 instance Show (BinEnum a) where
   show (BinEnum b) = "# BinEnum\n" ++ show b
@@ -380,9 +385,10 @@ instance RealFrac f => IntervalBin (BinF f) where
 instance RealFrac f => Bin1D (BinF f) where
   lowerLimit (BinF from _    _) = from
   upperLimit (BinF from step n) = from + step * fromIntegral n
+  unsafeSliceBin i j (BinF from step _) = BinF (from + step * fromIntegral i) step (j-i+1)
 
 instance RealFrac f => GrowBin (BinF f) where
-  zeroBin    (BinF from step n) = BinF from step 0
+  zeroBin    (BinF from step _) = BinF from step 0
   appendBin  (BinF from step n) = BinF from step (n+1)
   prependBin (BinF from step n) = BinF (from-step) step (n+1)
 
@@ -465,9 +471,10 @@ instance IntervalBin BinD where
 instance Bin1D BinD where
   lowerLimit (BinD from _    _) = from
   upperLimit (BinD from step n) = from + step * fromIntegral n
+  unsafeSliceBin i j (BinD from step _) = BinD (from + step * fromIntegral i) step (j-i+1)
 
 instance GrowBin BinD where
-  zeroBin    (BinD from step n) = BinD from step 0
+  zeroBin    (BinD from step _) = BinD from step 0
   appendBin  (BinD from step n) = BinD from step (n+1)
   prependBin (BinD from step n) = BinD (from-step) step (n+1)
 
@@ -526,6 +533,7 @@ instance IntervalBin LogBinD where
 instance Bin1D LogBinD where
   lowerLimit (LogBinD lo _  _ _) = lo
   upperLimit (LogBinD _  hi _ _) = hi
+  unsafeSliceBin i j (LogBinD from q step _) = LogBinD (from * step ^ i) q step (j-i+1)
 
 instance VariableBin LogBinD where
   binSizeN (LogBinD base _ step _) n = let x = base * step ^ n in x*step - x
