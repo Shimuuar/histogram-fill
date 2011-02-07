@@ -22,6 +22,7 @@ module Data.Histogram.Bin ( -- * Type classes
                             -- ** 1D bins
                           , IntervalBin(..)
                           , Bin1D(..)
+                          , sliceBin
                           , GrowBin(..)
                             -- ** Bin sizes
                           , UniformBin(..)
@@ -124,10 +125,17 @@ class IntervalBin b => Bin1D b where
   lowerLimit :: b -> BinValue b
   -- | Maximal accepted value of histogram
   upperLimit :: b -> BinValue b
-  -- | Slice bin by indices
+  -- | Slice bin by indices. This function doesn't perform any checks
+  --   and may produce invalid bin
   unsafeSliceBin :: Int -> Int -> b -> b
 
-  
+sliceBin :: Bin1D b => Int -> Int -> b -> b
+sliceBin i j b 
+  | i < 0  ||  j < 0  ||  i > j  ||  i >= n  ||  j >= n = error "sliceBin: bad slice"
+  | otherwise                                           = unsafeSliceBin i j b
+    where
+      n = nBins b       
+
 -- | Binning algorithm which individual 
 class Bin1D b => GrowBin b where
   -- | Set numbers to zero. By convention bins are shrinked to lower bound
@@ -555,7 +563,8 @@ instance Read LogBinD where
 -- 2D bin
 ----------------------------------------------------------------
 
--- | 2D bins. binX is binning along X axis and binY is one along Y axis.
+-- | 2D bins. binX is binning along X axis and binY is one along Y
+--   axis. Data is stored in row-major order
 data Bin2D binX binY = Bin2D { binX :: !binX -- ^ Binning algorithm for X axis
                              , binY :: !binY -- ^ Binning algorithm for Y axis
                              }
