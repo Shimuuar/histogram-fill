@@ -15,7 +15,6 @@ import System.Random
 import Data.Histogram
 import Data.Histogram.Fill
 import Data.Histogram.Bin
-import Data.Histogram.Bin.Indexable
 
 import Debug.Trace
 
