@@ -25,6 +25,9 @@ module Data.Histogram.Generic (
     -- ** Convert to other data types
   , asList
   , asVector
+    -- * Slicing histogram
+  , sliceByIx
+  , sliceByVal
     -- * Splitting 2D histograms
   , sliceX
   , sliceY
@@ -183,6 +186,17 @@ histZipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
       where
         f2 (x,x') (y,y') = (f x y, f x' y')
 
+
+sliceByIx :: (Bin1D bin, Vector v a) => Int -> Int -> Histogram v bin a -> Histogram v bin a
+sliceByIx i j (Histogram b _ v) = 
+  Histogram (sliceBin i j b) Nothing (G.slice i j v)
+
+sliceByVal :: (Bin1D bin, Vector v a) => BinValue bin -> BinValue bin -> Histogram v bin a -> Histogram v bin a
+sliceByVal x y h 
+  | inRange b x && inRange b y = sliceByIx (toIndex b x) (toIndex b y) h
+  | otherwise                  = error "sliceByVal: Values are out of range"
+    where
+      b = bins h
 
 -- | Slice 2D histogram along Y axis. This function is fast because it does not require reallocations.
 sliceY :: (Vector v a, Bin bX, Bin bY) => Histogram v (Bin2D bX bY) a -> [(BinValue bY, Histogram v bX a)]

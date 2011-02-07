@@ -28,7 +28,10 @@ module Data.Histogram ( -- * Immutable histogram
     -- ** Convert to other data types
   , asList
   , asVector
-    -- * Slicing histograms
+    -- * Slicing histogram
+  , sliceByIx
+  , sliceByVal
+    -- * Splitting 2D histograms
   , sliceX
   , sliceY
     -- * Modify histogram
@@ -134,6 +137,12 @@ histZip = H.histZip
 histZipSafe :: (Bin bin, Eq bin, Unbox a, Unbox b, Unbox c) =>
            (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Maybe (Histogram bin c)
 histZipSafe = H.histZipSafe
+
+sliceByIx :: (Bin1D bin, Unbox a) => Int -> Int -> Histogram bin a -> Histogram bin a
+sliceByIx = H.sliceByIx
+
+sliceByVal :: (Bin1D bin, Unbox a) => BinValue bin -> BinValue bin -> Histogram bin a -> Histogram bin a
+sliceByVal = H.sliceByVal
 
 -- | Slice 2D histogram along Y axis. This function is fast because it does not require reallocations.
 sliceY :: (Unbox a, Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bY, Histogram bX a)]
