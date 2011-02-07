@@ -89,13 +89,13 @@ class Bin b where
   --   of instance. Funtion may fail for invalid indices but
   --   encouraged not to do so.
   fromIndex :: b -> Int -> BinValue b
-  -- | Check whether value in range. Values which lay in range must
-  --   produce valid indices and conversely value which produce
-  --   valid index must be in range.
-  inRange :: b -> BinValue b -> Bool
-  -- | Total number of bins
+  -- | Total number of bins.
   nBins :: b -> Int
-
+  -- | Check whether value in range. Have default
+  -- implementation. Should satisfy:
+  -- inRange b x &#8660; toIndex b x &#8712; [0,nBins b)
+  inRange :: b -> BinValue b -> Bool
+  inRange b x = i >= 0 && i < nBins b where i = toIndex b x
 
 -- | One dimensional binning algorithm. It means that bin values have
 --   some inherent ordering. For example all binning algorithms for
