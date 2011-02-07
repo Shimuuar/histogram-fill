@@ -21,16 +21,16 @@ module Data.Histogram.Bin.Extra ( Enum2D(..)
                                 , permuteBin
                                 ) where
 
-import Control.Applicative
-import Control.Monad --  (forM_,liftM2)
+import Control.Applicative ((<$>), Applicative(..))
+import Control.Monad       (forM_,liftM2, guard)
 
 
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as M
 import           Data.Vector.Generic            ((!))
-import Data.Typeable                    (Typeable)
-import Data.Data                        (Data)
-import Text.Read
+import Data.Typeable      (Typeable)
+import Data.Data          (Data)
+import Text.Read          (Read(..))         
 
 import Data.Histogram.Bin
 import Data.Histogram.Parse
