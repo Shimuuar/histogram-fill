@@ -24,7 +24,7 @@ module Data.Histogram.Bin.Extra ( Enum2D(..)
 import Control.Applicative
 import Control.Monad --  (forM_,liftM2)
 
-import qualified Data.Vector.Generic         as G
+
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as M
 import           Data.Vector.Generic            ((!))
