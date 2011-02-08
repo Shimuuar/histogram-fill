@@ -206,7 +206,7 @@ instance IntervalBin BinI where
 instance Bin1D BinI where
   lowerLimit (BinI i _) = i
   upperLimit (BinI _ i) = i
-  unsafeSliceBin i j (BinI l _) = BinI (l+i) (j-i+1)
+  unsafeSliceBin i j (BinI l _) = BinI (l+i) (l+j)
 
 instance VariableBin BinI where
   binSizeN _ _ = 1
