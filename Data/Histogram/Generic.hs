@@ -189,7 +189,7 @@ histZipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
 
 sliceByIx :: (Bin1D bin, Vector v a) => Int -> Int -> Histogram v bin a -> Histogram v bin a
 sliceByIx i j (Histogram b _ v) = 
-  Histogram (sliceBin i j b) Nothing (G.slice i j v)
+  Histogram (sliceBin i j b) Nothing (G.slice i (j - i + 1) v)
 
 sliceByVal :: (Bin1D bin, Vector v a) => BinValue bin -> BinValue bin -> Histogram v bin a -> Histogram v bin a
 sliceByVal x y h 
