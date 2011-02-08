@@ -4,17 +4,15 @@
 
 {-# LANGUAGE TypeSynonymInstances #-}
 import Control.Applicative
-import Control.Monad
-import Control.Monad.ST
 
 import qualified Data.Vector.Unboxed as U
 
+import Text.Printf
 import Test.QuickCheck
-import System.Random
 
+import Data.Typeable
 import Data.Histogram
 import Data.Histogram.Fill
-import Data.Histogram.Bin
 
 import Debug.Trace
 
@@ -22,16 +20,34 @@ import Debug.Trace
 -- Helpers
 ----------------------------------------------------------------
 
-test :: Testable prop => String -> prop -> (String, IO ())
-test s prop = (s, quickCheck prop)
+data T a = T
 
-title :: String -> (String,IO ())
-title s = (s, return ())
+paramOfT :: T a -> a
+paramOfT _ = undefined
 
-runTests :: [(String, IO ())] -> IO ()
-runTests = mapM_ $ \(name, test) -> putStrLn (" * " ++ name) >> test
+typeOfT :: Typeable a => T a -> TypeRep
+typeOfT = typeOf . paramOfT
 
+report :: Typeable a => String -> T a -> IO ()
+report str t = printf "==== %s for '%s' ====\n\n" str (show $ typeOfT t)
 
+run :: (Typeable a, Testable prop) => (T a -> prop) -> T a -> IO ()
+run prop t = do
+  r <- quickCheckWithResult stdArgs (prop t)
+  case r of 
+    GaveUp            {} -> report "Gave up" t
+    Failure           {} -> report "Failure" t
+    NoExpectedFailure {} -> report "Unexpected failure" t
+    Success           {} -> return () 
+
+test :: Testable prop => String -> prop -> IO ()
+test s prop = do
+  r <- quickCheckWithResult stdArgs prop
+  case r of 
+    GaveUp            {} -> printf "---- Gave up: %s ----\n\n" s
+    Failure           {} -> printf "---- Failure: %s\n\n" s
+    NoExpectedFailure {} -> printf "---- Unexpected failure: %s ----\n\n" s
+    Success           {} -> return () 
 
 ----------------------------------------------------------------
 -- Arbitrary instances
@@ -99,148 +115,166 @@ instance (Bin bin, U.Unbox a, Arbitrary bin, Arbitrary a) => Arbitrary (Histogra
 -- Generic properties
 ----------------------------------------------------------------
 
--- Test that function is identity
 isIdentity :: Eq a => (a -> a) -> a -> Bool
 isIdentity f x = x == f x
 
 
+----------------------------------------------------------------
+-- Equality reflexivity
+prop_Eq :: Eq a => T a -> a -> Bool
+prop_Eq _ x = x == x
+
+testsEq :: IO ()
+testsEq = sequence_
+  [ putStrLn "---- Equality reflexivity ----"
+  , run prop_Eq (T :: T  BinI)
+  , run prop_Eq (T :: T  BinInt)
+  , run prop_Eq (T :: T (BinEnum Char))
+  , run prop_Eq (T :: T (BinF Double))
+  , run prop_Eq (T :: T (BinF Float))
+  , run prop_Eq (T :: T  BinD)
+  , run prop_Eq (T :: T  LogBinD)
+  , run prop_Eq (T :: T (Bin2D BinI BinI))
+  ]
 
 ----------------------------------------------------------------
+-- > read . show == id
+prop_ReadShow :: (Read a, Show a, Eq a) => T a -> a -> Bool
+prop_ReadShow _ = isIdentity (read . show)
 
--- Equality reflexivity
-prop_Eq :: Eq a => a -> Bool
-prop_Eq x = x == x
-
-testsEq :: [(String, IO ())]
-testsEq = [ title "==== Equality reflexivity ===="
-          , test "BinI"            (prop_Eq :: BinI            -> Bool)
-          , test "BinInt"          (prop_Eq :: BinInt          -> Bool)
-          , test "BinEnum Char"    (prop_Eq :: BinEnum Char    -> Bool)
-          , test "BinF Double"     (prop_Eq :: BinF Double     -> Bool)
-          , test "BinF Float"      (prop_Eq :: BinF Float      -> Bool)
-          , test "BinD"            (prop_Eq :: BinD            -> Bool)
-          , test "LogBinD"         (prop_Eq :: LogBinD         -> Bool)
-          , test "Bin2D BinI Bini" (prop_Eq :: Bin2D BinI BinI -> Bool)
-          ]
-
-
--- read . show == id
-prop_ReadShow :: (Read a, Show a, Eq a) => a -> Bool
-prop_ReadShow = isIdentity (read . show)
-
-testsRead :: [(String, IO ())]
-testsRead = [ title "==== read . show == id ===="
-            , test "BinI"            (prop_ReadShow  :: BinI            -> Bool)
-            , test "BinInt"          (prop_ReadShow  :: BinInt          -> Bool)
-            , test "BinEnum Char"    (prop_ReadShow  :: BinEnum Char    -> Bool)
-            , test "BinF Double"     (prop_ReadShow  :: BinF Double     -> Bool)
-            , test "BinF Float"      (prop_ReadShow  :: BinF Float      -> Bool)
-            , test "BinD"            (prop_ReadShow  :: BinD            -> Bool)
-            , test "LogBinD"         (prop_ReadShow  :: LogBinD         -> Bool)
-            , test "Bin2D BinI BinI" (prop_ReadShow  :: Bin2D BinI BinI -> Bool)
-            ]
+testsRead :: IO ()
+testsRead = sequence_
+  [ putStrLn "---- read . show == id ----"
+  , run prop_ReadShow (T :: T BinI)
+  , run prop_ReadShow (T :: T BinInt)
+  , run prop_ReadShow (T :: T (BinEnum Char))
+  , run prop_ReadShow (T :: T (BinF Double))
+  , run prop_ReadShow (T :: T (BinF Float))
+  , run prop_ReadShow (T :: T BinD)
+  , run prop_ReadShow (T :: T LogBinD)
+  , run prop_ReadShow (T :: T (Bin2D BinI BinI))
+  ]
 
 
--- toIndex . fromIndex == id
-prop_ToFrom :: (Bin bin) => Int -> bin -> Bool
-prop_ToFrom x bin | inRange bin val = x == toIndex bin val
-                  | otherwise       = True -- Equality doesn't hold for out of range indices
-                    where val = fromIndex bin x
+----------------------------------------------------------------
+-- > toIndex . fromIndex == id
+prop_ToFrom :: Bin bin => T bin -> Int -> bin -> Bool
+prop_ToFrom _ i bin 
+  | i >= 0 && i < nBins bin = isIdentity (toIndex bin . fromIndex bin) i
+  | otherwise               = True  -- Equality doesn't hold for out of range indices
 
-testsToFrom :: [(String,IO())]
-testsToFrom = [ title "==== toIndex . fromIndex == id"
-              , test "BinI"            (prop_ToFrom :: Int -> BinI            -> Bool)
-              -- , test "BinEnum Char"    (prop_ToFrom :: Int -> BinEnum Char    -> Bool)
-              , test "BinInt"          (prop_ToFrom :: Int -> BinInt          -> Bool)
-              , test "BinF Double"     (prop_ToFrom :: Int -> BinF Double     -> Bool)
-              , test "BinD"            (prop_ToFrom :: Int -> BinD            -> Bool)
-              , test "LogBinD"         (prop_ToFrom :: Int -> LogBinD         -> Bool)
-              , test "Bin2D BinI BinI" (prop_ToFrom :: Int -> Bin2D BinI BinI -> Bool)
-              ]
+testsToFrom :: IO ()
+testsToFrom = sequence_
+  [ putStrLn "---- toIndex . fromIndex ----"
+  , run prop_ToFrom (T :: T BinI)
+  , run prop_ToFrom (T :: T BinInt)
+  , run prop_ToFrom (T :: T (BinEnum Char))
+  , run prop_ToFrom (T :: T (BinF Double))
+  , run prop_ToFrom (T :: T (BinF Double))
+  , run prop_ToFrom (T :: T BinD)
+  , run prop_ToFrom (T :: T LogBinD)
+  , run prop_ToFrom (T :: T (Bin2D BinI BinI))
+  ]
 
-
-
--- fromIndex . toIndex == id
+----------------------------------------------------------------
+-- > fromIndex . toIndex == id
 -- Hold only for integral bins
-prop_FromTo :: (Bin bin, Eq (BinValue bin)) => BinValue bin -> bin -> Bool
-prop_FromTo x bin | inRange bin x = isIdentity (fromIndex bin . toIndex bin) x
-                  | otherwise     = True -- Doesn't hold for out of range indices
+prop_FromTo :: (Bin bin, Eq (BinValue bin)) => T bin -> BinValue bin -> bin -> Bool
+prop_FromTo _ x bin 
+  | inRange bin x = isIdentity (fromIndex bin . toIndex bin) x
+  | otherwise     = True -- Doesn't hold for out of range indices
 
-testsFromTo :: [(String, IO ())]
-testsFromTo = [ title "==== fromIndex . toIdex == id ===="
-              , test "BinI"            (prop_FromTo :: Int       -> BinI            -> Bool)
-              -- , test "BinEnum Char"    (prop_FromTo :: Char      -> BinEnum Char    -> Bool)
-              , test "Bin2D BinI BinI" (prop_FromTo :: (Int,Int) -> Bin2D BinI BinI -> Bool)
-              ]
+testsFromTo :: IO ()
+testsFromTo = sequence_
+  [ putStrLn "==== fromIndex . toIdex == id ===="
+  , run prop_FromTo (T :: T BinI)
+  , run prop_FromTo (T :: T (BinEnum Char))
+  , run prop_FromTo (T :: T (Bin2D BinI BinI))
+  ]
 
+
+----------------------------------------------------------------
+-- > inRange b x == indexInRange b x
 
 indexInRange :: Bin b => b -> Int -> Bool
 indexInRange b i = i >= 0  &&  i < nBins b
 
--- inRange b x == indexInRange b x
-type Prop_InRange bin = bin -> BinValue bin -> Bool
-prop_InRange :: (Bin bin) => Prop_InRange bin 
-prop_InRange b x = inRange b x == indexInRange b (toIndex b x)
+prop_InRange :: (Bin bin) => T bin -> bin -> BinValue bin -> Bool
+prop_InRange _ b x = inRange b x == indexInRange b (toIndex b x)
 
-testsInRange :: [(String,IO())]
-testsInRange = [ title "==== inRange b x == indexInRange b x ===="
-               , test "BinI"            (prop_InRange :: Prop_InRange BinI)
-               , test "BinInt"          (prop_InRange :: Prop_InRange BinInt)
-               -- , test "BinEnum Char"    (prop_InRange :: Prop_InRange (BinEnum Char))
-               , test "BinF Float"      (prop_InRange :: Prop_InRange (BinF Float))
-               , test "BinF Double"     (prop_InRange :: Prop_InRange (BinF Double))
-               , test "BinD"            (prop_InRange :: Prop_InRange BinD)
-               , test "LogBinD"         (prop_InRange :: Prop_InRange LogBinD)
-               , test "Bin2D BinI BinI" (prop_InRange :: Prop_InRange (Bin2D BinI BinI))
-               ]
+testsInRange :: IO ()
+testsInRange = sequence_
+  [ putStrLn "---- inRange b x == indexInRange b x ----"
+  , run prop_InRange (T :: T BinI)
+  , run prop_InRange (T :: T BinInt)
+  , run prop_InRange (T :: T (BinEnum Char))
+  , run prop_InRange (T :: T (BinF Float))
+  , run prop_InRange (T :: T (BinF Double))
+  , run prop_InRange (T :: T BinD)
+  , run prop_InRange (T :: T LogBinD)
+  , run prop_InRange (T :: T (Bin2D BinI BinI))
+  ]
 
-testsFMap :: [(String, IO ())]
-testsFMap = [ title "==== fmap preserves idenitity ===="
-            , test "fmapBinX"    (isIdentity (fmapBinX   id) :: Bin2D BinI BinI    -> Bool)
-            , test "fmapBinY"    (isIdentity (fmapBinY   id) :: Bin2D BinI BinI    -> Bool)
-            , test "mapHist"     (isIdentity (histMap    id) :: Histogram BinI Int -> Bool)
-            , test "mapHistBin"  (isIdentity (histMapBin id) :: Histogram BinI Int -> Bool)
-            ]
+----------------------------------------------------------------
+-- > fmap id == id
+testsFMap :: IO ()
+testsFMap = sequence_
+  [ putStrLn "---- fmap preserves idenitity ----"
+  , test "fmapBinX"    (isIdentity (fmapBinX   id) :: Bin2D BinI BinI    -> Bool)
+  , test "fmapBinY"    (isIdentity (fmapBinY   id) :: Bin2D BinI BinI    -> Bool)
+  , test "mapHist"     (isIdentity (histMap    id) :: Histogram BinI Int -> Bool)
+  , test "mapHistBin"  (isIdentity (histMapBin id) :: Histogram BinI Int -> Bool)
+  ]
 
-
-testsHistogram :: [(String, IO ())]
-testsHistogram =
-    [ title "==== Test for histograms ===="
-    , test "equality"   (prop_Eq :: Histogram BinI Int -> Bool)
-    , test "read/show"  (isIdentity (readHistogram . show) :: Histogram BinI Int -> Bool)
-    ]
-
-
-testsFill :: [(String, IO ())]
-testsFill = [ title "==== Test for filling ===="
-            -- Zeroness
-            , test "zeroness mkSimple"   (prop_zeroness . mkSimple  )
-            , test "zeroness mkWeighted" (prop_zeroness . mkWeighted)
-            -- Sizes match
-            , test "size mkHist"    (prop_size . mkSimple  )
-            , test "size mkHistWgh" (prop_size . mkWeighted)
-            ]
-    where
-      -- Test that empty histogram is filled with zeroes
-      prop_zeroness :: HBuilder i (Histogram BinI Int) -> Bool
-      prop_zeroness hb = outOfRange h == Just (0,0) && (U.all (==0) (histData h))
-          where h = fillBuilder hb []
-      -- Test that array size and bin sizes match
-      prop_size :: HBuilder i (Histogram BinI Int) -> Bool
-      prop_size hb = nBins (bins h) == U.length (histData h)
-          where h = fillBuilder hb []
+----------------------------------------------------------------
+-- Tests for histograms
+prop_histSane :: (Bin bin, U.Unbox v) => T (Histogram bin v) -> Histogram bin v -> Bool
+prop_histSane _ h = nBins (bins h) == U.length (histData h)
 
 
-testsAll :: [(String, IO ())]
-testsAll = concat [ testsEq
-                  , testsRead
-                  , testsToFrom
-                  , testsFromTo
-                  , testsInRange
-                  , testsFMap
-                  , testsFill
-                  ]
+testsHistogram :: IO ()
+testsHistogram = sequence_
+  [ putStrLn "---- Test for histograms ----"
+  , run prop_histSane (T :: T (Histogram BinI Int))
+  , run prop_Eq       (T :: T (Histogram BinI Int))
+  , test "read/show"  (isIdentity (readHistogram . show) :: Histogram BinI Int -> Bool)
+  ]
+
+
+----------------------------------------------------------------
+-- Tests for filling
+
+-- Test that empty histogram is filled with zeroes
+prop_notfilled :: HBuilder i (Histogram BinI Int) -> Bool
+prop_notfilled hb = 
+  and [ outOfRange h == Just (0,0) 
+      , U.all (==0) (histData h)
+      , nBins (bins h) == U.length (histData h)
+      ]
+    where 
+      h = fillBuilder hb []
+
+
+testsFill :: IO ()
+testsFill = sequence_
+  [ putStrLn "---- Test for filling ----"
+  , quickCheck (prop_notfilled . mkSimple  )
+  , quickCheck (prop_notfilled . mkWeighted)
+  ]
+
+
+----------------------------------------------------------------
+-- Main
+----------------------------------------------------------------                
+testsAll :: IO ()
+testsAll = sequence_ [ testsEq
+                     , testsRead
+                     , testsToFrom
+                     , testsFromTo
+                     , testsInRange
+                     , testsFMap
+                     , testsFill
+                     ]
 
 main :: IO ()
-main = do
-  runTests testsAll
+main = testsAll
