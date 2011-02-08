@@ -9,6 +9,7 @@ import qualified Data.Vector.Unboxed as U
 
 import Text.Printf
 import Test.QuickCheck
+import Test.QuickCheck.Property
 
 import Data.Typeable
 import Data.Histogram
@@ -65,8 +66,8 @@ instance Arbitrary BinInt where
       let maxI = 100
       base <- choose (-maxI,maxI)
       step <- choose (1,10)
-      max  <- choose (base, base+2*maxI)
-      return $ binInt base step max
+      n    <- choose (1,10^3)
+      return $ BinInt base step n
 
 instance (Arbitrary a, Ord a, Enum a) => Arbitrary (BinEnum a) where
     arbitrary = do
@@ -216,6 +217,24 @@ testsInRange = sequence_
   ]
 
 ----------------------------------------------------------------
+-- Sliced bin hae correct number of bins
+
+prop_sliceBin :: Bin1D b => T b -> b -> Gen Bool
+prop_sliceBin _ bin = do
+  let n = nBins bin
+  i <- choose (0, n-1)
+  j <- choose (i, n-1)
+  return $ nBins (sliceBin i j bin) == (j - i + 1)
+
+testsSliceBin :: IO ()
+testsSliceBin = sequence_ 
+  [ putStrLn "---- sliceBin ----"
+  , run prop_sliceBin (T :: T BinI)
+  , run prop_sliceBin (T :: T BinInt)
+  , run prop_sliceBin (T :: T (BinF Float))
+  , run prop_sliceBin (T :: T BinD)
+  ] 
+----------------------------------------------------------------
 -- > fmap id == id
 testsFMap :: IO ()
 testsFMap = sequence_
@@ -231,15 +250,22 @@ testsFMap = sequence_
 prop_histSane :: (Bin bin, U.Unbox v) => T (Histogram bin v) -> Histogram bin v -> Bool
 prop_histSane _ h = nBins (bins h) == U.length (histData h)
 
+prop_sliceByIx :: (Bin1D bin, U.Unbox v) => T (Histogram bin v) -> Int -> Int -> Histogram bin v -> Property
+prop_sliceByIx _ i j h =
+  and [i >= 0, i < n, j >= 0, j < n, i <= j] ==> nBins (bins h') == U.length (histData h') 
+    where
+      n = nBins (bins h)
+      h' = sliceByIx i j h
 
 testsHistogram :: IO ()
 testsHistogram = sequence_
   [ putStrLn "---- Test for histograms ----"
-  , run prop_histSane (T :: T (Histogram BinI Int))
-  , run prop_Eq       (T :: T (Histogram BinI Int))
+  , run prop_histSane t
+  , run prop_Eq       t
   , test "read/show"  (isIdentity (readHistogram . show) :: Histogram BinI Int -> Bool)
+  , test "sliceByIx" $ prop_sliceByIx t
   ]
-
+  where t = T :: T (Histogram BinI Int)
 
 ----------------------------------------------------------------
 -- Tests for filling
