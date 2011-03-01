@@ -255,6 +255,17 @@ binInt lo n hi = BinInt lo n nb
   where
     nb = (hi-lo) `div` n
 
+binIntN :: Int                  -- ^ Lower bound
+        -> Int                  -- ^ Bin size
+        -> Int                  -- ^ Upper bound
+        -> BinInt
+binIntN lo n hi 
+  | n > rng = BinInt lo 1 rng
+  | otherwise = BinInt lo () n
+  where
+    rng = hi - lo + 1
+
+
 instance Bin BinInt where
   type BinValue BinInt = Int
   toIndex   !(BinInt base sz _) !x = (x - base) `div` sz
