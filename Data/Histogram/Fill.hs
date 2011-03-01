@@ -13,6 +13,7 @@ module Data.Histogram.Fill ( -- * Builder type class
                            , (<<-)
                            , (<<-|)
                            , (<<?)
+                           , (<<-$)
                            , (-<<)
                              -- * Histogram builders
                              -- ** Stateful
@@ -99,6 +100,10 @@ h <<-| f = fromContainer h <<- f
 (<<?) = flip addCut
 {-# INLINE (<<?) #-}
 
+(<<-$) :: HistBuilder h => h a b -> (h a b -> h a' b) -> h a' b
+h <<-$ f = f h
+{-# INLINE (<<--) #-}
+
 -- | Modify output of histogram. In fact it's same as '<$>' but have opposite fixity
 (-<<) :: HistBuilder h => (b -> b') -> h a b -> h a b'
 (-<<) = modifyOut
@@ -108,6 +113,7 @@ h <<-| f = fromContainer h <<- f
 infixl 5 <<-
 infixl 5 <<-|
 infixl 5 <<?
+infixl 5 <<-$
 infixr 4 -<<
 
 
