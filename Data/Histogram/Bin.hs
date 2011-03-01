@@ -260,8 +260,8 @@ binIntN :: Int                  -- ^ Lower bound
         -> Int                  -- ^ Upper bound
         -> BinInt
 binIntN lo n hi 
-  | n > rng = BinInt lo 1 rng
-  | otherwise = BinInt lo () n
+  | n > rng   = BinInt lo 1 rng
+  | otherwise = BinInt lo undefined n
   where
     rng = hi - lo + 1
 
