@@ -102,7 +102,7 @@ h <<-| f = fromContainer h <<- f
 
 (<<-$) :: HistBuilder h => h a b -> (h a b -> h a' b) -> h a' b
 h <<-$ f = f h
-{-# INLINE (<<--) #-}
+{-# INLINE (<<-$) #-}
 
 -- | Modify output of histogram. In fact it's same as '<$>' but have opposite fixity
 (-<<) :: HistBuilder h => (b -> b') -> h a b -> h a b'
