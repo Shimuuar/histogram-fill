@@ -18,6 +18,8 @@ module Data.Histogram.Bin.Classes (
   , IntervalBin(..)
   , Bin1D(..)
   , sliceBin
+  , VariableBin(..)
+  , UniformBin(..)
   , GrowBin(..)
     -- * Conversion
   , ConvertBin(..)

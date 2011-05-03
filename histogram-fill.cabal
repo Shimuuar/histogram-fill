@@ -26,6 +26,13 @@ Library
                         Data.Histogram.Generic
                         Data.Histogram.Fill
                         Data.Histogram.Bin
+                        Data.Histogram.Bin.Classes
+                        Data.Histogram.Bin.BinI
+                        Data.Histogram.Bin.BinInt
+                        Data.Histogram.Bin.BinEnum
+                        Data.Histogram.Bin.BinF
+                        Data.Histogram.Bin.LogBinD
+                        Data.Histogram.Bin.Bin2D
                         Data.Histogram.Bin.Extra
                         Data.Histogram.ST
   Other-modules:        Data.Histogram.Parse
