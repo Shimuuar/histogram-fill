@@ -40,8 +40,8 @@ data MHistogram s bin a = MHistogram bin (MU.MVector s a) (MU.MVector s a)
 --   passed to function.
 newMHistogram :: (PrimMonad m, Bin bin, U.Unbox a) => a -> bin -> m (MHistogram (PrimState m) bin a)
 newMHistogram zero bin = do
-  uo <- MU.newWith 2 zero
-  a  <- MU.newWith (nBins bin) zero
+  uo <- MU.replicate 2 zero
+  a  <- MU.replicate (nBins bin) zero
   return $ MHistogram bin uo a
 {-# INLINE newMHistogram #-}
 
