@@ -138,7 +138,7 @@ checkPermutationTable b v = do
 
 -- Calculate inverse permutation
 invertPermutationTable :: U.Vector Int -> U.Vector Int
-invertPermutationTable v = U.create $ do a <- M.newWith n (-1)
+invertPermutationTable v = U.create $ do a <- M.replicate n (-1)
                                          forM_ [0..n-1] (writeInvert a)
                                          return a
   where

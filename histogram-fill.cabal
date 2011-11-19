@@ -1,5 +1,5 @@
 Name:           histogram-fill
-Version:        0.5
+Version:        0.5.1
 Cabal-Version:  >= 1.6
 License:        BSD3
 License-File:   LICENSE
@@ -20,7 +20,7 @@ source-repository head
 Library
   Build-Depends:        base >=3 && <5,
                         primitive,
-                        vector >= 0.6.0.2
+                        vector >= 0.7
 --                        monoid-statistics == 0.1.*
   Exposed-modules:      Data.Histogram
                         Data.Histogram.Generic
