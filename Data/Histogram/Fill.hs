@@ -10,6 +10,7 @@
 --
 module Data.Histogram.Fill ( -- * Builder type class
                              HistBuilder(..)
+                             -- ** Operators
                            , (<<-)
                            , (<<-|)
                            , (<<?)
@@ -100,6 +101,7 @@ h <<-| f = fromContainer h <<- f
 (<<?) = flip addCut
 {-# INLINE (<<?) #-}
 
+-- | Apply function which modify builder
 (<<-$) :: HistBuilder h => h a b -> (h a b -> h a' b) -> h a' b
 h <<-$ f = f h
 {-# INLINE (<<-$) #-}

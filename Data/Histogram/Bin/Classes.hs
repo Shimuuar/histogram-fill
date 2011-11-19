@@ -75,7 +75,7 @@ class Bin b => IntervalBin b where
   {-# INLINE binsList #-}
 
 
--- | IntervalBin for which domain is single finite interval
+-- | 'IntervalBin' which domain is single finite interval
 class IntervalBin b => Bin1D b where
   -- | Minimal accepted value of histogram
   lowerLimit :: b -> BinValue b
@@ -93,9 +93,10 @@ sliceBin i j b
     where
       n = nBins b       
 
--- | Binning algorithm which individual 
+-- | Binning algorithm which allows to append and prepend bins.
 class Bin1D b => GrowBin b where
-  -- | Set numbers to zero. By convention bins are shrinked to lower bound
+  -- | Set number of bins to zero. By convention bins are shrinked to
+  --   lower bound.
   zeroBin    :: b -> b
   -- | Append one bin at upper bound
   appendBin  :: b -> b

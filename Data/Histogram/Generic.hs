@@ -140,11 +140,11 @@ overflows (Histogram _ uo _) = snd <$> uo
 outOfRange :: Histogram v bin a -> Maybe (a,a)
 outOfRange (Histogram _ uo _) = uo
 
--- | Convert histogram to list.
+-- | Convert histogram data to list.
 asList :: (Vector v a, Bin bin) => Histogram v bin a -> [(BinValue bin, a)]
 asList (Histogram bin _ arr) = map (fromIndex bin) [0..] `zip` G.toList arr
 
--- | Convert histogram to vector
+-- | Convert histogram data to vector
 asVector :: (Bin bin, Vector v a, Vector v (BinValue bin), Vector v (BinValue bin,a)) 
          => Histogram v bin a -> v (BinValue bin, a) 
 asVector (Histogram bin _ arr) = G.zip (G.generate (nBins bin) (fromIndex bin) ) arr
@@ -187,10 +187,12 @@ histZipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
         f2 (x,x') (y,y') = (f x y, f x' y')
 
 
+-- | Slice histogram using indices.
 sliceByIx :: (Bin1D bin, Vector v a) => Int -> Int -> Histogram v bin a -> Histogram v bin a
 sliceByIx i j (Histogram b _ v) = 
   Histogram (sliceBin i j b) Nothing (G.slice i (j - i + 1) v)
 
+-- | Slice histogram using bin values. Value will be included in range.
 sliceByVal :: (Bin1D bin, Vector v a) => BinValue bin -> BinValue bin -> Histogram v bin a -> Histogram v bin a
 sliceByVal x y h 
   | inRange b x && inRange b y = sliceByIx (toIndex b x) (toIndex b y) h
