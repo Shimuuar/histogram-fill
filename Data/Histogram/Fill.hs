@@ -1,4 +1,5 @@
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE Rank2Types   #-}
 -- |
 -- Module     : Data.Histogram.Fill
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -331,7 +332,9 @@ mkMonoidal bin = HBuilder $ do acc <- newMHistogram mempty bin
 -- with histogram filling
 mkFolder :: b -> (a -> b -> b) -> HBuilder a b
 mkFolder a f = HBuilder $ do ref <- newSTRef a
-                             return HBuilderM { hbInput  = \x -> modifySTRef ref (f x)
+                             return HBuilderM { hbInput  = \x -> do acc <- readSTRef ref
+                                                                    let !acc' = f x acc
+                                                                    writeSTRef ref acc'
                                               , hbOutput = readSTRef ref
                                               }
 {-# INLINE mkFolder #-}
