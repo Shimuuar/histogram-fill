@@ -47,7 +47,7 @@ instance Bin LogBinD where
   {-# INLINE toIndex #-}
 
 instance IntervalBin LogBinD where
-  binInterval (LogBinD base step _) i = (x, x*step) where x = base * step ** (fromIntegral i)
+  binInterval (LogBinD base step _) i = (x, x*step) where x = base * step ** fromIntegral i
 
 instance Bin1D LogBinD where
   lowerLimit (LogBinD lo  _ _) = lo
