@@ -41,6 +41,7 @@ module Data.Histogram.Generic (
 import Control.Applicative ((<$>),(<*>))
 import Control.Arrow       ((***))
 import Control.Monad       (ap)
+import Control.DeepSeq     (NFData(..))
 
 import qualified Data.Vector.Generic         as G
 import Data.Typeable        (Typeable1(..), Typeable2(..), mkTyConApp, mkTyCon)
@@ -59,6 +60,7 @@ import Data.Histogram.Parse
 data Histogram v bin a = Histogram bin (Maybe (a,a)) (v a)
                          deriving (Eq)
 
+
 -- | Create histogram from binning algorithm and vector with
 -- data. Overflows are set to Nothing. 
 --
@@ -66,7 +68,6 @@ data Histogram v bin a = Histogram bin (Maybe (a,a)) (v a)
 histogram :: (Vector v a, Bin bin) => bin -> v a -> Histogram v bin a
 histogram b v | nBins b == G.length v = Histogram b Nothing v
               | otherwise             = error "histogram: number of bins and vector size doesn't match"
-
 
 -- | Create histogram from binning algorithm and vector with data. 
 --
@@ -92,6 +93,12 @@ instance (Show a, Show (BinValue bin), Show bin, Bin bin, Vector v a) => Show (H
 
 instance Typeable1 v => Typeable2 (Histogram v) where
   typeOf2 h = mkTyConApp (mkTyCon "Data.Histogram.Generic.Histogram") [typeOf1 (histData h)]
+
+-- | Vector do not supply 'NFData' instance so let just 'seq' it and
+--   hope it's enough. Should be enough for unboxed vectors.
+instance (NFData a, NFData bin) => NFData (Histogram v bin a) where
+   rnf (Histogram bin uo vec) = 
+     rnf bin `seq` rnf uo `seq` seq vec ()
 
 -- Parse histogram header
 histHeader :: (Read bin, Read a, Bin bin, Vector v a) => ReadPrec (v a -> Histogram v bin a)
