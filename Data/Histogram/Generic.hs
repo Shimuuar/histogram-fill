@@ -160,7 +160,7 @@ asVector (Histogram bin _ arr) = G.zip (G.generate (nBins bin) (fromIndex bin) )
 ----------------------------------------------------------------
 
 -- | fmap lookalike. It's not possible to create Functor instance
---   because of class restrictions
+--   because of type class context.
 histMap :: (Vector v a, Vector v b) => (a -> b) -> Histogram v bin a -> Histogram v bin b
 histMap f (Histogram bin uo a) = Histogram bin (fmap (f *** f) uo) (G.map f a)
 
@@ -190,6 +190,9 @@ histZipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
       where
         f2 (x,x') (y,y') = (f x y, f x' y')
 
+----------------------------------------------------------------
+-- Slicing and reducing histograms
+----------------------------------------------------------------
 
 -- | Slice histogram using indices.
 sliceByIx :: (Bin1D bin, Vector v a) => Int -> Int -> Histogram v bin a -> Histogram v bin a
@@ -204,16 +207,19 @@ sliceByVal x y h
     where
       b = bins h
 
+
 -- | Slice 2D histogram along Y axis. This function is fast because it does not require reallocations.
-sliceY :: (Vector v a, Bin bX, Bin bY) => Histogram v (Bin2D bX bY) a -> [(BinValue bY, Histogram v bX a)]
+sliceY :: (Vector v a, Bin bX, Bin bY)
+       => Histogram v (Bin2D bX bY) a -> [(BinValue bY, Histogram v bX a)]
 sliceY (Histogram b _ a) = map mkSlice [0 .. ny-1]
     where
-      (nx, ny) = nBins2D b
+      (nx, ny)  = nBins2D b
       mkSlice i = ( fromIndex (binY b) i
                   , Histogram (binX b) Nothing (G.slice (nx*i) nx a) )
 
 -- | Slice 2D histogram along X axis.
-sliceX :: (Vector v a, Bin bX, Bin bY) => Histogram v (Bin2D bX bY) a -> [(BinValue bX, Histogram v bY a)]
+sliceX :: (Vector v a, Bin bX, Bin bY)
+       => Histogram v (Bin2D bX bY) a -> [(BinValue bX, Histogram v bY a)]
 sliceX (Histogram b _ a) = map mkSlice [0 .. nx-1]
     where
       (nx, ny)  = nBins2D b
