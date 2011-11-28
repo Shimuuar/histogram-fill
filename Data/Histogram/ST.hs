@@ -34,7 +34,7 @@ import Data.Histogram
 ----------------------------------------------------------------
 
 -- | Mutable histogram.
-data MHistogram s bin a = MHistogram bin (MU.MVector s a) (MU.MVector s a)
+data MHistogram s bin a = MHistogram !bin !(MU.MVector s a) !(MU.MVector s a)
 
 -- | Create new mutable histogram. All bins are set to zero element as
 --   passed to function.
