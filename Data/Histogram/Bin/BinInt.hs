@@ -7,10 +7,10 @@ module Data.Histogram.Bin.BinInt (
   , binIntN
   ) where
 
-import Control.Monad (liftM3)
-import Data.Typeable (Typeable)
-import Data.Data     (Data)
-import Text.Read     (Read(..))
+import Control.DeepSeq (NFData(..))
+import Control.Monad   (liftM3)
+import Data.Data       (Data,Typeable)
+import Text.Read       (Read(..))
 
 import Data.Histogram.Bin.Classes
 import Data.Histogram.Parse
@@ -87,3 +87,5 @@ instance Show BinInt where
 
 instance Read BinInt where
   readPrec = keyword "BinInt" >> liftM3 BinInt (value "Base") (value "Step") (value "Bins")
+
+instance NFData BinInt

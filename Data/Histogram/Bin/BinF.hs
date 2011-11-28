@@ -16,11 +16,11 @@ module Data.Histogram.Bin.BinF (
   , scaleBinD
   ) where
 
-import Control.Monad (liftM3)
-import GHC.Float     (double2Int)
-import Data.Typeable (Typeable)
-import Data.Data     (Data)
-import Text.Read     (Read(..))
+import Control.DeepSeq (NFData(..))
+import Control.Monad   (liftM3)
+import GHC.Float       (double2Int)
+import Data.Data       (Data,Typeable)
+import Text.Read       (Read(..))
 
 import Data.Histogram.Bin.Classes
 import Data.Histogram.Parse
@@ -105,6 +105,8 @@ instance Show f => Show (BinF f) where
                                     ]
 instance (Read f, RealFrac f) => Read (BinF f) where
   readPrec = keyword "BinF" >> liftM3 BinF (value "Base") (value "Step") (value "N")
+
+instance NFData (BinF f)
 
 
 
@@ -191,3 +193,5 @@ instance Show BinD where
                                     ]
 instance Read BinD where
   readPrec = keyword "BinD" >> liftM3 BinD (value "Base") (value "Step") (value "N")
+
+instance NFData BinD

@@ -7,11 +7,11 @@ module Data.Histogram.Bin.LogBinD (
   , logBinD
   ) where
 
-import Control.Monad (liftM3)
-import GHC.Float     (double2Int)
-import Data.Typeable (Typeable)
-import Data.Data     (Data)
-import Text.Read     (Read(..))
+import Control.DeepSeq (NFData(..))
+import Control.Monad   (liftM3)
+import GHC.Float       (double2Int)
+import Data.Data       (Data,Typeable)
+import Text.Read       (Read(..))
 
 import Data.Histogram.Bin.Classes
 import Data.Histogram.Parse
@@ -68,3 +68,5 @@ instance Read LogBinD where
   readPrec = do
     keyword "LogBinD"
     liftM3 logBinD (value "Lo") (value "N") (value "Hi")
+
+instance NFData LogBinD

@@ -7,10 +7,10 @@ module Data.Histogram.Bin.BinEnum (
   , binEnumFull
   ) where
 
-import Control.Monad (liftM)
-import Data.Typeable (Typeable)
-import Data.Data     (Data)
-import Text.Read     (Read(..))
+import Control.DeepSeq (NFData(..))
+import Control.Monad   (liftM)
+import Data.Data       (Data,Typeable)
+import Text.Read       (Read(..))
 
 import Data.Histogram.Bin.Classes
 import Data.Histogram.Bin.BinI
@@ -47,3 +47,5 @@ instance Show (BinEnum a) where
   show (BinEnum b) = "# BinEnum\n" ++ show b
 instance Read (BinEnum a) where
   readPrec = keyword "BinEnum" >> liftM BinEnum readPrec
+
+instance NFData (BinEnum a)

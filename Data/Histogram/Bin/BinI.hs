@@ -7,10 +7,10 @@ module Data.Histogram.Bin.BinI (
   , binI0
   ) where
 
-import Control.Monad (liftM2)
-import Data.Typeable (Typeable)
-import Data.Data     (Data)
-import Text.Read     (Read(..))
+import Control.DeepSeq (NFData(..))
+import Control.Monad   (liftM2)
+import Data.Data       (Data,Typeable)
+import Text.Read       (Read(..))
 
 import Data.Histogram.Bin.Classes
 import Data.Histogram.Parse
@@ -72,3 +72,5 @@ instance Show BinI where
                               ]
 instance Read BinI where
   readPrec = keyword "BinI" >> liftM2 BinI (value "Low") (value "High")
+
+instance NFData BinI

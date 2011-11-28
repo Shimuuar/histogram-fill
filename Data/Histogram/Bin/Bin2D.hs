@@ -9,9 +9,9 @@ module Data.Histogram.Bin.Bin2D (
   , fmapBinY
   ) where
 
-import Data.Typeable (Typeable)
-import Data.Data     (Data)
-import Text.Read     (Read(..))
+import Control.DeepSeq (NFData(..))
+import Data.Data       (Data,Typeable)
+import Text.Read       (Read(..))
 
 import Data.Histogram.Bin.Classes
 import Data.Histogram.Parse
@@ -80,3 +80,5 @@ instance (Read b1, Read b2) => Read (Bin2D b1 b2) where
     keyword "Y"
     b2 <- readPrec
     return $ Bin2D b1 b2
+
+instance NFData (Bin2D bx by)

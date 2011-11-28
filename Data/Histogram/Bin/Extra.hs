@@ -28,8 +28,7 @@ import Control.Monad.ST    (ST)
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as M
 import           Data.Vector.Generic            ((!))
-import Data.Typeable      (Typeable)
-import Data.Data          (Data)
+import Data.Data          (Data,Typeable)
 import Text.Read          (Read(..))         
 
 import Data.Histogram.Bin
