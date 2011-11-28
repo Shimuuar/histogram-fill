@@ -33,6 +33,8 @@ module Data.Histogram.Generic (
   , sliceYatIx
   , sliceX
   , sliceY
+  , reduceX
+  , reduceY
     -- * Modify histogram
   , histMap
   , histMapBin
@@ -243,3 +245,17 @@ sliceY h@(Histogram (Bin2D _ bY) _ _) = map (fromIndex bY &&& sliceXatIx h) [0 .
 sliceX :: (Vector v a, Bin bX, Bin bY)
        => Histogram v (Bin2D bX bY) a -> [(BinValue bX, Histogram v bY a)]
 sliceX h@(Histogram (Bin2D bX _) _ _) = map (fromIndex bX &&& sliceYatIx h) [0 .. nBins bX - 1]
+
+
+-- | Reduce along X axis
+reduceX :: (Vector v a, Vector v b, Bin bX, Bin bY)
+        => Histogram v (Bin2D bX bY) a -> (Histogram v bX a -> b) -> Histogram v bY b
+reduceX h@(Histogram (Bin2D bX bY) _ arr) f =
+  Histogram bY Nothing $ G.generate (nBins bY) (f . sliceXatIx h)
+
+
+-- | Reduce along Y axis
+reduceY :: (Vector v a, Vector v b, Bin bX, Bin bY)
+        => Histogram v (Bin2D bX bY) a -> (Histogram v bY a -> b) -> Histogram v bX b
+reduceY h@(Histogram (Bin2D bX bY) _ arr) f =
+  Histogram bX Nothing $ G.generate (nBins bY) (f . sliceYatIx h)
