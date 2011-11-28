@@ -29,6 +29,8 @@ module Data.Histogram.Generic (
   , sliceByIx
   , sliceByVal
     -- * Splitting 2D histograms
+  , sliceXatIx
+  , sliceYatIx
   , sliceX
   , sliceY
     -- * Modify histogram
@@ -39,7 +41,7 @@ module Data.Histogram.Generic (
   ) where
 
 import Control.Applicative ((<$>),(<*>))
-import Control.Arrow       ((***))
+import Control.Arrow       ((***), (&&&))
 import Control.Monad       (ap)
 import Control.DeepSeq     (NFData(..))
 
@@ -207,22 +209,37 @@ sliceByVal x y h
     where
       b = bins h
 
+-- | Get slice of 2D histogram along X axis
+sliceXatIx :: (Vector v a, Bin bX, Bin bY)
+           => Histogram v (Bin2D bX bY) a -- ^ 2D histogram
+           -> Int                         -- ^ Bin index along Y axis
+           -> Histogram v bX a
+sliceXatIx (Histogram (Bin2D bX bY) _ arr) iy
+  | iy >= 0 && iy < ny = Histogram bX Nothing $ G.slice (nx * iy) nx arr
+  | otherwise          = error "Data.Histogram.Generic.Histogram.sliceXatIx: bad index"
+  where
+    nx = nBins bX
+    ny = nBins bY
+
+-- | Get slice of 2D histogram along X axis
+sliceYatIx :: (Vector v a, Bin bX, Bin bY)
+           => Histogram v (Bin2D bX bY) a -- ^ 2D histogram
+           -> Int                         -- ^ Bin index along X axis
+           -> Histogram v bY a
+sliceYatIx (Histogram (Bin2D bX bY) _ arr) ix
+  | ix >= 0 && ix < nx = Histogram bY Nothing $ G.generate ny (\iy -> arr ! (iy*nx + ix))
+  | otherwise          = error "Data.Histogram.Generic.Histogram.sliceXatIx: bad index"
+  where
+    nx = nBins bX
+    ny = nBins bY
+
 
 -- | Slice 2D histogram along Y axis. This function is fast because it does not require reallocations.
 sliceY :: (Vector v a, Bin bX, Bin bY)
        => Histogram v (Bin2D bX bY) a -> [(BinValue bY, Histogram v bX a)]
-sliceY (Histogram b _ a) = map mkSlice [0 .. ny-1]
-    where
-      (nx, ny)  = nBins2D b
-      mkSlice i = ( fromIndex (binY b) i
-                  , Histogram (binX b) Nothing (G.slice (nx*i) nx a) )
+sliceY h@(Histogram (Bin2D _ bY) _ _) = map (fromIndex bY &&& sliceXatIx h) [0 .. nBins bY - 1]
 
 -- | Slice 2D histogram along X axis.
 sliceX :: (Vector v a, Bin bX, Bin bY)
        => Histogram v (Bin2D bX bY) a -> [(BinValue bX, Histogram v bY a)]
-sliceX (Histogram b _ a) = map mkSlice [0 .. nx-1]
-    where
-      (nx, ny)  = nBins2D b
-      mkSlice i = ( fromIndex (binX b) i
-                  , Histogram (binY b) Nothing (mkArray i))
-      mkArray x = G.generate ny (\y -> a ! (y*nx + x))
+sliceX h@(Histogram (Bin2D bX _) _ _) = map (fromIndex bX &&& sliceYatIx h) [0 .. nBins bX - 1]
