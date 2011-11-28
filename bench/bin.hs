@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
-import Control.Applicative
+import Control.Monad
 import Control.Monad.ST
 import qualified Data.Vector.Unboxed as U
 import System.Random.MWC
@@ -43,8 +43,8 @@ fill hb vec = runST $ do
 
 mkRange n = runST $ do
   gen <- create
-  U.replicateM n (uniformR (-10,110) g)
+  U.replicateM n (uniform gen)
 
 mkRangeW n = runST $ do
   gen <- create
-  U.replicateM n ((,) <$> uniformR (-10,110) g <*> uniformR (0,10))
+  U.replicateM n $ liftM2 (,) (uniformR (-10,110) gen) (uniformR (0,10) gen)
