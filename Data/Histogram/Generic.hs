@@ -27,6 +27,7 @@ module Data.Histogram.Generic (
   , asVector
     -- * Modification
   , histMap
+  , histBMap
   , histMapBin
   , histZip
   , histZipSafe
@@ -180,7 +181,14 @@ asVector (Histogram bin _ arr) = G.zip (G.generate (nBins bin) (fromIndex bin) )
 -- | fmap lookalike. It's not possible to create Functor instance
 --   because of type class context.
 histMap :: (Vector v a, Vector v b) => (a -> b) -> Histogram v bin a -> Histogram v bin b
-histMap f (Histogram bin uo a) = Histogram bin (fmap (f *** f) uo) (G.map f a)
+histMap f (Histogram bin uo a) = 
+  Histogram bin (fmap (f *** f) uo) (G.map f a)
+
+-- | Map histogram usig bin value and content. Overflows and underflows are set to Nothing.
+histBMap :: (Vector v a, Vector v b, Bin bin)
+         => (BinValue bin -> a -> b) -> Histogram v bin a -> Histogram v bin b
+histBMap f (Histogram bin uo vec) =
+  Histogram bin Nothing $ G.imap (f . fromIndex bin) vec
 
 -- | Apply function to histogram bins. Function must not change number of bins.
 --   If it does error is thrown.
