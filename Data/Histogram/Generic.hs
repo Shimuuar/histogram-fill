@@ -35,13 +35,17 @@ module Data.Histogram.Generic (
   , sliceByIx
   , sliceByVal
     -- * Splitting 2D histograms
+  , sliceXatIx
+  , sliceYatIx
   , sliceX
   , sliceY
+  , reduceX
+  , reduceY
     -- * Modify histogram
   ) where
 
 import Control.Applicative ((<$>),(<*>))
-import Control.Arrow       ((***))
+import Control.Arrow       ((***), (&&&))
 import Control.Monad       (ap)
 import Control.DeepSeq     (NFData(..))
 
@@ -68,15 +72,14 @@ data Histogram v bin a = Histogram bin (Maybe (a,a)) (v a)
 --
 -- Number of bins and vector size must match.
 histogram :: (Vector v a, Bin bin) => bin -> v a -> Histogram v bin a
-histogram b v | nBins b == G.length v = Histogram b Nothing v
-              | otherwise             = error "histogram: number of bins and vector size doesn't match"
+histogram b v = histogramUO b Nothing v
 
 -- | Create histogram from binning algorithm and vector with data. 
 --
 -- Number of bins and vector size must match.
 histogramUO :: (Vector v a, Bin bin) => bin -> Maybe (a,a) -> v a -> Histogram v bin a
 histogramUO b uo v | nBins b == G.length v = Histogram b uo v
-                   | otherwise             = error "histogram: number of bins and vector size doesn't match"
+                   | otherwise             = error "Data.Histogram.Generic.histogramUO: number of bins and vector size doesn't match"
 
 
 ----------------------------------------------------------------
@@ -168,7 +171,7 @@ asVector (Histogram bin _ arr) = G.zip (G.generate (nBins bin) (fromIndex bin) )
 ----------------------------------------------------------------
 
 -- | fmap lookalike. It's not possible to create Functor instance
---   because of class restrictions
+--   because of type class context.
 histMap :: (Vector v a, Vector v b) => (a -> b) -> Histogram v bin a -> Histogram v bin b
 histMap f (Histogram bin uo a) = Histogram bin (fmap (f *** f) uo) (G.map f a)
 
@@ -177,7 +180,7 @@ histMap f (Histogram bin uo a) = Histogram bin (fmap (f *** f) uo) (G.map f a)
 histMapBin :: (Bin bin, Bin bin') => (bin -> bin') -> Histogram v bin a -> Histogram v bin' a
 histMapBin f (Histogram bin uo a)
     | nBins bin == nBins bin' = Histogram (f bin) uo a
-    | otherwise               = error "Number of bins doesn't match"
+    | otherwise               = error "Data.Histogram.Generic.Histogram.histMapBin: Number of bins doesn't match"
     where
       bin' = bin
 
@@ -185,11 +188,9 @@ histMapBin f (Histogram bin uo a)
 --   otherwise error will be called.
 histZip :: (Bin bin, Eq bin, Vector v a, Vector v b, Vector v c) =>
            (a -> b -> c) -> Histogram v bin a -> Histogram v bin b -> Histogram v bin c
-histZip f (Histogram bin uo v) (Histogram bin' uo' v')
-    | bin /= bin' = error "histZip: bins are different"
-    | otherwise   = Histogram bin (f2 <$> uo <*> uo') (G.zipWith f v v')
-      where
-        f2 (x,x') (y,y') = (f x y, f x' y')
+histZip f ha hb = case histZipSafe f ha hb of
+                    Just hc -> hc
+                    Nothing -> error "Data.Histogram.Generic.Histogram.histZip: bins are different"
 
 -- | Zip two histogram elementwise. If bins are not equal return `Nothing`
 histZipSafe :: (Bin bin, Eq bin, Vector v a, Vector v b, Vector v c) =>
@@ -201,7 +202,7 @@ histZipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
         f2 (x,x') (y,y') = (f x y, f x' y')
 
 ----------------------------------------------------------------
--- Slicing
+-- Slicing and reducing histograms
 ----------------------------------------------------------------
 
 -- | Slice histogram using indices.
@@ -213,23 +214,55 @@ sliceByIx i j (Histogram b _ v) =
 sliceByVal :: (Bin1D bin, Vector v a) => BinValue bin -> BinValue bin -> Histogram v bin a -> Histogram v bin a
 sliceByVal x y h 
   | inRange b x && inRange b y = sliceByIx (toIndex b x) (toIndex b y) h
-  | otherwise                  = error "sliceByVal: Values are out of range"
+  | otherwise                  = error "Data.Histogram.Generic.Histogram.sliceByVal: Values are out of range"
     where
       b = bins h
 
+-- | Get slice of 2D histogram along X axis
+sliceXatIx :: (Vector v a, Bin bX, Bin bY)
+           => Histogram v (Bin2D bX bY) a -- ^ 2D histogram
+           -> Int                         -- ^ Bin index along Y axis
+           -> Histogram v bX a
+sliceXatIx (Histogram (Bin2D bX bY) _ arr) iy
+  | iy >= 0 && iy < ny = Histogram bX Nothing $ G.slice (nx * iy) nx arr
+  | otherwise          = error "Data.Histogram.Generic.Histogram.sliceXatIx: bad index"
+  where
+    nx = nBins bX
+    ny = nBins bY
+
+-- | Get slice of 2D histogram along X axis
+sliceYatIx :: (Vector v a, Bin bX, Bin bY)
+           => Histogram v (Bin2D bX bY) a -- ^ 2D histogram
+           -> Int                         -- ^ Bin index along X axis
+           -> Histogram v bY a
+sliceYatIx (Histogram (Bin2D bX bY) _ arr) ix
+  | ix >= 0 && ix < nx = Histogram bY Nothing $ G.generate ny (\iy -> arr ! (iy*nx + ix))
+  | otherwise          = error "Data.Histogram.Generic.Histogram.sliceXatIx: bad index"
+  where
+    nx = nBins bX
+    ny = nBins bY
+
+
 -- | Slice 2D histogram along Y axis. This function is fast because it does not require reallocations.
-sliceY :: (Vector v a, Bin bX, Bin bY) => Histogram v (Bin2D bX bY) a -> [(BinValue bY, Histogram v bX a)]
-sliceY (Histogram b _ a) = map mkSlice [0 .. ny-1]
-    where
-      (nx, ny) = nBins2D b
-      mkSlice i = ( fromIndex (binY b) i
-                  , Histogram (binX b) Nothing (G.slice (nx*i) nx a) )
+sliceY :: (Vector v a, Bin bX, Bin bY)
+       => Histogram v (Bin2D bX bY) a -> [(BinValue bY, Histogram v bX a)]
+sliceY h@(Histogram (Bin2D _ bY) _ _) = map (fromIndex bY &&& sliceXatIx h) [0 .. nBins bY - 1]
 
 -- | Slice 2D histogram along X axis.
-sliceX :: (Vector v a, Bin bX, Bin bY) => Histogram v (Bin2D bX bY) a -> [(BinValue bX, Histogram v bY a)]
-sliceX (Histogram b _ a) = map mkSlice [0 .. nx-1]
-    where
-      (nx, ny)  = nBins2D b
-      mkSlice i = ( fromIndex (binX b) i
-                  , Histogram (binY b) Nothing (mkArray i))
-      mkArray x = G.generate ny (\y -> a ! (y*nx + x))
+sliceX :: (Vector v a, Bin bX, Bin bY)
+       => Histogram v (Bin2D bX bY) a -> [(BinValue bX, Histogram v bY a)]
+sliceX h@(Histogram (Bin2D bX _) _ _) = map (fromIndex bX &&& sliceYatIx h) [0 .. nBins bX - 1]
+
+
+-- | Reduce along X axis
+reduceX :: (Vector v a, Vector v b, Bin bX, Bin bY)
+        => Histogram v (Bin2D bX bY) a -> (Histogram v bX a -> b) -> Histogram v bY b
+reduceX h@(Histogram (Bin2D bX bY) _ arr) f =
+  Histogram bY Nothing $ G.generate (nBins bY) (f . sliceXatIx h)
+
+
+-- | Reduce along Y axis
+reduceY :: (Vector v a, Vector v b, Bin bX, Bin bY)
+        => Histogram v (Bin2D bX bY) a -> (Histogram v bY a -> b) -> Histogram v bX b
+reduceY h@(Histogram (Bin2D bX bY) _ arr) f =
+  Histogram bX Nothing $ G.generate (nBins bY) (f . sliceYatIx h)
