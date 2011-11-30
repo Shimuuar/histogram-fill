@@ -31,6 +31,7 @@ module Data.Histogram.Generic (
   , mapBin
   , zip
   , zipSafe
+  , convert
     -- * Folding
   , fold
   , binFold
@@ -217,6 +218,10 @@ zipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
     | otherwise   = Just $ Histogram bin (f2 <$> uo <*> uo') (G.zipWith f v v')
       where
         f2 (x,x') (y,y') = (f x y, f x' y')
+
+-- | Convert between different vector types
+convert :: (Vector v a, Vector w a) => Histogram v bin a -> Histogram w bin a
+convert (Histogram bin uo vec) = Histogram bin uo (G.convert vec)
 
 
 
