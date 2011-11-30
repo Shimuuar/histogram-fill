@@ -102,6 +102,11 @@ instance (NFData a, NFData bin) => NFData (Histogram v bin a) where
    rnf (Histogram bin uo vec) = 
      rnf bin `seq` rnf uo `seq` seq vec ()
 
+-- | If vector is a functor then histogram is functor as well
+instance (Functor v) => Functor (Histogram v bin) where
+  fmap f (Histogram bin uo vec) = Histogram bin (fmap (f *** f) uo) (fmap f vec)
+
+
 -- Parse histogram header
 histHeader :: (Read bin, Read a, Bin bin, Vector v a) => ReadPrec (v a -> Histogram v bin a)
 histHeader = do
