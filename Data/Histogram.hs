@@ -35,10 +35,10 @@ module Data.Histogram ( -- * Immutable histogram
   , sliceX
   , sliceY
     -- * Modify histogram
-  , histMap
-  , histMapBin
-  , histZip
-  , histZipSafe
+  , map
+  , mapBin
+  , zip
+  , zipSafe
   ) where
 
 import qualified Data.Vector.Unboxed    as U
@@ -46,6 +46,9 @@ import Data.Vector.Unboxed (Unbox,Vector)
 
 import qualified Data.Histogram.Generic as H
 import Data.Histogram.Bin
+
+import Prelude hiding (map,zip)
+
 
 
 -- | Immutable histogram. Histogram consists of binning algorithm,
@@ -119,24 +122,24 @@ asVector = H.asVector
 
 -- | fmap lookalike. It's not possible to create Functor instance
 --   because of class restrictions
-histMap :: (Unbox a, Unbox b) => (a -> b) -> Histogram bin a -> Histogram bin b
-histMap = H.histMap
+map :: (Unbox a, Unbox b) => (a -> b) -> Histogram bin a -> Histogram bin b
+map = H.map
 
 -- | Apply function to histogram bins. Function must not change number of bins.
 --   If it does error is thrown.
-histMapBin :: (Bin bin, Bin bin') => (bin -> bin') -> Histogram bin a -> Histogram bin' a
-histMapBin = H.histMapBin
+mapBin :: (Bin bin, Bin bin') => (bin -> bin') -> Histogram bin a -> Histogram bin' a
+mapBin = H.mapBin
 
 -- | Zip two histograms elementwise. Bins of histograms must be equal
 --   otherwise error will be called.
-histZip :: (Bin bin, Eq bin, Unbox a, Unbox b, Unbox c) =>
+zip :: (Bin bin, Eq bin, Unbox a, Unbox b, Unbox c) =>
            (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Histogram bin c
-histZip = H.histZip
+zip = H.zip
            
 -- | Zip two histogram elementwise. If bins are not equal return `Nothing`
-histZipSafe :: (Bin bin, Eq bin, Unbox a, Unbox b, Unbox c) =>
+zipSafe :: (Bin bin, Eq bin, Unbox a, Unbox b, Unbox c) =>
            (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Maybe (Histogram bin c)
-histZipSafe = H.histZipSafe
+zipSafe = H.zipSafe
 
 sliceByIx :: (Bin1D bin, Unbox a) => Int -> Int -> Histogram bin a -> Histogram bin a
 sliceByIx = H.sliceByIx
