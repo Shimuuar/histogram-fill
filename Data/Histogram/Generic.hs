@@ -136,6 +136,8 @@ readHistogram str =
 readFileHistogram :: (Read bin, Read a, Bin bin, Vector v a) => FilePath -> IO (Histogram v bin a)
 readFileHistogram fname = readHistogram `fmap` readFile fname
 
+
+
 ----------------------------------------------------------------
 -- Accessors & conversion
 ----------------------------------------------------------------
@@ -168,6 +170,8 @@ asList (Histogram bin _ arr) = map (fromIndex bin) [0..] `zip` G.toList arr
 asVector :: (Bin bin, Vector v a, Vector v (BinValue bin), Vector v (BinValue bin,a)) 
          => Histogram v bin a -> v (BinValue bin, a) 
 asVector (Histogram bin _ arr) = G.zip (G.generate (nBins bin) (fromIndex bin) ) arr
+
+
 
 ----------------------------------------------------------------
 -- Modify histograms
