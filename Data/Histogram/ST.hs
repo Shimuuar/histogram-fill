@@ -22,88 +22,84 @@ module Data.Histogram.ST ( -- * Mutable histograms
 import Control.Monad.Primitive
 
 import Data.Monoid
--- import Data.Monoid.Statistics
-import qualified Data.Vector.Unboxed as U
-import qualified Data.Vector.Unboxed.Mutable as MU
-import qualified Data.Vector.Generic as G
+import qualified Data.Vector.Generic         as G
+import qualified Data.Vector.Generic.Mutable as M
 
-import Data.Histogram
+import Data.Histogram.Generic
 
 ----------------------------------------------------------------
 -- Mutable histograms
 ----------------------------------------------------------------
 
 -- | Mutable histogram.
-data MHistogram s bin a = MHistogram !bin !(MU.MVector s a) !(MU.MVector s a)
+data MHistogram s v bin a = MHistogram 
+                            !bin     -- Bin
+                            !(v s a) -- Under/overflows
+                            !(v s a) -- Bin contents
+
 
 -- | Create new mutable histogram. All bins are set to zero element as
 --   passed to function.
-newMHistogram :: (PrimMonad m, Bin bin, U.Unbox a) => a -> bin -> m (MHistogram (PrimState m) bin a)
+newMHistogram :: (PrimMonad m, Bin bin, M.MVector v a) => a -> bin -> m (MHistogram (PrimState m) v bin a)
 newMHistogram zero bin = do
-  uo <- MU.replicate 2 zero
-  a  <- MU.replicate (nBins bin) zero
+  uo <- M.replicate 2 zero
+  a  <- M.replicate (nBins bin) zero
   return $ MHistogram bin uo a
 {-# INLINE newMHistogram #-}
 
 -- | Put one value into histogram
-fillOne :: (PrimMonad m, Num a, U.Unbox a, Bin bin) => MHistogram (PrimState m) bin a -> BinValue bin -> m ()
+fillOne :: (PrimMonad m, Num a, M.MVector v a, Bin bin) => MHistogram (PrimState m) v bin a -> BinValue bin -> m ()
 fillOne (MHistogram bin uo arr) !x
-    | i < 0              = MU.unsafeWrite uo  0 . (+1)  =<< MU.unsafeRead uo 0
-    | i >= MU.length arr = MU.unsafeWrite uo  1 . (+1)  =<< MU.unsafeRead uo 1
-    | otherwise          = MU.unsafeWrite arr i . (+1)  =<< MU.unsafeRead arr i
+    | i < 0             = M.unsafeWrite uo  0 . (+1) =<< M.unsafeRead uo 0
+    | i >= M.length arr = M.unsafeWrite uo  1 . (+1) =<< M.unsafeRead uo 1
+    | otherwise         = M.unsafeWrite arr i . (+1) =<< M.unsafeRead arr i
     where
       i = toIndex bin x
 {-# INLINE fillOne #-}
 
 -- | Put one value into histogram with weight
-fillOneW :: (PrimMonad m, Num a, U.Unbox a, Bin bin) => MHistogram (PrimState m) bin a -> (BinValue bin, a) -> m ()
+fillOneW :: (PrimMonad m, Num a, M.MVector v a, Bin bin) => MHistogram (PrimState m) v bin a -> (BinValue bin, a) -> m ()
 fillOneW (MHistogram bin uo arr) (!x,!w)
-    | i < 0              = MU.unsafeWrite uo  0 . (+w)  =<< MU.unsafeRead uo 0
-    | i >= MU.length arr = MU.unsafeWrite uo  1 . (+w)  =<< MU.unsafeRead uo 1
-    | otherwise          = MU.unsafeWrite arr i . (+w)  =<< MU.unsafeRead arr i
+    | i < 0             = M.unsafeWrite uo  0 . (+w) =<< M.unsafeRead uo 0
+    | i >= M.length arr = M.unsafeWrite uo  1 . (+w) =<< M.unsafeRead uo 1
+    | otherwise         = M.unsafeWrite arr i . (+w) =<< M.unsafeRead arr i
     where
       i = toIndex bin x
 {-# INLINE fillOneW #-} 
 
 -- | Put one monoidal element
-fillMonoid :: (PrimMonad m, Monoid a, U.Unbox a, Bin bin) => MHistogram (PrimState m) bin a -> (BinValue bin, a) -> m ()
+fillMonoid :: (PrimMonad m, Monoid a, M.MVector v a, Bin bin) => MHistogram (PrimState m) v bin a -> (BinValue bin, a) -> m ()
 fillMonoid (MHistogram bin uo arr) (!x,!m)
-    | i < 0              = MU.unsafeWrite uo  0 . flip mappend m =<< MU.unsafeRead uo  0
-    | i >= MU.length arr = MU.unsafeWrite uo  1 . flip mappend m =<< MU.unsafeRead uo  1
-    | otherwise          = MU.unsafeWrite arr i . flip mappend m =<< MU.unsafeRead arr i
+    | i < 0             = M.unsafeWrite uo  0 . flip mappend m =<< M.unsafeRead uo  0
+    | i >= M.length arr = M.unsafeWrite uo  1 . flip mappend m =<< M.unsafeRead uo  1
+    | otherwise         = M.unsafeWrite arr i . flip mappend m =<< M.unsafeRead arr i
     where 
       i = toIndex bin x
 {-# INLINE fillMonoid #-}
 
--- -- | Add one element to monoidal accumulator
--- fillMonoidAccum :: (PrimMonad m, StatMonoid val a, U.Unbox val, Bin bin) 
---                 => MHistogram (PrimState m) bin val -> (BinValue bin, a) -> m ()
--- fillMonoidAccum (MHistogram bin uo arr) !(x,a)
---     | i < 0              = MU.unsafeWrite uo  0 . pappend a =<< MU.unsafeRead uo  0
---     | i >= MU.length arr = MU.unsafeWrite uo  1 . pappend a =<< MU.unsafeRead uo  1
---     | otherwise          = MU.unsafeWrite arr i . pappend a =<< MU.unsafeRead arr i
---     where 
---       i = toIndex bin x
--- {-# INLINE fillMonoidAccum #-}
-    
+
 -- | Create immutable histogram from mutable one. This operation is
 -- unsafe! Accumulator mustn't be used after that
-unsafeFreezeHist :: (PrimMonad m, U.Unbox a, Bin bin) => MHistogram (PrimState m) bin a -> m (Histogram bin a)
+unsafeFreezeHist :: (PrimMonad m, G.Vector v a, Bin bin) 
+                 => MHistogram (PrimState m) (G.Mutable v) bin a 
+                 -> m (Histogram v bin a)
 unsafeFreezeHist (MHistogram bin uo arr) = do
-  u <- MU.unsafeRead uo 0
-  o <- MU.unsafeRead uo 1
+  u <- M.unsafeRead uo 0
+  o <- M.unsafeRead uo 1
   a <- G.unsafeFreeze arr
   return $ histogramUO bin (Just (u,o)) a
 {-# INLINE unsafeFreezeHist #-}  
 
 -- | Create immutable histogram from mutable one.
-freezeHist :: (PrimMonad m, U.Unbox a, Bin bin) => MHistogram (PrimState m) bin a -> m (Histogram bin a)
+freezeHist :: (PrimMonad m, G.Vector v a, Bin bin) 
+           => MHistogram (PrimState m) (G.Mutable v) bin a 
+           -> m (Histogram v bin a)
 freezeHist (MHistogram bin uo arr) = do
-  u <- MU.unsafeRead uo 0
-  o <- MU.unsafeRead uo 1
+  u <- M.unsafeRead uo 0
+  o <- M.unsafeRead uo 1
   -- Copy array
-  tmp  <- MU.new (MU.length arr)
-  MU.copy tmp arr
+  tmp  <- M.new (M.length arr)
+  M.copy tmp arr
   a    <- G.unsafeFreeze tmp
   return $ histogramUO bin (Just (u,o)) a
 {-# INLINE freezeHist #-}
