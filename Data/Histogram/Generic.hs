@@ -26,14 +26,14 @@ module Data.Histogram.Generic (
   , asList
   , asVector
     -- * Modification
-  , histMap
-  , histBMap
-  , histMapBin
-  , histZip
-  , histZipSafe
+  , map
+  , bMap
+  , mapBin
+  , zip
+  , zipSafe
     -- * Folding
-  , histFold
-  , histBinFold
+  , fold
+  , binFold
     -- * Slicing histogram
   , sliceByIx
   , sliceByVal
@@ -56,6 +56,8 @@ import qualified Data.Vector.Generic         as G
 import Data.Typeable        (Typeable1(..), Typeable2(..), mkTyConApp, mkTyCon)
 import Data.Vector.Generic  (Vector,(!))
 import Text.Read
+import Prelude       hiding (map,zip)
+import qualified Prelude    (zip)
 
 import Data.Histogram.Bin
 import Data.Histogram.Parse
@@ -92,7 +94,7 @@ histogramUO b uo v
 
 instance (Show a, Show (BinValue bin), Show bin, Bin bin, Vector v a) => Show (Histogram v bin a) where
     show h@(Histogram bin uo _) = "# Histogram\n" ++ showUO uo ++ show bin ++
-                                  unlines (map showT $ asList h)
+                                  unlines (fmap showT $ asList h)
         where
           showT (x,y) = show x ++ "\t" ++ show y
           showUO (Just (u,o)) = "# Underflows = " ++ show u ++ "\n" ++
@@ -130,8 +132,8 @@ readHistogram str =
     let (h,rest) = case readPrec_to_S histHeader 0 str of
                      [x] -> x
                      _   -> error "Cannot parse histogram header"
-        xs = map (unwords . tail) . filter (not . null) . map words . lines $ rest
-    in h (G.fromList $ map read xs)
+        xs = fmap (unwords . tail) . filter (not . null) . fmap words . lines $ rest
+    in h (G.fromList $ fmap read xs)
 
 -- | Read histogram from file.
 readFileHistogram :: (Read bin, Read a, Bin bin, Vector v a) => FilePath -> IO (Histogram v bin a)
@@ -165,7 +167,8 @@ outOfRange (Histogram _ uo _) = uo
 
 -- | Convert histogram data to list.
 asList :: (Vector v a, Bin bin) => Histogram v bin a -> [(BinValue bin, a)]
-asList (Histogram bin _ arr) = map (fromIndex bin) [0..] `zip` G.toList arr
+asList (Histogram bin _ arr) = 
+  Prelude.zip (fromIndex bin <$> [0..]) (G.toList arr)
 
 -- | Convert histogram data to vector
 asVector :: (Bin bin, Vector v a, Vector v (BinValue bin), Vector v (BinValue bin,a)) 
@@ -180,36 +183,36 @@ asVector (Histogram bin _ arr) = G.zip (G.generate (nBins bin) (fromIndex bin) )
 
 -- | fmap lookalike. It's not possible to create Functor instance
 --   because of type class context.
-histMap :: (Vector v a, Vector v b) => (a -> b) -> Histogram v bin a -> Histogram v bin b
-histMap f (Histogram bin uo a) = 
+map :: (Vector v a, Vector v b) => (a -> b) -> Histogram v bin a -> Histogram v bin b
+map f (Histogram bin uo a) = 
   Histogram bin (fmap (f *** f) uo) (G.map f a)
 
 -- | Map histogram usig bin value and content. Overflows and underflows are set to Nothing.
-histBMap :: (Vector v a, Vector v b, Bin bin)
+bMap :: (Vector v a, Vector v b, Bin bin)
          => (BinValue bin -> a -> b) -> Histogram v bin a -> Histogram v bin b
-histBMap f (Histogram bin uo vec) =
+bMap f (Histogram bin uo vec) =
   Histogram bin Nothing $ G.imap (f . fromIndex bin) vec
 
 -- | Apply function to histogram bins. Function must not change number of bins.
 --   If it does error is thrown.
-histMapBin :: (Bin bin, Bin bin') => (bin -> bin') -> Histogram v bin a -> Histogram v bin' a
-histMapBin f (Histogram bin uo a)
-    | nBins bin == nBins bin' = Histogram (f bin) uo a
-    | otherwise               = error "Data.Histogram.Generic.Histogram.histMapBin: Number of bins doesn't match"
-    where
-      bin' = bin
+mapBin :: (Bin bin, Bin bin') => (bin -> bin') -> Histogram v bin a -> Histogram v bin' a
+mapBin f (Histogram bin uo a)
+  | nBins bin == nBins bin' = Histogram (f bin) uo a
+  | otherwise               = error "Data.Histogram.Generic.Histogram.histMapBin: Number of bins doesn't match"
+  where
+    bin' = bin
 
 -- | Zip two histograms elementwise. Bins of histograms must be equal
 --   otherwise error will be called.
-histZip :: (Bin bin, Eq bin, Vector v a, Vector v b, Vector v c) =>
-           (a -> b -> c) -> Histogram v bin a -> Histogram v bin b -> Histogram v bin c
-histZip f ha hb = maybe (error msg) id $ histZipSafe f ha hb 
+zip :: (Bin bin, Eq bin, Vector v a, Vector v b, Vector v c) =>
+       (a -> b -> c) -> Histogram v bin a -> Histogram v bin b -> Histogram v bin c
+zip f ha hb = maybe (error msg) id $ zipSafe f ha hb 
   where msg = "Data.Histogram.Generic.Histogram.histZip: bins are different"
 
 -- | Zip two histogram elementwise. If bins are not equal return `Nothing`
-histZipSafe :: (Bin bin, Eq bin, Vector v a, Vector v b, Vector v c) =>
+zipSafe :: (Bin bin, Eq bin, Vector v a, Vector v b, Vector v c) =>
            (a -> b -> c) -> Histogram v bin a -> Histogram v bin b -> Maybe (Histogram v bin c)
-histZipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
+zipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
     | bin /= bin' = Nothing
     | otherwise   = Just $ Histogram bin (f2 <$> uo <*> uo') (G.zipWith f v v')
       where
@@ -222,14 +225,14 @@ histZipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
 ----------------------------------------------------------------
 
 -- | Fold over bin content in index order. Underflows and overflows are ignored.
-histFold :: (Bin bin, Vector v a) => (b -> a -> b) -> b -> Histogram v bin a -> b
-histFold f x0 (Histogram _ _ vec) = 
+fold :: (Bin bin, Vector v a) => (b -> a -> b) -> b -> Histogram v bin a -> b
+fold f x0 (Histogram _ _ vec) = 
   G.foldl' f x0 vec
 
 -- | Fold over bin content in index order. Function is applied to bin
 --   content and bin value. Underflows and overflows are ignored.
-histBinFold :: (Bin bin, Vector v a) => (b -> BinValue bin -> a -> b) -> b -> Histogram v bin a -> b
-histBinFold f x0 (Histogram bin _ vec) = 
+binFold :: (Bin bin, Vector v a) => (b -> BinValue bin -> a -> b) -> b -> Histogram v bin a -> b
+binFold f x0 (Histogram bin _ vec) = 
   G.ifoldl' (\acc -> f acc . fromIndex bin) x0 vec
 
 
@@ -279,12 +282,12 @@ sliceYatIx (Histogram (Bin2D bX bY) _ arr) ix
 -- | Slice 2D histogram along Y axis. This function is fast because it does not require reallocations.
 sliceY :: (Vector v a, Bin bX, Bin bY)
        => Histogram v (Bin2D bX bY) a -> [(BinValue bY, Histogram v bX a)]
-sliceY h@(Histogram (Bin2D _ bY) _ _) = map (fromIndex bY &&& sliceXatIx h) [0 .. nBins bY - 1]
+sliceY h@(Histogram (Bin2D _ bY) _ _) = fmap (fromIndex bY &&& sliceXatIx h) [0 .. nBins bY - 1]
 
 -- | Slice 2D histogram along X axis.
 sliceX :: (Vector v a, Bin bX, Bin bY)
        => Histogram v (Bin2D bX bY) a -> [(BinValue bX, Histogram v bY a)]
-sliceX h@(Histogram (Bin2D bX _) _ _) = map (fromIndex bX &&& sliceYatIx h) [0 .. nBins bX - 1]
+sliceX h@(Histogram (Bin2D bX _) _ _) = fmap (fromIndex bX &&& sliceYatIx h) [0 .. nBins bX - 1]
 
 
 -- | Reduce along X axis
