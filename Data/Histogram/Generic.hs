@@ -25,6 +25,12 @@ module Data.Histogram.Generic (
     -- ** Convert to other data types
   , asList
   , asVector
+    -- * Modification
+  , histMap
+  , histMapBin
+  , histZip
+  , histZipSafe
+    -- * Folding
     -- * Slicing histogram
   , sliceByIx
   , sliceByVal
@@ -32,10 +38,6 @@ module Data.Histogram.Generic (
   , sliceX
   , sliceY
     -- * Modify histogram
-  , histMap
-  , histMapBin
-  , histZip
-  , histZipSafe
   ) where
 
 import Control.Applicative ((<$>),(<*>))
@@ -193,6 +195,9 @@ histZipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
       where
         f2 (x,x') (y,y') = (f x y, f x' y')
 
+----------------------------------------------------------------
+-- Slicing
+----------------------------------------------------------------
 
 -- | Slice histogram using indices.
 sliceByIx :: (Bin1D bin, Vector v a) => Int -> Int -> Histogram v bin a -> Histogram v bin a
