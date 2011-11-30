@@ -31,6 +31,8 @@ module Data.Histogram.Generic (
   , histZip
   , histZipSafe
     -- * Folding
+  , histFold
+  , histBinFold
     -- * Slicing histogram
   , sliceByIx
   , sliceByVal
@@ -200,6 +202,25 @@ histZipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
     | otherwise   = Just $ Histogram bin (f2 <$> uo <*> uo') (G.zipWith f v v')
       where
         f2 (x,x') (y,y') = (f x y, f x' y')
+
+
+
+----------------------------------------------------------------
+-- Folding
+----------------------------------------------------------------
+
+-- | Fold over bin content in index order. Underflows and overflows are ignored.
+histFold :: (Bin bin, Vector v a) => (b -> a -> b) -> b -> Histogram v bin a -> b
+histFold f x0 (Histogram _ _ vec) = 
+  G.foldl' f x0 vec
+
+-- | Fold over bin content in index order. Function is applied to bin
+--   content and bin value. Underflows and overflows are ignored.
+histBinFold :: (Bin bin, Vector v a) => (b -> BinValue bin -> a -> b) -> b -> Histogram v bin a -> b
+histBinFold f x0 (Histogram bin _ vec) = 
+  G.ifoldl' (\acc -> f acc . fromIndex bin) x0 vec
+
+
 
 ----------------------------------------------------------------
 -- Slicing and reducing histograms
