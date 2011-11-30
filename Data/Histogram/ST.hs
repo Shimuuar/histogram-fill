@@ -97,10 +97,7 @@ freezeHist :: (PrimMonad m, G.Vector v a, Bin bin)
 freezeHist (MHistogram bin uo arr) = do
   u <- M.unsafeRead uo 0
   o <- M.unsafeRead uo 1
-  -- Copy array
-  tmp  <- M.new (M.length arr)
-  M.copy tmp arr
-  a    <- G.unsafeFreeze tmp
+  a <- G.freeze
   return $ histogramUO bin (Just (u,o)) a
 {-# INLINE freezeHist #-}
 
