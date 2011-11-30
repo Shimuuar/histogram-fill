@@ -78,8 +78,9 @@ histogram b v = histogramUO b Nothing v
 --
 -- Number of bins and vector size must match.
 histogramUO :: (Vector v a, Bin bin) => bin -> Maybe (a,a) -> v a -> Histogram v bin a
-histogramUO b uo v | nBins b == G.length v = Histogram b uo v
-                   | otherwise             = error "Data.Histogram.Generic.histogramUO: number of bins and vector size doesn't match"
+histogramUO b uo v 
+  | nBins b == G.length v = Histogram b uo v
+  | otherwise             = error "Data.Histogram.Generic.histogramUO: number of bins and vector size doesn't match"
 
 
 ----------------------------------------------------------------
@@ -188,9 +189,8 @@ histMapBin f (Histogram bin uo a)
 --   otherwise error will be called.
 histZip :: (Bin bin, Eq bin, Vector v a, Vector v b, Vector v c) =>
            (a -> b -> c) -> Histogram v bin a -> Histogram v bin b -> Histogram v bin c
-histZip f ha hb = case histZipSafe f ha hb of
-                    Just hc -> hc
-                    Nothing -> error "Data.Histogram.Generic.Histogram.histZip: bins are different"
+histZip f ha hb = maybe (error msg) id $ histZipSafe f ha hb 
+  where msg = "Data.Histogram.Generic.Histogram.histZip: bins are different"
 
 -- | Zip two histogram elementwise. If bins are not equal return `Nothing`
 histZipSafe :: (Bin bin, Eq bin, Vector v a, Vector v b, Vector v c) =>
