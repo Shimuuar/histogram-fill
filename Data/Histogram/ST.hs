@@ -32,49 +32,46 @@ import Data.Histogram.Generic
 ----------------------------------------------------------------
 
 -- | Mutable histogram.
-data MHistogram s v bin a = MHistogram 
-                            !bin     -- Bin
-                            !(v s a) -- Under/overflows
-                            !(v s a) -- Bin contents
+data MHistogram s v bin a =
+  MHistogram
+    {-# UNPACK #-} !Int -- Number of bins
+    !bin                -- Binning
+    !(v s a)            -- Bin contents. Underflows are stored at the
+                        -- n'th index and overflow are in the n+1
 
 
 -- | Create new mutable histogram. All bins are set to zero element as
 --   passed to function.
 newMHistogram :: (PrimMonad m, Bin bin, M.MVector v a) => a -> bin -> m (MHistogram (PrimState m) v bin a)
 newMHistogram zero bin = do
-  uo <- M.replicate 2 zero
-  a  <- M.replicate (nBins bin) zero
-  return $ MHistogram bin uo a
+  let n = nBins bin
+  a  <- M.replicate (n + 2) zero
+  return $ MHistogram n bin a
 {-# INLINE newMHistogram #-}
+
+-- Generic fill
+fill :: (PrimMonad m, M.MVector v a, Bin bin) => MHistogram (PrimState m) v bin a -> BinValue bin -> (a -> a) -> m ()
+fill (MHistogram n bin arr) !x f
+  | i <  0    = M.unsafeWrite arr  n    . f =<< M.unsafeRead arr n
+  | i >= n    = M.unsafeWrite arr (n+1) . f =<< M.unsafeRead arr (n+1)
+  | otherwise = M.unsafeWrite arr  i    . f =<< M.unsafeRead arr i
+  where
+    i = toIndex bin x
+{-# INLINE fill #-}
 
 -- | Put one value into histogram
 fillOne :: (PrimMonad m, Num a, M.MVector v a, Bin bin) => MHistogram (PrimState m) v bin a -> BinValue bin -> m ()
-fillOne (MHistogram bin uo arr) !x
-    | i < 0             = M.unsafeWrite uo  0 . (+1) =<< M.unsafeRead uo 0
-    | i >= M.length arr = M.unsafeWrite uo  1 . (+1) =<< M.unsafeRead uo 1
-    | otherwise         = M.unsafeWrite arr i . (+1) =<< M.unsafeRead arr i
-    where
-      i = toIndex bin x
+fillOne h !x = fill h x (+1)
 {-# INLINE fillOne #-}
 
 -- | Put one value into histogram with weight
 fillOneW :: (PrimMonad m, Num a, M.MVector v a, Bin bin) => MHistogram (PrimState m) v bin a -> (BinValue bin, a) -> m ()
-fillOneW (MHistogram bin uo arr) (!x,!w)
-    | i < 0             = M.unsafeWrite uo  0 . (+w) =<< M.unsafeRead uo 0
-    | i >= M.length arr = M.unsafeWrite uo  1 . (+w) =<< M.unsafeRead uo 1
-    | otherwise         = M.unsafeWrite arr i . (+w) =<< M.unsafeRead arr i
-    where
-      i = toIndex bin x
+fillOneW h (!x,!w) = fill h x (+w)
 {-# INLINE fillOneW #-} 
 
 -- | Put one monoidal element
 fillMonoid :: (PrimMonad m, Monoid a, M.MVector v a, Bin bin) => MHistogram (PrimState m) v bin a -> (BinValue bin, a) -> m ()
-fillMonoid (MHistogram bin uo arr) (!x,!m)
-    | i < 0             = M.unsafeWrite uo  0 . flip mappend m =<< M.unsafeRead uo  0
-    | i >= M.length arr = M.unsafeWrite uo  1 . flip mappend m =<< M.unsafeRead uo  1
-    | otherwise         = M.unsafeWrite arr i . flip mappend m =<< M.unsafeRead arr i
-    where 
-      i = toIndex bin x
+fillMonoid h (!x,!m) = fill h x (`mappend` m)
 {-# INLINE fillMonoid #-}
 
 
@@ -83,10 +80,10 @@ fillMonoid (MHistogram bin uo arr) (!x,!m)
 unsafeFreezeHist :: (PrimMonad m, G.Vector v a, Bin bin) 
                  => MHistogram (PrimState m) (G.Mutable v) bin a 
                  -> m (Histogram v bin a)
-unsafeFreezeHist (MHistogram bin uo arr) = do
-  u <- M.unsafeRead uo 0
-  o <- M.unsafeRead uo 1
-  a <- G.unsafeFreeze arr
+unsafeFreezeHist (MHistogram n bin arr) = do
+  u <- M.unsafeRead arr  n
+  o <- M.unsafeRead arr (n+1)
+  a <- G.unsafeFreeze $ M.slice 0 n arr
   return $ histogramUO bin (Just (u,o)) a
 {-# INLINE unsafeFreezeHist #-}  
 
@@ -94,10 +91,10 @@ unsafeFreezeHist (MHistogram bin uo arr) = do
 freezeHist :: (PrimMonad m, G.Vector v a, Bin bin) 
            => MHistogram (PrimState m) (G.Mutable v) bin a 
            -> m (Histogram v bin a)
-freezeHist (MHistogram bin uo arr) = do
-  u <- M.unsafeRead uo 0
-  o <- M.unsafeRead uo 1
-  a <- G.freeze arr
+freezeHist (MHistogram n bin arr) = do
+  u <- M.unsafeRead arr  n
+  o <- M.unsafeRead arr (n+1)
+  a <- G.freeze $ M.slice 0 n arr
   return $ histogramUO bin (Just (u,o)) a
 {-# INLINE freezeHist #-}
 
