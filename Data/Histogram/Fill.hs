@@ -39,6 +39,7 @@ module Data.Histogram.Fill (
   , mkFolder
     -- * Fill histograms
   , fillBuilder
+  , fillBuilderVec
     -- * Auxillary functions
     -- $auxillary
   , forceInt
@@ -57,8 +58,9 @@ import Data.STRef
 import Data.Monoid            (Monoid(..))
 -- import Data.Monoid.Statistics (StatMonoid)
 import Data.Vector.Unboxed    (Unbox)
-import qualified Data.Foldable    as F (Foldable,mapM_)
-import qualified Data.Traversable as F (Traversable,mapM)
+import qualified Data.Vector.Generic as G
+import qualified Data.Foldable       as F (Foldable,mapM_)
+import qualified Data.Traversable    as F (Traversable,mapM)
 
 import Data.Histogram
 import Data.Histogram.Bin
@@ -357,6 +359,13 @@ fillBuilder :: F.Foldable f => HBuilder a b -> f a -> b
 fillBuilder hb xs =
     runST $ do h <- toHBuilderST hb
                F.mapM_ (feedOne h) xs
+               freezeHBuilderM h
+
+-- | Fill histogram builder.
+fillBuilderVec :: G.Vector v a => HBuilder a b -> v a -> b
+fillBuilderVec hb vec =
+    runST $ do h <- toHBuilderST hb
+               G.mapM_ (feedOne h) vec
                freezeHBuilderM h
 
 ----------------------------------------------------------------
