@@ -9,43 +9,44 @@
 --
 -- Stateful and pure (still stateful under the hood) accumulators. 
 --
-module Data.Histogram.Fill ( -- * Builder type class
-                             HistBuilder(..)
-                             -- ** Operators
-                           , (<<-)
-                           , (<<-|)
-                           , (<<?)
-                           , (<<-$)
-                           , (-<<)
-                             -- * Histogram builders
-                             -- ** Stateful
-                           , HBuilderM
-                           , feedOne
-                           , freezeHBuilderM
-                           , joinHBuilderM
-                           , treeHBuilderM
-                             -- ** Stateless
-                           , HBuilder
-                           , toHBuilderST
-                           , toHBuilderIO
-                           , joinHBuilder
-                           , treeHBuilder
-                             -- * Histogram constructors
-                           , module Data.Histogram.Bin
-                           , mkSimple
-                           , mkWeighted
-                           , mkMonoidal
-                           , mkFolder
-                             -- * Fill histograms
-                           , fillBuilder
-                             -- * Auxillary functions
-                             -- $auxillary
-                           , forceInt
-                           , forceDouble
-                           , forceFloat
-                             -- * Examples
-                             -- $examples
-                           ) where
+module Data.Histogram.Fill ( 
+    -- * Builder type class
+    HistBuilder(..)
+    -- ** Operators
+  , (<<-)
+  , (<<-|)
+  , (<<?)
+  , (<<-$)
+  , (-<<)
+    -- * Histogram builders
+    -- ** Stateful
+  , HBuilderM
+  , feedOne
+  , freezeHBuilderM
+  , joinHBuilderM
+  , treeHBuilderM
+    -- ** Stateless
+  , HBuilder
+  , toHBuilderST
+  , toHBuilderIO
+  , joinHBuilder
+  , treeHBuilder
+    -- * Histogram constructors
+  , module Data.Histogram.Bin
+  , mkSimple
+  , mkWeighted
+  , mkMonoidal
+  , mkFolder
+    -- * Fill histograms
+  , fillBuilder
+    -- * Auxillary functions
+    -- $auxillary
+  , forceInt
+  , forceDouble
+  , forceFloat
+    -- * Examples
+    -- $examples
+  ) where
 
 import Control.Applicative
 import Control.Monad       (when,liftM,liftM2)
