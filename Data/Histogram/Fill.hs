@@ -302,45 +302,48 @@ treeHBuilder fs h = joinHBuilder $ fmap ($ h) fs
 --   item put into histogram
 mkSimple :: (Bin bin, Unbox val, Num val
             ) => bin -> HBuilder (BinValue bin) (Histogram bin val)
-mkSimple bin =
-  HBuilder $ do acc <- newMHistogram 0 bin
-                return HBuilderM { hbInput  = fillOne acc
-                                 , hbOutput = freezeHist acc
-                                 }
+mkSimple bin = HBuilder $ do
+  acc <- newMHistogram 0 bin
+  return HBuilderM { hbInput  = fillOne    acc
+                   , hbOutput = freezeHist acc
+                   }
 {-# INLINE mkSimple #-}
 
 -- | Create builder. Bin content will incremented by weight supplied
 --   for each item put into histogram
 mkWeighted :: (Bin bin, Unbox val, Num val
               ) => bin -> HBuilder (BinValue bin,val) (Histogram bin val)
-mkWeighted bin = HBuilder $ do acc <- newMHistogram 0 bin
-                               return HBuilderM { hbInput  = fillOneW acc
-                                                , hbOutput = freezeHist acc
-                                                }
+mkWeighted bin = HBuilder $ do
+  acc <- newMHistogram 0 bin
+  return HBuilderM { hbInput  = fillOneW acc
+                   , hbOutput = freezeHist acc
+                   }
 {-# INLINE mkWeighted #-}
 
 -- | Create builder. New value wil be mappended to current content of
 --   a bin for each item put into histogram
 mkMonoidal :: (Bin bin, Unbox val, Monoid val
               ) => bin -> HBuilder (BinValue bin,val) (Histogram bin val)
-mkMonoidal bin = HBuilder $ do acc <- newMHistogram mempty bin
-                               return HBuilderM { hbInput  = fillMonoid acc
-                                                , hbOutput = freezeHist acc
-                                                }
+mkMonoidal bin = HBuilder $ do
+  acc <- newMHistogram mempty bin
+  return HBuilderM { hbInput  = fillMonoid acc
+                   , hbOutput = freezeHist acc
+                   }
 {-# INLINE mkMonoidal #-}
-
 
 -- | Create histogram builder which just does ordinary pure fold. It
 -- is intended for use when some fold should be performed together
 -- with histogram filling
 mkFolder :: b -> (a -> b -> b) -> HBuilder a b
-mkFolder a f = HBuilder $ do ref <- newSTRef a
-                             return HBuilderM { hbInput  = \x -> do acc <- readSTRef ref
-                                                                    let !acc' = f x acc
-                                                                    writeSTRef ref acc'
-                                              , hbOutput = readSTRef ref
-                                              }
+mkFolder a f = HBuilder $ do
+  ref <- newSTRef a
+  return HBuilderM { hbInput  = \x -> do acc <- readSTRef ref
+                                         let !acc' = f x acc
+                                         writeSTRef ref acc'
+                   , hbOutput = readSTRef ref
+                   }
 {-# INLINE mkFolder #-}
+
 
 -- mkMonoidalAcc :: (Bin bin, Unbox val, StatMonoid val a
 --                  ) => bin -> HBuilder (BinValue bin,a) (Histogram bin val)
