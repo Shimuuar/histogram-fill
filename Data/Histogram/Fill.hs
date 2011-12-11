@@ -56,13 +56,13 @@ import Control.Monad.Primitive
 
 import Data.STRef
 import Data.Monoid            (Monoid(..))
--- import Data.Monoid.Statistics (StatMonoid)
 import Data.Vector.Unboxed    (Unbox)
 import qualified Data.Vector.Generic as G
 import qualified Data.Foldable       as F (Foldable,mapM_)
 import qualified Data.Traversable    as F (Traversable,mapM)
 
 import Data.Histogram
+import qualified Data.Histogram.Generic as H
 import Data.Histogram.Bin
 import Data.Histogram.ST
 
@@ -386,11 +386,11 @@ fillBuilderVec hb vec =
 --
 -- > show . forceInt -<< mkSimple (BinI 1 10)
 
-forceInt :: Histogram bin Int -> Histogram bin Int
+forceInt :: H.Histogram v bin Int -> H.Histogram v bin Int
 forceInt = id
 
-forceDouble :: Histogram bin Double -> Histogram bin Double
+forceDouble :: H.Histogram v bin Double -> H.Histogram v bin Double
 forceDouble = id
 
-forceFloat :: Histogram bin Float -> Histogram bin Float
+forceFloat :: H.Histogram v bin Float -> H.Histogram v bin Float
 forceFloat = id
