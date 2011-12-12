@@ -198,10 +198,10 @@ bMap f (Histogram bin uo vec) =
 --   If it does error is thrown.
 mapBin :: (Bin bin, Bin bin') => (bin -> bin') -> Histogram v bin a -> Histogram v bin' a
 mapBin f (Histogram bin uo a)
-  | nBins bin == nBins bin' = Histogram (f bin) uo a
+  | nBins bin == nBins bin' = Histogram bin' uo a
   | otherwise               = error "Data.Histogram.Generic.Histogram.histMapBin: Number of bins doesn't match"
   where
-    bin' = bin
+    bin' = f bin
 
 -- | Zip two histograms elementwise. Bins of histograms must be equal
 --   otherwise error will be called.
