@@ -32,8 +32,12 @@ module Data.Histogram ( -- * Immutable histogram
   , sliceByIx
   , sliceByVal
     -- * Splitting 2D histograms
+  , sliceXatIx
+  , sliceYatIx
   , sliceX
   , sliceY
+  , reduceX
+  , reduceY
     -- * Modify histogram
   , histMap
   , histMapBin
@@ -144,6 +148,23 @@ sliceByIx = H.sliceByIx
 sliceByVal :: (Bin1D bin, Unbox a) => BinValue bin -> BinValue bin -> Histogram bin a -> Histogram bin a
 sliceByVal = H.sliceByVal
 
+
+
+-- | Get slice of 2D histogram along X axis
+sliceXatIx :: (Unbox a, Bin bX, Bin bY)
+           => Histogram (Bin2D bX bY) a -- ^ 2D histogram
+           -> Int                         -- ^ Bin index along Y axis
+           -> Histogram bX a
+sliceXatIx = H.sliceXatIx
+
+-- | Get slice of 2D histogram along X axis
+sliceYatIx :: (Unbox a, Bin bX, Bin bY)
+           => Histogram (Bin2D bX bY) a -- ^ 2D histogram
+           -> Int                         -- ^ Bin index along X axis
+           -> Histogram bY a
+sliceYatIx = H.sliceYatIx
+
+
 -- | Slice 2D histogram along Y axis. This function is fast because it does not require reallocations.
 sliceY :: (Unbox a, Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bY, Histogram bX a)]
 sliceY = H.sliceY
@@ -151,3 +172,13 @@ sliceY = H.sliceY
 -- | Slice 2D histogram along X axis.
 sliceX :: (Unbox a, Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bX, Histogram bY a)]
 sliceX = H.sliceX
+
+-- | Reduce along X axis
+reduceX :: (Unbox a, Unbox b, Bin bX, Bin bY)
+        => Histogram (Bin2D bX bY) a -> (Histogram bX a -> b) -> Histogram bY b
+reduceX = H.reduceX
+
+-- | Reduce along Y axis
+reduceY :: (Unbox a, Unbox b, Bin bX, Bin bY)
+        => Histogram (Bin2D bX bY) a -> (Histogram bY a -> b) -> Histogram bX b
+reduceY = H.reduceY
