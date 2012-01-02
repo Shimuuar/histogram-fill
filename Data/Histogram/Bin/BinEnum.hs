@@ -16,7 +16,8 @@ import Data.Histogram.Bin.Classes
 import Data.Histogram.Bin.BinI
 import Data.Histogram.Parse
 
--- | Bin for types which are instnaces of Enum type class
+-- | Bin for types which are instnaces of Enum type class. Value are
+--   converted to 'Int' using 'fromEnum' first and then binned.
 newtype BinEnum a = BinEnum BinI
                     deriving (Eq,Data,Typeable,GrowBin)
 
