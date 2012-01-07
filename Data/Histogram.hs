@@ -8,8 +8,9 @@
 -- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- Stability  : experimental
 -- 
--- Immutable histograms. 
-
+-- Immutable histograms. This module export same APi as
+-- 'Data.Histogram.Generic' but specialzed to unboxed vectors. Refer
+-- aforementioned module for documentation.
 module Data.Histogram ( -- * Immutable histogram
     -- * Data type
     Histogram
@@ -59,16 +60,9 @@ import Prelude hiding (map,zip)
 --   optional number of under and overflows, and data. 
 type Histogram bin a = H.Histogram U.Vector bin a
 
--- | Create histogram from binning algorithm and vector with
--- data. Overflows are set to Nothing. 
---
--- Number of bins and vector size must match.
 histogram :: (Unbox a, Bin bin) => bin -> Vector a -> Histogram bin a
 histogram = H.histogram
 
--- | Create histogram from binning algorithm and vector with data. 
---
--- Number of bins and vector size must match.
 histogramUO :: (Unbox a, Bin bin) => bin -> Maybe (a,a) -> Vector a -> Histogram bin a
 histogramUO = H.histogramUO
 
@@ -78,12 +72,9 @@ histogramUO = H.histogramUO
 ----------------------------------------------------------------
 
 
--- | Convert String to histogram. Histogram do not have Read instance
---   because of slowness of ReadP
 readHistogram :: (Read bin, Read a, Bin bin, Unbox a) => String -> Histogram bin a
 readHistogram = H.readHistogram
 
--- | Read histogram from file.
 readFileHistogram :: (Read bin, Read a, Bin bin, Unbox a) => FilePath -> IO (Histogram bin a)
 readFileHistogram = H.readFileHistogram
 
@@ -91,31 +82,24 @@ readFileHistogram = H.readFileHistogram
 -- Accessors & conversion
 ----------------------------------------------------------------
 
--- | Histogram bins
 bins :: Histogram bin a -> bin
 bins = H.bins
 
--- | Histogram data as vector
 histData :: Histogram bin a -> Vector a
 histData = H.histData
 
--- | Number of underflows
 underflows :: Histogram bin a -> Maybe a
 underflows = H.underflows
 
--- | Number of overflows
 overflows :: Histogram bin a -> Maybe a
 overflows = H.overflows
 
--- | Underflows and overflows
 outOfRange :: Histogram bin a -> Maybe (a,a)
 outOfRange = H.outOfRange
 
--- | Convert histogram to list.
 asList :: (Unbox a, Bin bin) => Histogram bin a -> [(BinValue bin, a)]
 asList = H.asList
 
--- | Convert histogram to vector
 asVector :: (Bin bin, Unbox a, Unbox (BinValue bin), Unbox (BinValue bin,a)) 
          => Histogram bin a -> Vector (BinValue bin, a) 
 asVector = H.asVector
@@ -124,23 +108,16 @@ asVector = H.asVector
 -- Modify histograms
 ----------------------------------------------------------------
 
--- | fmap lookalike. It's not possible to create Functor instance
---   because of class restrictions
 map :: (Unbox a, Unbox b) => (a -> b) -> Histogram bin a -> Histogram bin b
 map = H.map
 
--- | Apply function to histogram bins. Function must not change number of bins.
---   If it does error is thrown.
 mapBin :: (Bin bin, Bin bin') => (bin -> bin') -> Histogram bin a -> Histogram bin' a
 mapBin = H.mapBin
 
--- | Zip two histograms elementwise. Bins of histograms must be equal
---   otherwise error will be called.
 zip :: (Bin bin, Eq bin, Unbox a, Unbox b, Unbox c) =>
            (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Histogram bin c
 zip = H.zip
            
--- | Zip two histogram elementwise. If bins are not equal return `Nothing`
 zipSafe :: (Bin bin, Eq bin, Unbox a, Unbox b, Unbox c) =>
            (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Maybe (Histogram bin c)
 zipSafe = H.zipSafe
@@ -152,36 +129,29 @@ sliceByVal :: (Bin1D bin, Unbox a) => BinValue bin -> BinValue bin -> Histogram 
 sliceByVal = H.sliceByVal
 
 
-
--- | Get slice of 2D histogram along X axis
 sliceXatIx :: (Unbox a, Bin bX, Bin bY)
-           => Histogram (Bin2D bX bY) a -- ^ 2D histogram
-           -> Int                         -- ^ Bin index along Y axis
+           => Histogram (Bin2D bX bY) a
+           -> Int
            -> Histogram bX a
 sliceXatIx = H.sliceXatIx
 
--- | Get slice of 2D histogram along X axis
 sliceYatIx :: (Unbox a, Bin bX, Bin bY)
-           => Histogram (Bin2D bX bY) a -- ^ 2D histogram
-           -> Int                         -- ^ Bin index along X axis
+           => Histogram (Bin2D bX bY) a
+           -> Int
            -> Histogram bY a
 sliceYatIx = H.sliceYatIx
 
 
--- | Slice 2D histogram along Y axis. This function is fast because it does not require reallocations.
 sliceY :: (Unbox a, Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bY, Histogram bX a)]
 sliceY = H.sliceY
 
--- | Slice 2D histogram along X axis.
 sliceX :: (Unbox a, Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bX, Histogram bY a)]
 sliceX = H.sliceX
 
--- | Reduce along X axis
 reduceX :: (Unbox a, Unbox b, Bin bX, Bin bY)
         => Histogram (Bin2D bX bY) a -> (Histogram bX a -> b) -> Histogram bY b
 reduceX = H.reduceX
 
--- | Reduce along Y axis
 reduceY :: (Unbox a, Unbox b, Bin bX, Bin bY)
         => Histogram (Bin2D bX bY) a -> (Histogram bY a -> b) -> Histogram bX b
 reduceY = H.reduceY
