@@ -35,17 +35,21 @@ import Data.Histogram.Bin.Bin2D
 -- Bin conversion
 ----------------------------------------------------------------
 
+-- BinI -> BinInt
+instance ConvertBin BinI BinInt where
+  convertBin b = binIntN (lowerLimit b) 1 (upperLimit b)
+
 -- BinI,BinInt -> BinF
 instance RealFrac f => ConvertBin BinI (BinF f) where
-  convertBin b = BinF (fromIntegral (lowerLimit b) - 0.5) 1 (nBins b)
+  convertBin b = binFstep (fromIntegral (lowerLimit b) - 0.5) 1 (nBins b)
 instance RealFrac f => ConvertBin BinInt (BinF f) where
-  convertBin b = BinF (fromIntegral (lowerLimit b) - 0.5) (fromIntegral $ binSize b) (nBins b)
+  convertBin b = binFstep (fromIntegral (lowerLimit b) - 0.5) (fromIntegral $ binSize b) (nBins b)
 
 -- BinI,BinInt -> BinD
 instance ConvertBin BinI BinD where
-  convertBin b = BinD (fromIntegral (lowerLimit b) - 0.5) 1 (nBins b)
+  convertBin b = binDstep (fromIntegral (lowerLimit b) - 0.5) 1 (nBins b)
 instance ConvertBin BinInt BinD where
-  convertBin b = BinD (fromIntegral (lowerLimit b) - 0.5) (fromIntegral $ binSize b) (nBins b)
+  convertBin b = binDstep (fromIntegral (lowerLimit b) - 0.5) (fromIntegral $ binSize b) (nBins b)
 
 -- Bin2D -> Bin2D
 instance (ConvertBin bx bx', Bin by) => ConvertBin (Bin2D bx by) (Bin2D bx' by) where
