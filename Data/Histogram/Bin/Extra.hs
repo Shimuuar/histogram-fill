@@ -62,7 +62,7 @@ newtype BinEnum2D i = BinEnum2D (Bin2D BinI BinI)
 binEnum2D :: Enum2D i => i -> i -> BinEnum2D i
 binEnum2D lo hi = let (ix,iy) = fromEnum2D lo
                       (jx,jy) = fromEnum2D hi
-                  in BinEnum2D $ BinI ix jx >< BinI iy jy
+                  in BinEnum2D $ binI ix jx >< binI iy jy
 
 instance Enum2D i => Bin (BinEnum2D i) where
     type BinValue (BinEnum2D i) = i

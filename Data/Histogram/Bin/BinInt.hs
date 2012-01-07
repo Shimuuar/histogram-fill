@@ -5,6 +5,7 @@ module Data.Histogram.Bin.BinInt (
     BinInt(..)
   , binInt
   , binIntN
+  , binIntStep
   ) where
 
 import Control.DeepSeq (NFData(..))
@@ -17,8 +18,9 @@ import Data.Histogram.Parse
 
 
 
--- | Integer bins with size which differ from 1.
+-- | Integer bins of equal size.
 --
+-- > 
 -- 1. Low bound
 --
 -- 2. Bin size
@@ -30,26 +32,39 @@ data BinInt = BinInt
               {-# UNPACK #-} !Int -- Number of bins
               deriving (Eq,Data,Typeable)
 
--- FIXME: no sanity checks
+
 -- | Construct BinInt.
 binInt :: Int                   -- ^ Lower bound
        -> Int                   -- ^ Bin size
        -> Int                   -- ^ Upper bound
        -> BinInt
-binInt lo n hi = BinInt lo n nb
+binInt lo n hi 
+  | n  < 0    = error "Data.Histogram.Bin.BinInt.binInt: negative bin size"
+  | hi < lo   = binInt hi n lo
+  | otherwise = BinInt lo n nb
   where
     nb = (hi-lo) `div` n
 
+-- | Construct 'BinInt'.
 binIntN :: Int                  -- ^ Lower bound
         -> Int                  -- ^ Bin size
         -> Int                  -- ^ Upper bound
         -> BinInt
 binIntN lo n hi 
+  | n < 0     = error "Data.Histogram.Bin.BinInt.binIntN: negative bin size"
   | n > rng   = BinInt lo 1 rng
   | otherwise = BinInt lo undefined n
   where
     rng = hi - lo + 1
 
+binIntStep :: Int               -- ^ Lower bound
+           -> Int               -- ^ Bin size
+           -> Int               -- ^ Number of bins
+           -> BinInt
+binIntStep lo step n
+  | step < 0  = error "Data.Histogram.Bin.BinInt.binIntStep: negative number of bins"
+  | n    < 0  = error "Data.Histogram.Bin.BinInt.binIntStep: negative bin size"
+  | otherwise = BinInt lo step n
 
 instance Bin BinInt where
   type BinValue BinInt = Int

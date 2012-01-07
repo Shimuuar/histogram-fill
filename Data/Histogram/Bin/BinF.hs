@@ -3,13 +3,13 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Data.Histogram.Bin.BinF (
     -- * Generic and slow
-    BinF(..)
+    BinF
   , binF
   , binFn
   , binFstep
   , scaleBinF
     -- * Specialized for Double and fast
-  , BinD(..)
+  , BinD
   , binD
   , binDn
   , binDstep
@@ -28,14 +28,10 @@ import Data.Histogram.Parse
 
 -- | Floaintg point bins with equal sizes.
 --
--- Note that due to GHC bug #2271 this toIndex is really slow (20x
--- slowdown with respect to BinD) and use of BinD is recommended
+--   Since 'BinF' is paramentric it couldn't be unpacked. So @BinF
+--   Double@ will be always slower than 'BinD'. For roundtripping use:
 --
--- 1. Lower bound
---
--- 2. Size of bin
---
--- 3. Number of bins
+-- > b = binFstep (lowerLimit b) (binSize b) (nBins b)
 data BinF f = BinF !f                  -- Lower bound
                    !f                  -- Size of bin
                    {-# UNPACK #-} !Int -- Number of bins
@@ -114,13 +110,7 @@ instance NFData (BinF f)
 -- Floating point bin /Specialized for Double
 ----------------------------------------------------------------
 -- | Floaintg point bins with equal sizes. If you work with Doubles
--- this data type should be used instead of BinF.
---
--- 1. Lower bound
---
--- 2. Size of bin
---
--- 3. Number of bins
+-- this data type should be used instead of 'BinF'. Roundtripping is same as with 'BinF'
 data BinD = BinD {-# UNPACK #-} !Double -- Lower bound
                  {-# UNPACK #-} !Double -- Size of bin
                  {-# UNPACK #-} !Int    -- Number of bins

@@ -2,8 +2,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 module Data.Histogram.Bin.LogBinD (
-    -- * Generic and slow
-    LogBinD(..)
+    LogBinD
   , logBinD
   ) where
 
@@ -15,7 +14,10 @@ import Text.Read       (Read(..))
 
 import Data.Histogram.Bin.Classes
 import Data.Histogram.Parse
--- | Logarithmic scale bins.
+
+
+
+-- | Logarithmic scale bins. For roundtripping use
 --
 -- 1. Lower bound
 --
@@ -29,14 +31,23 @@ data LogBinD = LogBinD
                deriving (Eq,Data,Typeable)
 
 -- | Create log-scale bins.
-logBinD :: Double -> Int -> Double -> LogBinD
-logBinD lo n hi = LogBinD lo ((hi/lo) ** (1 / fromIntegral n)) n
+logBinD :: Double               -- ^ Lower limit
+        -> Int                  -- ^ Number of bins
+        -> Double               -- ^ Upper limit
+        -> LogBinD
+logBinD lo n hi 
+  | lo * hi <= 0  = error "Data.Histogram.Bin.LogBinD.logBinD: interval must not inlude zero"
+  | n < 0         = error "Data.Histogram.Bin.LogBinD.logBinD: negative number of bins"
+  | otherwise     = LogBinD lo ((hi/lo) ** (1 / fromIntegral n)) n
 
+  
+  
 -- Fast variant of flooor
 floorD :: Double -> Int
 floorD x | x < 0     = double2Int x - 1
          | otherwise = double2Int x
 {-# INLINE floorD #-}
+
 
 instance Bin LogBinD where
   type BinValue LogBinD = Double
