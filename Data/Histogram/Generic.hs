@@ -31,13 +31,14 @@ module Data.Histogram.Generic (
   , zip
   , zipSafe
   , convert
+  , convertBinning
     -- * Folding
   , foldl
   , bfoldl
     -- ** Slicing histogram
   , sliceByIx
   , sliceByVal
-    -- * Splitting 2D histograms
+    -- ** Splitting 2D histograms
   , sliceXatIx
   , sliceYatIx
   , sliceX
@@ -214,7 +215,13 @@ zipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
 convert :: (Vector v a, Vector w a) => Histogram v bin a -> Histogram w bin a
 convert (Histogram bin uo vec) = Histogram bin uo (G.convert vec)
 
-
+-- | Convert between binning types using 'ConvertBin' type class.
+convertBinning :: (ConvertBin bin bin', Vector v a) => Histogram v bin a -> Histogram v bin' a
+convertBinning (Histogram bin uo vec)
+  | nBins bin == nBins bin' = Histogram bin' uo vec
+  | otherwise               = error "Data.Histogram.Generic.convertBinning: invalid ConvertBin instance"
+  where
+    bin' = convertBin bin
 
 ----------------------------------------------------------------
 -- Folding
