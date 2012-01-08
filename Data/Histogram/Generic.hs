@@ -27,15 +27,14 @@ module Data.Histogram.Generic (
   , asVector
     -- * Modification
   , map
-  , bMap
-  , mapBin
+  , bmap
   , zip
   , zipSafe
   , convert
     -- * Folding
-  , fold
-  , binFold
-    -- * Slicing histogram
+  , foldl
+  , bfoldl
+    -- ** Slicing histogram
   , sliceByIx
   , sliceByVal
     -- * Splitting 2D histograms
@@ -57,7 +56,7 @@ import qualified Data.Vector.Generic         as G
 import Data.Typeable        (Typeable1(..), Typeable2(..), mkTyConApp, mkTyCon)
 import Data.Vector.Generic  (Vector,(!))
 import Text.Read
-import Prelude       hiding (map,zip)
+import Prelude       hiding (map,zip,foldl)
 import qualified Prelude    (zip)
 
 import Data.Histogram.Bin
@@ -189,20 +188,11 @@ map :: (Vector v a, Vector v b) => (a -> b) -> Histogram v bin a -> Histogram v 
 map f (Histogram bin uo a) = 
   Histogram bin (fmap (f *** f) uo) (G.map f a)
 
--- | Map histogram usig bin value and content. Overflows and underflows are set to Nothing.
-bMap :: (Vector v a, Vector v b, Bin bin)
+-- | Map histogram using bin value and content. Overflows and underflows are set to Nothing.
+bmap :: (Vector v a, Vector v b, Bin bin)
          => (BinValue bin -> a -> b) -> Histogram v bin a -> Histogram v bin b
-bMap f (Histogram bin uo vec) =
+bmap f (Histogram bin uo vec) =
   Histogram bin Nothing $ G.imap (f . fromIndex bin) vec
-
--- | Apply function to histogram bins. Function must not change number of bins.
---   If it does error is thrown.
-mapBin :: (Bin bin, Bin bin') => (bin -> bin') -> Histogram v bin a -> Histogram v bin' a
-mapBin f (Histogram bin uo a)
-  | nBins bin == nBins bin' = Histogram bin' uo a
-  | otherwise               = error "Data.Histogram.Generic.Histogram.histMapBin: Number of bins doesn't match"
-  where
-    bin' = f bin
 
 -- | Zip two histograms elementwise. Bins of histograms must be equal
 --   otherwise error will be called.
@@ -230,15 +220,15 @@ convert (Histogram bin uo vec) = Histogram bin uo (G.convert vec)
 -- Folding
 ----------------------------------------------------------------
 
--- | Fold over bin content in index order. Underflows and overflows are ignored.
-fold :: (Bin bin, Vector v a) => (b -> a -> b) -> b -> Histogram v bin a -> b
-fold f x0 (Histogram _ _ vec) = 
+-- | Strict fold over bin content in index order. Underflows and overflows are ignored.
+foldl :: (Bin bin, Vector v a) => (b -> a -> b) -> b -> Histogram v bin a -> b
+foldl f x0 (Histogram _ _ vec) =
   G.foldl' f x0 vec
 
--- | Fold over bin content in index order. Function is applied to bin
---   content and bin value. Underflows and overflows are ignored.
-binFold :: (Bin bin, Vector v a) => (b -> BinValue bin -> a -> b) -> b -> Histogram v bin a -> b
-binFold f x0 (Histogram bin _ vec) = 
+-- | Strict fold over bin content in index order. Function is applied
+--   to bin content and bin value. Underflows and overflows are ignored.
+bfoldl :: (Bin bin, Vector v a) => (b -> BinValue bin -> a -> b) -> b -> Histogram v bin a -> b
+bfoldl f x0 (Histogram bin _ vec) =
   G.ifoldl' (\acc -> f acc . fromIndex bin) x0 vec
 
 
