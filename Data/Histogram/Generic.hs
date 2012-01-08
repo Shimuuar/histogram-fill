@@ -172,9 +172,10 @@ asList (Histogram bin _ arr) =
   Prelude.zip (fromIndex bin <$> [0..]) (G.toList arr)
 
 -- | Convert histogram data to vector
-asVector :: (Bin bin, Vector v a, Vector v (BinValue bin), Vector v (BinValue bin,a)) 
-         => Histogram v bin a -> v (BinValue bin, a) 
-asVector (Histogram bin _ arr) = G.zip (G.generate (nBins bin) (fromIndex bin) ) arr
+asVector :: (Bin bin, Vector v a, Vector v (BinValue bin,a))
+         => Histogram v bin a -> v (BinValue bin, a)
+asVector (Histogram bin _ arr) =
+  G.generate (nBins bin) $ \i -> (fromIndex bin i, arr G.! i)
 
 
 
