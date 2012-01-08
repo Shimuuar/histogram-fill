@@ -30,22 +30,25 @@ module Data.Histogram.Generic (
   , bmap
   , zip
   , zipSafe
+    -- ** Type conversion
   , convert
   , convertBinning
     -- * Folding
   , foldl
   , bfoldl
-    -- ** Slicing histogram
+    -- ** Slicing
   , sliceByIx
   , sliceByVal
     -- ** Splitting 2D histograms
   , sliceXatIx
   , sliceYatIx
+    -- * 2D histograms
+    -- ** Slicing
   , sliceX
   , sliceY
+    -- ** Reducing along axis
   , reduceX
   , reduceY
-    -- * Modify histogram
   ) where
 
 import Control.Applicative ((<$>),(<*>))
@@ -293,15 +296,19 @@ sliceX :: (Vector v a, Bin bX, Bin bY)
 sliceX h@(Histogram (Bin2D bX _) _ _) = fmap (fromIndex bX &&& sliceYatIx h) [0 .. nBins bX - 1]
 
 
--- | Reduce along X axis
+-- | Reduce along X axis. Information about under/overlows is lost.
 reduceX :: (Vector v a, Vector v b, Bin bX, Bin bY)
-        => Histogram v (Bin2D bX bY) a -> (Histogram v bX a -> b) -> Histogram v bY b
-reduceX h@(Histogram (Bin2D bX bY) _ arr) f =
+        => (Histogram v bX a -> b)      -- ^ Function to reduce single slice along X axis
+        ->  Histogram v (Bin2D bX bY) a -- ^ 2D histogram
+        ->  Histogram v bY b
+reduceX f h@(Histogram (Bin2D bX bY) _ arr) =
   Histogram bY Nothing $ G.generate (nBins bY) (f . sliceXatIx h)
 
 
--- | Reduce along Y axis
+-- | Reduce along Y axis. Information about under/overflows is lost.
 reduceY :: (Vector v a, Vector v b, Bin bX, Bin bY)
-        => Histogram v (Bin2D bX bY) a -> (Histogram v bY a -> b) -> Histogram v bX b
-reduceY h@(Histogram (Bin2D bX bY) _ arr) f =
+        => (Histogram v bY a -> b)     -- ^ Function to reduce histogram along Y axis
+        -> Histogram v (Bin2D bX bY) a -- ^ 2D histogram
+        -> Histogram v bX b
+reduceY f h@(Histogram (Bin2D bX bY) _ arr) =
   Histogram bX Nothing $ G.generate (nBins bY) (f . sliceYatIx h)
