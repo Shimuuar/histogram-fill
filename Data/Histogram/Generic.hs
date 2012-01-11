@@ -39,15 +39,14 @@ module Data.Histogram.Generic (
     -- * Folding
   , foldl
   , bfoldl
-    -- ** Slicing
+    -- * Slicing & rebinning
   , slice
-    -- ** Splitting 2D histograms
-  , sliceXatIx
-  , sliceYatIx
     -- * 2D histograms
     -- ** Slicing
-  , sliceX
-  , sliceY
+  , sliceAlongX
+  , sliceAlongY
+  , listSlicesAlongX
+  , listSlicesAlongY
     -- ** Reducing along axis
   , reduceX
   , reduceY
@@ -279,39 +278,45 @@ slice a b (Histogram bin _ v) =
 
 
 -- | Get slice of 2D histogram along X axis
-sliceXatIx :: (Vector v a, Bin bX, Bin bY)
-           => Histogram v (Bin2D bX bY) a -- ^ 2D histogram
-           -> Int                         -- ^ Bin index along Y axis
-           -> Histogram v bX a
-sliceXatIx (Histogram (Bin2D bX bY) _ arr) iy
+sliceAlongX :: (Vector v a, Bin bX, Bin bY)
+            => Histogram v (Bin2D bX bY) a -- ^ 2D histogram
+            -> HistIndex bY                -- ^ Position along Y axis
+            -> Histogram v bX a
+sliceAlongX (Histogram (Bin2D bX bY) _ arr) y
   | iy >= 0 && iy < ny = Histogram bX Nothing $ G.slice (nx * iy) nx arr
   | otherwise          = error "Data.Histogram.Generic.Histogram.sliceXatIx: bad index"
   where
     nx = nBins bX
     ny = nBins bY
+    iy = histIndex bY y
 
 -- | Get slice of 2D histogram along X axis
-sliceYatIx :: (Vector v a, Bin bX, Bin bY)
-           => Histogram v (Bin2D bX bY) a -- ^ 2D histogram
-           -> Int                         -- ^ Bin index along X axis
-           -> Histogram v bY a
-sliceYatIx (Histogram (Bin2D bX bY) _ arr) ix
+sliceAlongY :: (Vector v a, Bin bX, Bin bY)
+            => Histogram v (Bin2D bX bY) a -- ^ 2D histogram
+            -> HistIndex bX                -- ^ Position along X axis
+            -> Histogram v bY a
+sliceAlongY (Histogram (Bin2D bX bY) _ arr) x
   | ix >= 0 && ix < nx = Histogram bY Nothing $ G.generate ny (\iy -> arr ! (iy*nx + ix))
   | otherwise          = error "Data.Histogram.Generic.Histogram.sliceXatIx: bad index"
   where
     nx = nBins bX
     ny = nBins bY
+    ix = histIndex bX x
 
-
--- | Slice 2D histogram along Y axis. This function is fast because it does not require reallocations.
-sliceY :: (Vector v a, Bin bX, Bin bY)
-       => Histogram v (Bin2D bX bY) a -> [(BinValue bY, Histogram v bX a)]
-sliceY h@(Histogram (Bin2D _ bY) _ _) = fmap (fromIndex bY &&& sliceXatIx h) [0 .. nBins bY - 1]
+-- | Slice 2D histogram along Y axis. This function is fast because it
+--   does not require reallocations.
+listSlicesAlongX :: (Vector v a, Bin bX, Bin bY)
+                 => Histogram v (Bin2D bX bY) a
+                 -> [(BinValue bY, Histogram v bX a)]
+listSlicesAlongX h@(Histogram (Bin2D _ bY) _ _) =
+  fmap (fromIndex bY &&& sliceAlongX h . Index) [0 .. nBins bY - 1]
 
 -- | Slice 2D histogram along X axis.
-sliceX :: (Vector v a, Bin bX, Bin bY)
-       => Histogram v (Bin2D bX bY) a -> [(BinValue bX, Histogram v bY a)]
-sliceX h@(Histogram (Bin2D bX _) _ _) = fmap (fromIndex bX &&& sliceYatIx h) [0 .. nBins bX - 1]
+listSlicesAlongY :: (Vector v a, Bin bX, Bin bY)
+                 => Histogram v (Bin2D bX bY) a
+                 -> [(BinValue bX, Histogram v bY a)]
+listSlicesAlongY h@(Histogram (Bin2D bX _) _ _) =
+  fmap (fromIndex bX &&& sliceAlongY h . Index) [0 .. nBins bX - 1]
 
 
 -- | Reduce along X axis. Information about under/overlows is lost.
@@ -320,7 +325,7 @@ reduceX :: (Vector v a, Vector v b, Bin bX, Bin bY)
         ->  Histogram v (Bin2D bX bY) a -- ^ 2D histogram
         ->  Histogram v bY b
 reduceX f h@(Histogram (Bin2D bX bY) _ arr) =
-  Histogram bY Nothing $ G.generate (nBins bY) (f . sliceXatIx h)
+  Histogram bY Nothing $ G.generate (nBins bY) (f . sliceAlongX h . Index)
 
 
 -- | Reduce along Y axis. Information about under/overflows is lost.
@@ -329,4 +334,4 @@ reduceY :: (Vector v a, Vector v b, Bin bX, Bin bY)
         -> Histogram v (Bin2D bX bY) a -- ^ 2D histogram
         -> Histogram v bX b
 reduceY f h@(Histogram (Bin2D bX bY) _ arr) =
-  Histogram bX Nothing $ G.generate (nBins bY) (f . sliceYatIx h)
+  Histogram bX Nothing $ G.generate (nBins bY) (f . sliceAlongY h . Index)
