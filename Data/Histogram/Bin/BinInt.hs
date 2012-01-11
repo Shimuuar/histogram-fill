@@ -81,11 +81,6 @@ instance Bin1D BinInt where
   upperLimit (BinInt base sz n) = base + sz * n - 1
   unsafeSliceBin i j (BinInt base sz _) = BinInt (base + i*sz) sz (j-i+1)
 
-instance GrowBin BinInt where
-  zeroBin    (BinInt l sz _) = BinInt l sz 0
-  appendBin  (BinInt l sz n) = BinInt l sz (n+1)
-  prependBin (BinInt l sz n) = BinInt (l-sz) sz (n+1)
-
 instance VariableBin BinInt where
   binSizeN (BinInt _ sz _) _ = sz
 

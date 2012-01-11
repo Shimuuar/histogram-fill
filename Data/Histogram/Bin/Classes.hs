@@ -20,7 +20,6 @@ module Data.Histogram.Bin.Classes (
   , sliceBin
   , VariableBin(..)
   , UniformBin(..)
-  , GrowBin(..)
     -- * Conversion
   , ConvertBin(..)
   ) where
@@ -93,15 +92,6 @@ sliceBin i j b
     where
       n = nBins b       
 
--- | Binning algorithm which allows to append and prepend bins.
-class Bin1D b => GrowBin b where
-  -- | Set number of bins to zero. By convention bins are shrinked to
-  --   lower bound.
-  zeroBin    :: b -> b
-  -- | Append one bin at upper bound
-  appendBin  :: b -> b
-  -- | Prepend one bin at lower bin
-  prependBin :: b -> b
 
 ---- Bin sizes ------------------------------------------------
 

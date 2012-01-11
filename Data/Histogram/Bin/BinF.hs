@@ -82,11 +82,6 @@ instance RealFrac f => Bin1D (BinF f) where
   upperLimit (BinF from step n) = from + step * fromIntegral n
   unsafeSliceBin i j (BinF from step _) = BinF (from + step * fromIntegral i) step (j-i+1)
 
-instance RealFrac f => GrowBin (BinF f) where
-  zeroBin    (BinF from step _) = BinF from step 0
-  appendBin  (BinF from step n) = BinF from step (n+1)
-  prependBin (BinF from step n) = BinF (from-step) step (n+1)
-
 instance RealFrac f => VariableBin (BinF f) where
   binSizeN (BinF _ step _) _ = step
 
@@ -163,11 +158,6 @@ instance Bin1D BinD where
   lowerLimit (BinD from _    _) = from
   upperLimit (BinD from step n) = from + step * fromIntegral n
   unsafeSliceBin i j (BinD from step _) = BinD (from + step * fromIntegral i) step (j-i+1)
-
-instance GrowBin BinD where
-  zeroBin    (BinD from step _) = BinD from step 0
-  appendBin  (BinD from step n) = BinD from step (n+1)
-  prependBin (BinD from step n) = BinD (from-step) step (n+1)
 
 instance VariableBin BinD where
   binSizeN (BinD _ step _) _ = step

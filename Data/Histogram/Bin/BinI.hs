@@ -63,11 +63,6 @@ instance VariableBin BinI where
 instance UniformBin BinI where
   binSize _ = 1
 
-instance GrowBin BinI where
-  zeroBin    (BinI l _) = BinI l l
-  appendBin  (BinI l u) = BinI l (u+1)
-  prependBin (BinI l u) = BinI (l-1) u
-
 instance Show BinI where
   show (BinI lo hi) = unlines [ "# BinI"
                               , "# Low  = " ++ show lo
