@@ -38,7 +38,7 @@ module Data.Histogram.Generic (
   , bfoldl
     -- ** Slicing
   , sliceByIx
-  , sliceByVal
+  , slice
     -- ** Splitting 2D histograms
   , sliceXatIx
   , sliceYatIx
@@ -203,7 +203,7 @@ bmap f (Histogram bin uo vec) =
 --   otherwise error will be called.
 zip :: (Bin bin, BinEq bin, Vector v a, Vector v b, Vector v c) =>
        (a -> b -> c) -> Histogram v bin a -> Histogram v bin b -> Histogram v bin c
-zip f ha hb = fromMaybe (error msg) $ zipSafe f ha hb 
+zip f ha hb = fromMaybe (error msg) $ zipSafe f ha hb
   where msg = "Data.Histogram.Generic.Histogram.histZip: bins are different"
 
 -- | Zip two histogram elementwise. If bins are not equal return `Nothing`
@@ -226,6 +226,8 @@ convertBinning (Histogram bin uo vec)
   | otherwise               = error "Data.Histogram.Generic.convertBinning: invalid ConvertBin instance"
   where
     bin' = convertBin bin
+
+
 
 ----------------------------------------------------------------
 -- Folding
@@ -255,13 +257,15 @@ sliceByIx i j (Histogram b _ v) =
   Histogram (sliceBin i j b) Nothing (G.slice i (j - i + 1) v)
 
 -- | Slice histogram using bin values. Value will be included in range.
-sliceByVal :: (SliceableBin bin, Vector v a)
-           => BinValue bin -> BinValue bin -> Histogram v bin a -> Histogram v bin a
-sliceByVal x y h 
+slice :: (SliceableBin bin, Vector v a)
+      => BinValue bin -> BinValue bin -> Histogram v bin a -> Histogram v bin a
+slice x y h
   | inRange b x && inRange b y = sliceByIx (toIndex b x) (toIndex b y) h
   | otherwise                  = error "Data.Histogram.Generic.Histogram.sliceByVal: Values are out of range"
     where
       b = bins h
+
+
 
 -- | Get slice of 2D histogram along X axis
 sliceXatIx :: (Vector v a, Bin bX, Bin bY)
