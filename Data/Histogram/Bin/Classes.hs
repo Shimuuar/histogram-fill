@@ -21,6 +21,10 @@ module Data.Histogram.Bin.Classes (
   , Bin1D(..)
   , SliceableBin(..)
   , sliceBin
+  , MergeableBin(..)
+  , CutDirection(..)
+  , mergeBins
+    -- ** Sizes of bin
   , VariableBin(..)
   , UniformBin(..)
     -- * Conversion
@@ -111,6 +115,29 @@ sliceBin i j b
     where
       n = nBins b       
 
+-- | How index should be dropped
+data CutDirection = CutLower    -- ^ Drop bins with highest index
+                  | CutHigher   -- ^ Drop bins with lowest index
+
+
+-- | Bin which support rebinning. 
+class Bin b => MergeableBin b where
+  -- | @N@ consecutive bins are joined into single bin. If number of
+  --   bins isn't multiple of @N@ remaining bins with highest or
+  --   lowest index are dropped. This function doesn't do any
+  --   checks. Use 'mergeBins' instead.
+  unsafeMergeBins :: CutDirection -> Int -> b -> b
+
+-- | @N@ consecutive bins are joined into single bin. If number of
+--   bins isn't multiple of @N@ remaining bins with highest or lowest
+--   index are dropped. If @N@ is larger than number of bins all bins
+--   are merged into single one.
+mergeBins :: MergeableBin b => CutDirection -> Int -> b -> b
+mergeBins dir n b
+  | nBins b == 0 = b
+  | n < 0        = error "Data.Histogram.Bin.Classes.mergeNBin: negative N"
+  | n > nBins b  = unsafeMergeBins dir (nBins b) b
+  | otherwise    = unsafeMergeBins dir  n        b
 
 
 ---- Bin sizes ------------------------------------------------
