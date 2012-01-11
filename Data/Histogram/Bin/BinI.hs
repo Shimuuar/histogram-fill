@@ -55,6 +55,8 @@ instance IntervalBin BinI where
 instance Bin1D BinI where
   lowerLimit (BinI i _) = i
   upperLimit (BinI _ i) = i
+
+instance SliceableBin BinI where
   unsafeSliceBin i j (BinI l _) = BinI (l+i) (l+j)
 
 instance VariableBin BinI where

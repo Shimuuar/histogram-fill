@@ -42,6 +42,8 @@ instance (Enum a, Ord a) => IntervalBin (BinEnum a) where
 instance (Enum a, Ord a) => Bin1D (BinEnum a) where
   lowerLimit (BinEnum b) = toEnum $ lowerLimit b
   upperLimit (BinEnum b) = toEnum $ upperLimit b
+
+instance (Enum a, Ord a) => SliceableBin (BinEnum a) where
   unsafeSliceBin i j (BinEnum b) = BinEnum $ unsafeSliceBin i j b
 
 instance Show (BinEnum a) where

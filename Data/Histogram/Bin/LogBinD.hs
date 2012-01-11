@@ -63,6 +63,8 @@ instance IntervalBin LogBinD where
 instance Bin1D LogBinD where
   lowerLimit (LogBinD lo  _ _) = lo
   upperLimit (LogBinD lo  r n) = lo * r ^ n
+
+instance SliceableBin LogBinD where
   unsafeSliceBin i j (LogBinD from step _) = LogBinD (from * step ^ i) step (j-i+1)
 
 instance VariableBin LogBinD where

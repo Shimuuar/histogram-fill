@@ -80,6 +80,8 @@ instance RealFrac f => IntervalBin (BinF f) where
 instance RealFrac f => Bin1D (BinF f) where
   lowerLimit (BinF from _    _) = from
   upperLimit (BinF from step n) = from + step * fromIntegral n
+
+instance RealFrac f => SliceableBin (BinF f) where
   unsafeSliceBin i j (BinF from step _) = BinF (from + step * fromIntegral i) step (j-i+1)
 
 instance RealFrac f => VariableBin (BinF f) where
@@ -157,6 +159,8 @@ instance IntervalBin BinD where
 instance Bin1D BinD where
   lowerLimit (BinD from _    _) = from
   upperLimit (BinD from step n) = from + step * fromIntegral n
+
+instance SliceableBin BinD where
   unsafeSliceBin i j (BinD from step _) = BinD (from + step * fromIntegral i) step (j-i+1)
 
 instance VariableBin BinD where

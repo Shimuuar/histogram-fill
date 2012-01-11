@@ -17,6 +17,7 @@ module Data.Histogram.Bin.Classes (
     -- * 1D bins
   , IntervalBin(..)
   , Bin1D(..)
+  , SliceableBin(..)
   , sliceBin
   , VariableBin(..)
   , UniformBin(..)
@@ -80,12 +81,16 @@ class IntervalBin b => Bin1D b where
   lowerLimit :: b -> BinValue b
   -- | Maximal accepted value of histogram
   upperLimit :: b -> BinValue b
+
+
+-- | Binning algorithm which support slicing.
+class Bin b => SliceableBin b where
   -- | Slice bin by indices. This function doesn't perform any checks
-  --   and may produce invalid bin
+  --   and may produce invalid bin. Use 'sliceBin' instead.
   unsafeSliceBin :: Int -> Int -> b -> b
 
 -- | Slice bin using indices
-sliceBin :: Bin1D b => Int -> Int -> b -> b
+sliceBin :: SliceableBin b => Int -> Int -> b -> b
 sliceBin i j b 
   | i < 0  ||  j < 0  ||  i > j  ||  i >= n  ||  j >= n = error "sliceBin: bad slice"
   | otherwise                                           = unsafeSliceBin i j b

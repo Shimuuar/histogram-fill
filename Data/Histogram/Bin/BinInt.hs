@@ -79,6 +79,8 @@ instance IntervalBin BinInt where
 instance Bin1D BinInt where
   lowerLimit (BinInt base _  _) = base
   upperLimit (BinInt base sz n) = base + sz * n - 1
+
+instance SliceableBin BinInt where
   unsafeSliceBin i j (BinInt base sz _) = BinInt (base + i*sz) sz (j-i+1)
 
 instance VariableBin BinInt where
