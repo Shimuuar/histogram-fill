@@ -36,10 +36,10 @@ instance Enum a => Bin (BinEnum a) where
   inRange   (BinEnum b) = inRange b . fromEnum
   nBins     (BinEnum b) = nBins b
 
-instance Enum a => IntervalBin (BinEnum a) where
+instance (Enum a, Ord a) => IntervalBin (BinEnum a) where
   binInterval b x = (n,n) where n = fromIndex b x
 
-instance Enum a => Bin1D (BinEnum a) where
+instance (Enum a, Ord a) => Bin1D (BinEnum a) where
   lowerLimit (BinEnum b) = toEnum $ lowerLimit b
   upperLimit (BinEnum b) = toEnum $ upperLimit b
   unsafeSliceBin i j (BinEnum b) = BinEnum $ unsafeSliceBin i j b

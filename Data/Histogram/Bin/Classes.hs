@@ -65,7 +65,7 @@ binsCenters b = G.generate (nBins b) (fromIndex b)
 
 -- | For binning algorithms which work with bin values which have some
 --   natural ordering and every bin is continous interval.
-class Bin b => IntervalBin b where
+class (Bin b, Ord (BinValue b)) => IntervalBin b where
   -- | Interval for n'th bin
   binInterval :: b -> Int -> (BinValue b, BinValue b)
   -- | List of all bins. Could be overridden for efficiency.
