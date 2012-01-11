@@ -4,6 +4,7 @@
 module Data.Histogram.Bin.LogBinD (
     LogBinD
   , logBinD
+  , logBinDN
   ) where
 
 import Control.DeepSeq (NFData(..))
@@ -17,20 +18,20 @@ import Data.Histogram.Parse
 
 
 
--- | Logarithmic scale bins. For roundtripping use
+-- | Logarithmic scale bins. For roundtripping use:
 --
--- 1. Lower bound
---
--- 2. Increment ratio
---
--- 3. Number of bins
+-- > b = logBinDN (lowerBound b) (logBinDIncrement b) (nBins b)
 data LogBinD = LogBinD
                Double -- Low border
                Double -- Increment ratio
                Int    -- Number of bins
                deriving (Eq,Data,Typeable)
 
--- | Create log-scale bins.
+-- | Increment ratio for 'LogBinD'
+logBinDIncrement :: LogBinD -> Double
+logBinDIncrement (LogBinD _ x _) = x
+  
+-- | Create log-scale binning algorithm.
 logBinD :: Double               -- ^ Lower limit
         -> Int                  -- ^ Number of bins
         -> Double               -- ^ Upper limit
@@ -40,6 +41,15 @@ logBinD lo n hi
   | n < 0         = error "Data.Histogram.Bin.LogBinD.logBinD: negative number of bins"
   | otherwise     = LogBinD lo ((hi/lo) ** (1 / fromIntegral n)) n
 
+logBinDN :: Double              -- ^ Lower limit
+         -> Double              -- ^ Increment ratio. Must be greater than 1
+         -> Int                 -- ^ Number of bins
+         -> LogBinD
+logBinDN lo rat n
+  | lo  == 0  = error "Data.Histogram.Bin.LogBinD.logBinDN: zero lower bound"
+  | rat <= 1  = error "Data.Histogram.Bin.LogBinD.logBinDN: increment is lesser than 1"
+  | n   < 0   = error "Data.Histogram.Bin.LogBinD.logBinDN: negative number of bins"
+  | otherwise = LogBinD lo rat n
   
   
 -- Fast variant of flooor
