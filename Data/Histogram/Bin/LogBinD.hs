@@ -70,6 +70,14 @@ instance SliceableBin LogBinD where
 instance VariableBin LogBinD where
   binSizeN (LogBinD base step _) n = let x = base * step ^ n in x*step - x
 
+instance BinEq LogBinD where
+  binEq (LogBinD lo d n) (LogBinD lo' d' n')
+    =  n == n'
+    && abs (lo - lo') < eps * abs lo
+    && abs (d  - d' ) < eps * abs d
+    where
+      eps = 3e-11
+
 instance Show LogBinD where
   show b =
     unlines [ "# LogBinD"

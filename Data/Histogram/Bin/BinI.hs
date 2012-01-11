@@ -65,6 +65,9 @@ instance VariableBin BinI where
 instance UniformBin BinI where
   binSize _ = 1
 
+instance BinEq BinI where
+  binEq = (==)
+
 instance Show BinI where
   show (BinI lo hi) = unlines [ "# BinI"
                               , "# Low  = " ++ show lo

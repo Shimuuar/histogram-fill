@@ -35,7 +35,7 @@ import Data.Histogram.Parse
 data BinF f = BinF !f                  -- Lower bound
                    !f                  -- Size of bin
                    {-# UNPACK #-} !Int -- Number of bins
-              deriving (Eq,Data,Typeable)
+              deriving (Data,Typeable)
 
 -- | Create bins.
 binF :: RealFrac f =>
@@ -90,6 +90,16 @@ instance RealFrac f => VariableBin (BinF f) where
 instance RealFrac f => UniformBin (BinF f) where
   binSize (BinF _ step _) = step
 
+-- | Equality is up to 2/3th of digits
+instance RealFloat f => BinEq (BinF f) where
+  binEq (BinF lo d n) (BinF lo' d' n')
+    =  n == n'
+    && abs (d  - d' ) < eps * abs d
+    && abs (lo - lo') < dlo
+    where
+      dlo = eps * fromIntegral n * d
+      eps = 2 ** (-0.66 * (fromIntegral $ floatDigits lo))
+
 instance Show f => Show (BinF f) where
   show (BinF base step n) = unlines [ "# BinF"
                                     , "# Base = " ++ show base
@@ -106,12 +116,13 @@ instance NFData (BinF f)
 ----------------------------------------------------------------
 -- Floating point bin /Specialized for Double
 ----------------------------------------------------------------
+
 -- | Floaintg point bins with equal sizes. If you work with Doubles
 -- this data type should be used instead of 'BinF'. Roundtripping is same as with 'BinF'
 data BinD = BinD {-# UNPACK #-} !Double -- Lower bound
                  {-# UNPACK #-} !Double -- Size of bin
                  {-# UNPACK #-} !Int    -- Number of bins
-            deriving (Eq,Data,Typeable)
+            deriving (Data,Typeable)
 
 -- | Create bins.
 binD :: Double -- ^ Lower bound of range
@@ -168,6 +179,16 @@ instance VariableBin BinD where
 
 instance UniformBin BinD where
   binSize (BinD _ step _) = step
+
+-- | Equality is up to 3e-11 (2/3th of digits)
+instance BinEq BinD where
+  binEq (BinD lo d n) (BinD lo' d' n')
+    =  n == n'
+    && abs (d  - d' ) < eps * abs d
+    && abs (lo - lo') < dlo
+    where
+      dlo = eps * fromIntegral n * d
+      eps = 3e-11
 
 instance Show BinD where
   show (BinD base step n) = unlines [ "# BinD"

@@ -65,20 +65,24 @@ fmapBinY f (Bin2D bx by)
     where
       by' = f by
 
-instance (Show b1, Show b2) => Show (Bin2D b1 b2) where
-  show (Bin2D b1 b2) = concat [ "# Bin2D\n"
+instance (BinEq bx, BinEq by) => BinEq (Bin2D bx by) where
+  binEq (Bin2D bx by) (Bin2D bx' by') =
+    binEq bx bx' && binEq by by'
+
+instance (Show bx, Show by) => Show (Bin2D bx by) where
+  show (Bin2D bx by) = concat [ "# Bin2D\n"
                               , "# X\n"
-                              , show b1
+                              , show bx
                               , "# Y\n"
-                              , show b2
+                              , show by
                               ]
-instance (Read b1, Read b2) => Read (Bin2D b1 b2) where
+instance (Read bx, Read by) => Read (Bin2D bx by) where
   readPrec = do
     keyword "Bin2D"
     keyword "X"
-    b1 <- readPrec
+    bx <- readPrec
     keyword "Y"
-    b2 <- readPrec
-    return $ Bin2D b1 b2
+    by <- readPrec
+    return $ Bin2D bx by
 
 instance NFData (Bin2D bx by)
