@@ -57,6 +57,7 @@ import Control.Monad       (ap)
 import Control.DeepSeq     (NFData(..))
 
 import qualified Data.Vector.Generic         as G
+import Data.Maybe           (fromMaybe)
 import Data.Typeable        (Typeable1(..), Typeable2(..), mkTyConApp, mkTyCon)
 import Data.Vector.Generic  (Vector,(!))
 import Text.Read
@@ -200,19 +201,19 @@ bmap f (Histogram bin uo vec) =
 
 -- | Zip two histograms elementwise. Bins of histograms must be equal
 --   otherwise error will be called.
-zip :: (Bin bin, Eq bin, Vector v a, Vector v b, Vector v c) =>
+zip :: (Bin bin, BinEq bin, Vector v a, Vector v b, Vector v c) =>
        (a -> b -> c) -> Histogram v bin a -> Histogram v bin b -> Histogram v bin c
-zip f ha hb = maybe (error msg) id $ zipSafe f ha hb 
+zip f ha hb = fromMaybe (error msg) $ zipSafe f ha hb 
   where msg = "Data.Histogram.Generic.Histogram.histZip: bins are different"
 
 -- | Zip two histogram elementwise. If bins are not equal return `Nothing`
-zipSafe :: (Bin bin, Eq bin, Vector v a, Vector v b, Vector v c) =>
+zipSafe :: (Bin bin, BinEq bin, Vector v a, Vector v b, Vector v c) =>
            (a -> b -> c) -> Histogram v bin a -> Histogram v bin b -> Maybe (Histogram v bin c)
 zipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
-    | bin /= bin' = Nothing
-    | otherwise   = Just $ Histogram bin (f2 <$> uo <*> uo') (G.zipWith f v v')
-      where
-        f2 (x,x') (y,y') = (f x y, f x' y')
+  | binEq bin bin' = Just $ Histogram bin (f2 <$> uo <*> uo') (G.zipWith f v v')
+  | otherwise      = Nothing
+  where
+    f2 (x,x') (y,y') = (f x y, f x' y')
 
 -- | Convert between different vector types
 convert :: (Vector v a, Vector w a) => Histogram v bin a -> Histogram w bin a
