@@ -248,12 +248,14 @@ bfoldl f x0 (Histogram bin _ vec) =
 ----------------------------------------------------------------
 
 -- | Slice histogram using indices.
-sliceByIx :: (Bin1D bin, Vector v a) => Int -> Int -> Histogram v bin a -> Histogram v bin a
+sliceByIx :: (SliceableBin bin, Vector v a)
+          => Int -> Int -> Histogram v bin a -> Histogram v bin a
 sliceByIx i j (Histogram b _ v) = 
   Histogram (sliceBin i j b) Nothing (G.slice i (j - i + 1) v)
 
 -- | Slice histogram using bin values. Value will be included in range.
-sliceByVal :: (Bin1D bin, Vector v a) => BinValue bin -> BinValue bin -> Histogram v bin a -> Histogram v bin a
+sliceByVal :: (SliceableBin bin, Vector v a)
+           => BinValue bin -> BinValue bin -> Histogram v bin a -> Histogram v bin a
 sliceByVal x y h 
   | inRange b x && inRange b y = sliceByIx (toIndex b x) (toIndex b y) h
   | otherwise                  = error "Data.Histogram.Generic.Histogram.sliceByVal: Values are out of range"
