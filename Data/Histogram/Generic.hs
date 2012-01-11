@@ -12,10 +12,11 @@ module Data.Histogram.Generic (
     -- * Data type
     Histogram
   , module Data.Histogram.Bin
-  , HistIndex(..)
   , histogram
   , histogramUO
-    -- * Read histograms from string
+  , HistIndex(..) 
+  , histIndex
+   -- * Read histograms from string
   , readHistogram
   , readFileHistogram
     -- * Accessors
