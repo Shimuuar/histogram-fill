@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleContexts   #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 -- |
 -- Module     : Data.Histogram
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -11,6 +12,7 @@ module Data.Histogram.Generic (
     -- * Data type
     Histogram
   , module Data.Histogram.Bin
+  , HistIndex(..)
   , histogram
   , histogramUO
     -- * Read histograms from string
@@ -37,7 +39,6 @@ module Data.Histogram.Generic (
   , foldl
   , bfoldl
     -- ** Slicing
-  , sliceByIx
   , slice
     -- ** Splitting 2D histograms
   , sliceXatIx
@@ -58,7 +59,7 @@ import Control.DeepSeq     (NFData(..))
 
 import qualified Data.Vector.Generic         as G
 import Data.Maybe           (fromMaybe)
-import Data.Typeable        (Typeable1(..), Typeable2(..), mkTyConApp, mkTyCon)
+import Data.Typeable        (Typeable(..),Typeable1(..),Typeable2(..),mkTyConApp,mkTyCon)
 import Data.Vector.Generic  (Vector,(!))
 import Text.Read
 import Prelude       hiding (map,zip,foldl)
@@ -76,6 +77,17 @@ import Data.Histogram.Parse
 data Histogram v bin a = Histogram bin (Maybe (a,a)) (v a)
                          deriving (Eq)
 
+-- | Point inside histogram's domain. It could be either bin index or
+--   bin value.
+data HistIndex b
+  = Index Int          -- ^ Index for a bin
+  | Value (BinValue b) -- ^ Value
+  deriving (Typeable)
+
+-- | Convert 'HistIndex' to actual index
+histIndex :: Bin b => b -> HistIndex b -> Int
+histIndex _ (Index i) = i
+histIndex b (Value x) = toIndex b x
 
 -- | Create histogram from binning algorithm and vector with
 -- data. Overflows are set to Nothing. 
@@ -250,20 +262,18 @@ bfoldl f x0 (Histogram bin _ vec) =
 -- Slicing and reducing histograms
 ----------------------------------------------------------------
 
--- | Slice histogram using indices.
-sliceByIx :: (SliceableBin bin, Vector v a)
-          => Int -> Int -> Histogram v bin a -> Histogram v bin a
-sliceByIx i j (Histogram b _ v) = 
-  Histogram (sliceBin i j b) Nothing (G.slice i (j - i + 1) v)
-
--- | Slice histogram using bin values. Value will be included in range.
+-- | Slice histogram. Values/indices specify inclusive
+--   variant. Under/overflows are discarded.
 slice :: (SliceableBin bin, Vector v a)
-      => BinValue bin -> BinValue bin -> Histogram v bin a -> Histogram v bin a
-slice x y h
-  | inRange b x && inRange b y = sliceByIx (toIndex b x) (toIndex b y) h
-  | otherwise                  = error "Data.Histogram.Generic.Histogram.sliceByVal: Values are out of range"
-    where
-      b = bins h
+      => HistIndex bin          -- ^ Lower inclusive bound
+      -> HistIndex bin          -- ^ Upper inclusive bound
+      -> Histogram v bin a      -- ^ Histogram to slice
+      -> Histogram v bin a
+slice a b (Histogram bin _ v) =
+  Histogram (sliceBin i j bin) Nothing (G.slice i (j - i + 1) v)
+  where
+    i = histIndex bin a
+    j = histIndex bin b
 
 
 
