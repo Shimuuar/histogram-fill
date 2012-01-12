@@ -3,6 +3,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Data.Histogram.Bin.LogBinD (
     LogBinD
+  , logBinDIncrement
   , logBinD
   , logBinDN
   ) where
