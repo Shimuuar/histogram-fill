@@ -41,6 +41,8 @@ module Data.Histogram.Generic (
   , bfoldl
     -- * Slicing & rebinning
   , slice
+  , rebin
+  , rebinFold
     -- * 2D histograms
     -- ** Slicing
   , sliceAlongX
@@ -275,7 +277,47 @@ slice a b (Histogram bin _ v) =
     i = histIndex bin a
     j = histIndex bin b
 
+-- | Rebin histogram
+rebin :: (MergeableBin bin, Vector v a)
+      => CutDirection
+      -> Int      
+      -> (a -> a -> a)          -- ^ Accumulation function
+      -> Histogram v bin a
+      -> Histogram v bin a
+rebin dir k f =  rebinWorker dir k (G.foldl1' f)
+{-# INLINE rebin #-}
 
+-- | Rebin histogram
+rebinFold :: (MergeableBin bin, Vector v a, Vector v b)
+          => CutDirection
+          -> Int      
+          -> (b -> a -> b)          -- ^ Accumulation function
+          -> b                      -- ^ Initial value
+          -> Histogram v bin a
+          -> Histogram v bin b
+rebinFold dir k f x0 =  rebinWorker dir k (G.foldl' f x0)
+{-# INLINE rebinFold #-}
+
+rebinWorker :: (MergeableBin bin, Vector v a, Vector v b)
+            => CutDirection
+            -> Int
+            -> (v a -> b)
+            -> Histogram v bin a
+            -> Histogram v bin b
+{-# INLINE rebinWorker #-}
+rebinWorker dir k f (Histogram bin _ vec)
+  | G.length vec' /= nBins bin' = error "Data.Histogram.Generic.rebin: wrong MergeableBin instance"
+  | otherwise                   = Histogram bin' Nothing vec'
+  where
+    bin' = mergeBins dir k bin
+    vec' = G.generate n $ \i -> f (G.slice (off + i*k) k vec)
+    n    = G.length vec `div` k
+    off  = case dir of CutLower  -> G.length vec - n * k
+                       CutHigher -> 0
+
+----------------------------------------------------------------
+-- 2D histograms
+----------------------------------------------------------------
 
 -- | Get slice of 2D histogram along X axis
 sliceAlongX :: (Vector v a, Bin bX, Bin bY)
