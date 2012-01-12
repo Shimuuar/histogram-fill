@@ -212,7 +212,7 @@ map f (Histogram bin uo a) =
 
 -- | Map histogram using bin value and content. Overflows and underflows are set to Nothing.
 bmap :: (Vector v a, Vector v b, Bin bin)
-         => (BinValue bin -> a -> b) -> Histogram v bin a -> Histogram v bin b
+     => (BinValue bin -> a -> b) -> Histogram v bin a -> Histogram v bin b
 bmap f (Histogram bin _ vec) =
   Histogram bin Nothing $ G.imap (f . fromIndex bin) vec
 

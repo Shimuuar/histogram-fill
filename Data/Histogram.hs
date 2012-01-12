@@ -17,6 +17,8 @@ module Data.Histogram ( -- * Immutable histogram
   , module Data.Histogram.Bin
   , histogram
   , histogramUO
+  , HistIndex(..) 
+  , histIndex
     -- * Read histograms from string
   , readHistogram
   , readFileHistogram
@@ -29,30 +31,42 @@ module Data.Histogram ( -- * Immutable histogram
     -- ** Convert to other data types
   , asList
   , asVector
-    -- * Slicing histogram
-  , sliceByIx
-  , sliceByVal
-    -- * Splitting 2D histograms
-  , sliceXatIx
-  , sliceYatIx
-  , sliceX
-  , sliceY
-  , reduceX
-  , reduceY
-    -- * Modify histogram
+     -- * Modification
   , map
-  , mapBin
+  , bmap
   , zip
   , zipSafe
+    -- ** Type conversion
+  , convertBinning
+    -- * Folding
+  , foldl
+  , bfoldl
+    -- * Slicing & rebinning
+  , slice
+  , rebin
+  , rebinFold
+    -- * 2D histograms
+    -- ** Slicing
+  , sliceAlongX
+  , sliceAlongY
+  , listSlicesAlongX
+  , listSlicesAlongY
+    -- ** Reducing along axis
+  , reduceX
+  , reduceY
+    -- * Lift histogram transform to 2D
+  , liftX
+  , liftY
   ) where
 
 import qualified Data.Vector.Unboxed    as U
 import Data.Vector.Unboxed (Unbox,Vector)
 
 import qualified Data.Histogram.Generic as H
+import Data.Histogram.Generic (HistIndex(..),histIndex)
 import Data.Histogram.Bin
 
-import Prelude hiding (map,zip)
+import Prelude hiding (map,zip,foldl)
 
 
 
@@ -111,47 +125,115 @@ asVector = H.asVector
 map :: (Unbox a, Unbox b) => (a -> b) -> Histogram bin a -> Histogram bin b
 map = H.map
 
-mapBin :: (Bin bin, Bin bin') => (bin -> bin') -> Histogram bin a -> Histogram bin' a
-mapBin = H.mapBin
+bmap :: (Unbox a, Unbox b, Bin bin)
+     => (BinValue bin -> a -> b) -> Histogram bin a -> Histogram bin b
+bmap = H.bmap
 
-zip :: (Bin bin, Eq bin, Unbox a, Unbox b, Unbox c) =>
-           (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Histogram bin c
+zip :: (Bin bin, BinEq bin, Unbox a, Unbox b, Unbox c) 
+    => (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Histogram bin c
 zip = H.zip
            
-zipSafe :: (Bin bin, Eq bin, Unbox a, Unbox b, Unbox c) =>
-           (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Maybe (Histogram bin c)
+zipSafe :: (Bin bin, BinEq bin, Unbox a, Unbox b, Unbox c)
+        => (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Maybe (Histogram bin c)
 zipSafe = H.zipSafe
 
-sliceByIx :: (Bin1D bin, Unbox a) => Int -> Int -> Histogram bin a -> Histogram bin a
-sliceByIx = H.sliceByIx
-
-sliceByVal :: (Bin1D bin, Unbox a) => BinValue bin -> BinValue bin -> Histogram bin a -> Histogram bin a
-sliceByVal = H.sliceByVal
+convertBinning :: (ConvertBin bin bin', Unbox a)
+               => Histogram bin a -> Histogram bin' a
+convertBinning = H.convertBinning
 
 
-sliceXatIx :: (Unbox a, Bin bX, Bin bY)
-           => Histogram (Bin2D bX bY) a
-           -> Int
-           -> Histogram bX a
-sliceXatIx = H.sliceXatIx
 
-sliceYatIx :: (Unbox a, Bin bX, Bin bY)
-           => Histogram (Bin2D bX bY) a
-           -> Int
-           -> Histogram bY a
-sliceYatIx = H.sliceYatIx
+----------------------------------------------------------------
+-- Folding
+----------------------------------------------------------------
+
+foldl :: (Bin bin, Unbox a) => (b -> a -> b) -> b -> Histogram bin a -> b
+foldl = H.foldl
+
+bfoldl :: (Bin bin, Unbox a) => (b -> BinValue bin -> a -> b) -> b -> Histogram bin a -> b
+bfoldl = H.bfoldl
 
 
-sliceY :: (Unbox a, Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bY, Histogram bX a)]
-sliceY = H.sliceY
 
-sliceX :: (Unbox a, Bin bX, Bin bY) => Histogram (Bin2D bX bY) a -> [(BinValue bX, Histogram bY a)]
-sliceX = H.sliceX
+----------------------------------------------------------------
+-- Slicing and reducing histograms
+----------------------------------------------------------------
+
+slice :: (SliceableBin bin, Unbox a)
+      => HistIndex bin          -- ^ Lower inclusive bound
+      -> HistIndex bin          -- ^ Upper inclusive bound
+      -> Histogram bin a      -- ^ Histogram to slice
+      -> Histogram bin a
+slice = H.slice
+
+rebin :: (MergeableBin bin, Unbox a)
+      => CutDirection
+      -> Int      
+      -> (a -> a -> a)          -- ^ Accumulation function
+      -> Histogram bin a
+      -> Histogram bin a
+rebin = H.rebin
+-- {-# INLINE rebin #-}
+
+-- | Rebin histogram
+rebinFold :: (MergeableBin bin, Unbox a, Unbox b)
+          => CutDirection
+          -> Int      
+          -> (b -> a -> b)          -- ^ Accumulation function
+          -> b                      -- ^ Initial value
+          -> Histogram bin a
+          -> Histogram bin b
+rebinFold = H.rebinFold
+-- {-# INLINE rebinFold #-}
+
+
+
+----------------------------------------------------------------
+-- 2D histograms
+----------------------------------------------------------------
+
+sliceAlongX :: (Unbox a, Bin bX, Bin bY)
+            => Histogram (Bin2D bX bY) a -- ^ 2D histogram
+            -> HistIndex bY                -- ^ Position along Y axis
+            -> Histogram bX a
+sliceAlongX = H.sliceAlongX
+
+sliceAlongY :: (Unbox a, Bin bX, Bin bY)
+            => Histogram (Bin2D bX bY) a -- ^ 2D histogram
+            -> HistIndex bX                -- ^ Position along X axis
+            -> Histogram bY a
+sliceAlongY = H.sliceAlongY
+
+listSlicesAlongX :: (Unbox a, Bin bX, Bin bY)
+                 => Histogram (Bin2D bX bY) a
+                 -> [(BinValue bY, Histogram bX a)]
+listSlicesAlongX = H.listSlicesAlongX
+
+listSlicesAlongY :: (Unbox a, Bin bX, Bin bY)
+                 => Histogram (Bin2D bX bY) a
+                 -> [(BinValue bX, Histogram bY a)]
+listSlicesAlongY = H.listSlicesAlongY
 
 reduceX :: (Unbox a, Unbox b, Bin bX, Bin bY)
-        => Histogram (Bin2D bX bY) a -> (Histogram bX a -> b) -> Histogram bY b
+        => (Histogram bX a -> b)      -- ^ Function to reduce single slice along X axis
+        ->  Histogram (Bin2D bX bY) a -- ^ 2D histogram
+        ->  Histogram bY b
 reduceX = H.reduceX
 
 reduceY :: (Unbox a, Unbox b, Bin bX, Bin bY)
-        => Histogram (Bin2D bX bY) a -> (Histogram bY a -> b) -> Histogram bX b
+        => (Histogram bY a -> b)     -- ^ Function to reduce histogram along Y axis
+        -> Histogram (Bin2D bX bY) a -- ^ 2D histogram
+        -> Histogram bX b
 reduceY = H.reduceY
+
+liftX :: (Bin bX, Bin bY, Bin bX', BinEq bX', Unbox a, Unbox b)
+      => (Histogram bX a -> Histogram bX' b)
+      -> Histogram (Bin2D bX  bY) a
+      -> Histogram (Bin2D bX' bY) b
+liftX = H.liftX
+
+liftY :: (Bin bX, Bin bY, Bin bY', BinEq bY', Unbox a, Unbox b)
+      => (Histogram bY a -> Histogram bY' b)
+      -> Histogram (Bin2D bX bY ) a
+      -> Histogram (Bin2D bX bY') b
+liftY = H.liftY
