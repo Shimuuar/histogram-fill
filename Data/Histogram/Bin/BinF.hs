@@ -84,6 +84,15 @@ instance RealFrac f => Bin1D (BinF f) where
 instance RealFrac f => SliceableBin (BinF f) where
   unsafeSliceBin i j (BinF from step _) = BinF (from + step * fromIntegral i) step (j-i+1)
 
+instance RealFrac f => MergeableBin (BinF f) where
+  unsafeMergeBins dir k b@(BinF base step _) =
+    case dir of
+      CutLower  -> BinF (base + r) (step * fromIntegral k) n
+      CutHigher -> BinF  base      (step * fromIntegral k) n
+    where
+      n = nBins b `div` k
+      r = fromIntegral (nBins b - n * k) * step
+
 instance RealFrac f => VariableBin (BinF f) where
   binSizeN (BinF _ step _) _ = step
 
@@ -173,6 +182,15 @@ instance Bin1D BinD where
 
 instance SliceableBin BinD where
   unsafeSliceBin i j (BinD from step _) = BinD (from + step * fromIntegral i) step (j-i+1)
+
+instance MergeableBin BinD where
+  unsafeMergeBins dir k b@(BinD base step _) =
+    case dir of
+      CutLower  -> BinD (base + r) (step * fromIntegral k) n
+      CutHigher -> BinD  base      (step * fromIntegral k) n
+    where
+      n = nBins b `div` k
+      r = fromIntegral (nBins b - n * k) * step
 
 instance VariableBin BinD where
   binSizeN (BinD _ step _) _ = step

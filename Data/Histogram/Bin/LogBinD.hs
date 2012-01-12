@@ -77,6 +77,15 @@ instance Bin1D LogBinD where
 instance SliceableBin LogBinD where
   unsafeSliceBin i j (LogBinD from step _) = LogBinD (from * step ^ i) step (j-i+1)
 
+instance MergeableBin LogBinD where
+  unsafeMergeBins dir k b@(LogBinD from step _) =
+    case dir of
+      CutLower  -> LogBinD (from * step^^r) (step^^k) n
+      CutHigher -> LogBinD  from            (step^^k) n
+    where
+      n = nBins b `div` k
+      r = nBins b - n * k
+
 instance VariableBin LogBinD where
   binSizeN (LogBinD base step _) n = let x = base * step ^ n in x*step - x
 

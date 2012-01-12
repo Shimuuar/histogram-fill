@@ -83,6 +83,15 @@ instance Bin1D BinInt where
 instance SliceableBin BinInt where
   unsafeSliceBin i j (BinInt base sz _) = BinInt (base + i*sz) sz (j-i+1)
 
+instance MergeableBin BinInt where
+  unsafeMergeBins dir k b@(BinInt base step _) =
+    case dir of
+      CutLower  -> BinInt (base + r) (step*k) n
+      CutHigher -> BinInt  base      (step*k) n
+    where
+      n = nBins b `div` k
+      r = (nBins b - n * k) * step
+
 instance VariableBin BinInt where
   binSizeN (BinInt _ sz _) _ = sz
 

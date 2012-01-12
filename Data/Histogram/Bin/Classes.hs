@@ -135,9 +135,10 @@ class Bin b => MergeableBin b where
 mergeBins :: MergeableBin b => CutDirection -> Int -> b -> b
 mergeBins dir n b
   | nBins b == 0 = b
-  | n < 0        = error "Data.Histogram.Bin.Classes.mergeNBin: negative N"
-  | n > nBins b  = unsafeMergeBins dir (nBins b) b
+  | n <= 0       = error "Data.Histogram.Bin.Classes.mergeNBin: non-positive N"
+  | n >  nBins b = unsafeMergeBins dir (nBins b) b
   | otherwise    = unsafeMergeBins dir  n        b
+
 
 
 ---- Bin sizes ------------------------------------------------
