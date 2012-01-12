@@ -52,6 +52,9 @@ module Data.Histogram.Generic (
     -- ** Reducing along axis
   , reduceX
   , reduceY
+    -- * Lift histogram transform to 2D
+  , liftX
+  , liftY
   ) where
 
 import Control.Applicative ((<$>),(<*>))
@@ -210,7 +213,7 @@ map f (Histogram bin uo a) =
 -- | Map histogram using bin value and content. Overflows and underflows are set to Nothing.
 bmap :: (Vector v a, Vector v b, Bin bin)
          => (BinValue bin -> a -> b) -> Histogram v bin a -> Histogram v bin b
-bmap f (Histogram bin uo vec) =
+bmap f (Histogram bin _ vec) =
   Histogram bin Nothing $ G.imap (f . fromIndex bin) vec
 
 -- | Zip two histograms elementwise. Bins of histograms must be equal
@@ -367,7 +370,7 @@ reduceX :: (Vector v a, Vector v b, Bin bX, Bin bY)
         => (Histogram v bX a -> b)      -- ^ Function to reduce single slice along X axis
         ->  Histogram v (Bin2D bX bY) a -- ^ 2D histogram
         ->  Histogram v bY b
-reduceX f h@(Histogram (Bin2D bX bY) _ arr) =
+reduceX f h@(Histogram (Bin2D _ bY) _ _) =
   Histogram bY Nothing $ G.generate (nBins bY) (f . sliceAlongX h . Index)
 
 
@@ -376,14 +379,14 @@ reduceY :: (Vector v a, Vector v b, Bin bX, Bin bY)
         => (Histogram v bY a -> b)     -- ^ Function to reduce histogram along Y axis
         -> Histogram v (Bin2D bX bY) a -- ^ 2D histogram
         -> Histogram v bX b
-reduceY f h@(Histogram (Bin2D bX bY) _ arr) =
-  Histogram bX Nothing $ G.generate (nBins bY) (f . sliceAlongY h . Index)
+reduceY f h@(Histogram (Bin2D bX _) _ _) =
+  Histogram bX Nothing $ G.generate (nBins bX) (f . sliceAlongY h . Index)
 
 liftX :: (Bin bX, Bin bY, Bin bX', BinEq bX', Vector v a, Vector v b)
       => (Histogram v bX a -> Histogram v bX' b)
       -> Histogram v (Bin2D bX  bY) a
       -> Histogram v (Bin2D bX' bY) b
-liftX f hist@(Histogram (Bin2D bx by) _ vec) =
+liftX f hist@(Histogram (Bin2D _ by) _ _) =
   case f . snd <$> listSlicesAlongX hist of
     [] -> error "Data.Histogram.Generic.Histogram.liftX: zero size along Y"
     hs -> Histogram
@@ -395,7 +398,7 @@ liftY :: (Bin bX, Bin bY, Bin bY', BinEq bY', Vector v a, Vector v b, Vector v I
       => (Histogram v bY a -> Histogram v bY' b)
       -> Histogram v (Bin2D bX bY ) a
       -> Histogram v (Bin2D bX bY') b
-liftY f hist@(Histogram (Bin2D bx by) _ vec) =
+liftY f hist@(Histogram (Bin2D bx _) _ _) =
   case f . snd <$> listSlicesAlongY hist of
     [] -> error "Data.Histogram.Generic.Histogram.liftY: zero size along X"
     hs -> make hs
