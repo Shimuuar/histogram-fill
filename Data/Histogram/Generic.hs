@@ -319,7 +319,8 @@ rebinWorker dir k f (Histogram bin _ vec)
 -- 2D histograms
 ----------------------------------------------------------------
 
--- | Get slice of 2D histogram along X axis
+-- | Get slice of 2D histogram along X axis. This function is faster
+--   than 'sliceAlongY' since no array reallocations is required
 sliceAlongX :: (Vector v a, Bin bX, Bin bY)
             => Histogram v (Bin2D bX bY) a -- ^ 2D histogram
             -> HistIndex bY                -- ^ Position along Y axis
@@ -377,3 +378,33 @@ reduceY :: (Vector v a, Vector v b, Bin bX, Bin bY)
         -> Histogram v bX b
 reduceY f h@(Histogram (Bin2D bX bY) _ arr) =
   Histogram bX Nothing $ G.generate (nBins bY) (f . sliceAlongY h . Index)
+
+liftX :: (Bin bX, Bin bY, Bin bX', BinEq bX', Vector v a, Vector v b)
+      => (Histogram v bX a -> Histogram v bX' b)
+      -> Histogram v (Bin2D bX  bY) a
+      -> Histogram v (Bin2D bX' bY) b
+liftX f hist@(Histogram (Bin2D bx by) _ vec) =
+  case f . snd <$> listSlicesAlongX hist of
+    [] -> error "Data.Histogram.Generic.Histogram.liftX: zero size along Y"
+    hs -> Histogram
+          (Bin2D (bins (head hs)) by)
+           Nothing
+          (G.concat (histData <$> hs))
+
+liftY :: (Bin bX, Bin bY, Bin bY', BinEq bY', Vector v a, Vector v b, Vector v Int)
+      => (Histogram v bY a -> Histogram v bY' b)
+      -> Histogram v (Bin2D bX bY ) a
+      -> Histogram v (Bin2D bX bY') b
+liftY f hist@(Histogram (Bin2D bx by) _ vec) =
+  case f . snd <$> listSlicesAlongY hist of
+    [] -> error "Data.Histogram.Generic.Histogram.liftY: zero size along X"
+    hs -> make hs
+ where
+   make hs = Histogram (Bin2D bx by') Nothing
+           $ G.backpermute (G.concat (histData <$> hs)) (G.generate (nx*ny) join)
+     where
+       by'    = bins (head hs)
+       nx     = nBins bx
+       ny     = nBins by'
+       join i = let (a,b) = i `quotRem` nx
+                in  a + b * ny
