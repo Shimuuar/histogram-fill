@@ -97,7 +97,7 @@ instance Bin b => Bin (BinPermute b) where
   type BinValue (BinPermute b) = BinValue b
   toIndex   (BinPermute b to _)   !x = to ! toIndex b x
   fromIndex (BinPermute b _ from) !i = fromIndex b (from ! i)
-  inRange   (BinPermute b _ _)     x = inRange b x
+  inRange   (BinPermute b _ _)       = inRange b
   nBins = nBins . permutedBin
 
 instance IntervalBin b => IntervalBin (BinPermute b) where

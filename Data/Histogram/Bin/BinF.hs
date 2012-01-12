@@ -107,7 +107,7 @@ instance RealFloat f => BinEq (BinF f) where
     && abs (lo - lo') < dlo
     where
       dlo = eps * fromIntegral n * d
-      eps = 2 ** (-0.66 * (fromIntegral $ floatDigits lo))
+      eps = 2 ** (-0.66 * fromIntegral (floatDigits lo))
 
 instance Show f => Show (BinF f) where
   show (BinF base step n) = unlines [ "# BinF"

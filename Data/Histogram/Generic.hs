@@ -99,7 +99,7 @@ histIndex b (Value x) = toIndex b x
 --
 -- Number of bins and vector size must match.
 histogram :: (Vector v a, Bin bin) => bin -> v a -> Histogram v bin a
-histogram b v = histogramUO b Nothing v
+histogram b = histogramUO b Nothing
 
 -- | Create histogram from binning algorithm and vector with data. 
 --
@@ -233,11 +233,13 @@ zipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
     f2 (x,x') (y,y') = (f x y, f x' y')
 
 -- | Convert between different vector types
-convert :: (Vector v a, Vector w a) => Histogram v bin a -> Histogram w bin a
+convert :: (Vector v a, Vector w a)
+        => Histogram v bin a -> Histogram w bin a
 convert (Histogram bin uo vec) = Histogram bin uo (G.convert vec)
 
 -- | Convert between binning types using 'ConvertBin' type class.
-convertBinning :: (ConvertBin bin bin', Vector v a) => Histogram v bin a -> Histogram v bin' a
+convertBinning :: (ConvertBin bin bin', Vector v a)
+               => Histogram v bin a -> Histogram v bin' a
 convertBinning (Histogram bin uo vec)
   | nBins bin == nBins bin' = Histogram bin' uo vec
   | otherwise               = error "Data.Histogram.Generic.convertBinning: invalid ConvertBin instance"

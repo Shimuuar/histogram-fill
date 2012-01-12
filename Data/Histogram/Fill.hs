@@ -255,7 +255,7 @@ treeHBuilderM fs h = joinHBuilderM $ fmap ($ h) fs
 ----------------------------------------------------------------
 
 -- | Stateless histogram builder
-newtype HBuilder a b = HBuilder { toHBuilderST :: (forall s . ST s (HBuilderM (ST s) a b))
+newtype HBuilder a b = HBuilder { toHBuilderST :: forall s . ST s (HBuilderM (ST s) a b)
                                   -- ^ Convert builder to stateful builder in ST monad
                                 }
 
@@ -306,21 +306,21 @@ treeHBuilder fs h = joinHBuilder $ fmap ($ h) fs
 --   item put into histogram
 mkSimple :: (Bin bin, Unbox val, Num val
             ) => bin -> HBuilder (BinValue bin) (Histogram bin val)
-mkSimple bin = mkSimpleG bin
+mkSimple = mkSimpleG
 {-# INLINE mkSimple #-}
 
 -- | Create builder. Bin content will incremented by weight supplied
 --   for each item put into histogram
 mkWeighted :: (Bin bin, Unbox val, Num val
               ) => bin -> HBuilder (BinValue bin,val) (Histogram bin val)
-mkWeighted bin = mkWeightedG bin
+mkWeighted = mkWeightedG
 {-# INLINE mkWeighted #-}
 
 -- | Create builder. New value wil be mappended to current content of
 --   a bin for each item put into histogram
 mkMonoidal :: (Bin bin, Unbox val, Monoid val
               ) => bin -> HBuilder (BinValue bin,val) (Histogram bin val)
-mkMonoidal bin = mkMonoidalG bin
+mkMonoidal = mkMonoidalG
 {-# INLINE mkMonoidal #-}
 
 -- | Create builder. Bin content will be incremented by 1 for each
