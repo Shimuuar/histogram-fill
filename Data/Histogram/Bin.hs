@@ -13,7 +13,8 @@
 -- Binning algorithms. This is mapping from set of interest to integer
 -- indices and approximate reverse.
 
-module Data.Histogram.Bin ( -- * Type classes
+module Data.Histogram.Bin ( 
+    -- * Type classes
     module Data.Histogram.Bin.Classes
   , module Data.Histogram.Bin.BinI
   , module Data.Histogram.Bin.BinInt

@@ -18,14 +18,9 @@ import Data.Histogram.Parse
 
 
 
--- | Integer bins of equal size.
+-- | Integer bins of equal size. For roundtripping use:
 --
--- > 
--- 1. Low bound
---
--- 2. Bin size
---
--- 3. Number of bins
+-- > b = binIntStep (lowerLimit b) (binSize b) (nBins b)
 data BinInt = BinInt
               {-# UNPACK #-} !Int -- Low bound
               {-# UNPACK #-} !Int -- Bin size

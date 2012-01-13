@@ -19,7 +19,7 @@ import Data.Histogram.Parse
 
 
 
--- | Logarithmic scale bins. For roundtripping use:
+-- | Uniform binning in logarithmic scale. For roundtripping use:
 --
 -- > b = logBinDN (lowerBound b) (logBinDIncrement b) (nBins b)
 data LogBinD = LogBinD
