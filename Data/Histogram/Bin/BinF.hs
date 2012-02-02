@@ -62,7 +62,7 @@ binFstep :: RealFrac f =>
 binFstep = BinF
 
 -- | 'scaleBinF a b' scales BinF using linear transform 'a+b*x'
-scaleBinF :: RealFrac f => f -> f -> BinF f -> BinF f
+scaleBinF :: (Show f, RealFrac f) => f -> f -> BinF f -> BinF f
 scaleBinF a b (BinF base step n)
     | b > 0     = BinF (a + b*base) (b*step) n
     | otherwise = error $ "scaleBinF: b must be positive (b = "++show b++")"
