@@ -12,6 +12,10 @@ Synopsis:       Library for histograms creation.
 Description:    
   This is library for histograms filling. Its aim to provide
   convenient way to create and fill histograms. 
+  .
+  Changes in 0.6.0.1
+  .
+  * Fixed compilation with GHC 7.4
 
 source-repository head
   type:     hg
