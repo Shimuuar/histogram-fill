@@ -282,22 +282,22 @@ slice a b (Histogram bin _ v) =
     i = histIndex bin a
     j = histIndex bin b
 
--- | Rebin histogram
+-- | Rebin histogram by joining @n@ adjacent bins.
 rebin :: (MergeableBin bin, Vector v a)
-      => CutDirection
-      -> Int      
+      => CutDirection           -- ^ On which side bins should be discarded
+      -> Int                    -- ^ Number of bins to join
       -> (a -> a -> a)          -- ^ Accumulation function
       -> Histogram v bin a
       -> Histogram v bin a
 rebin dir k f =  rebinWorker dir k (G.foldl1' f)
 {-# INLINE rebin #-}
 
--- | Rebin histogram
+-- | Rebin histogram by joining @n@ adjacent bins.
 rebinFold :: (MergeableBin bin, Vector v a, Vector v b)
-          => CutDirection
-          -> Int      
-          -> (b -> a -> b)          -- ^ Accumulation function
-          -> b                      -- ^ Initial value
+          => CutDirection       -- ^ On which side bins should be discarded
+          -> Int                -- ^ Number of bins to join
+          -> (b -> a -> b)      -- ^ Accumulation function
+          -> b                  -- ^ Initial value
           -> Histogram v bin a
           -> Histogram v bin b
 rebinFold dir k f x0 =  rebinWorker dir k (G.foldl' f x0)
@@ -384,6 +384,7 @@ reduceY :: (Vector v a, Vector v b, Bin bX, Bin bY)
 reduceY f h@(Histogram (Bin2D bX _) _ _) =
   Histogram bX Nothing $ G.generate (nBins bX) (f . sliceAlongY h . Index)
 
+-- | Transform X slices of histogram.
 liftX :: (Bin bX, Bin bY, Bin bX', BinEq bX', Vector v a, Vector v b)
       => (Histogram v bX a -> Histogram v bX' b)
       -> Histogram v (Bin2D bX  bY) a
@@ -396,6 +397,7 @@ liftX f hist@(Histogram (Bin2D _ by) _ _) =
            Nothing
           (G.concat (histData <$> hs))
 
+-- | Transform Y slices of histogram.
 liftY :: (Bin bX, Bin bY, Bin bY', BinEq bY', Vector v a, Vector v b, Vector v Int)
       => (Histogram v bY a -> Histogram v bY' b)
       -> Histogram v (Bin2D bX bY ) a
