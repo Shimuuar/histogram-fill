@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE TypeOperators #-}
 module Data.Histogram.Bin.Bin2D (
     Bin2D(..)
   , (><)
@@ -26,6 +27,10 @@ data Bin2D binX binY = Bin2D { binX :: !binX -- ^ Binning algorithm for X axis
 -- | Alias for 'Bin2D'.
 (><) :: binX -> binY -> Bin2D binX binY
 (><) = Bin2D
+
+-- | Type alias for Bin2D
+type (:><:) = Bin2D
+
 
 instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
   type BinValue (Bin2D binX binY) = (BinValue binX, BinValue binY)
