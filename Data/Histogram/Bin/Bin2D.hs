@@ -35,7 +35,7 @@ type (:><:) = Bin2D
 
 instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
   type BinValue (Bin2D binX binY) = (BinValue binX, BinValue binY)
-  toIndex !(Bin2D bx by) !(x,y)
+  toIndex (Bin2D bx by) (x,y)
         | inRange bx x = toIndex bx x + toIndex by y * nBins bx
         | otherwise    = maxBound
   fromIndex b@(Bin2D bx by) i = let (ix,iy) = toIndex2D b i
