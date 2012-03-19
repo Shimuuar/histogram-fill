@@ -1,13 +1,5 @@
 Name:           histogram-fill
 Version:        0.6.1.0
-Cabal-Version:  >= 1.6
-License:        BSD3
-License-File:   LICENSE
-Author:         Alexey Khudyakov
-Maintainer:     Alexey Khudyakov <alexey.skladnoy@gmail.com>
-Homepage:       http://bitbucket.org/Shimuuar/histogram-fill/
-Category:       Data
-Build-Type:     Simple
 Synopsis:       Library for histograms creation.
 Description:    
   This is library for histograms filling. Its aim to provide
@@ -21,15 +13,23 @@ Description:
   .
   * Fixed compilation with GHC 7.4
 
+Cabal-Version:  >= 1.6
+License:        BSD3
+License-File:   LICENSE
+Author:         Alexey Khudyakov
+Maintainer:     Alexey Khudyakov <alexey.skladnoy@gmail.com>
+Homepage:       http://bitbucket.org/Shimuuar/histogram-fill/
+Category:       Data
+Build-Type:     Simple
+extra-source-files:
+  README.markdown
+
 source-repository head
   type:     hg
   location: http://bitbucket.org/Shimuuar/histogram-fill
 source-repository head
   type:     git
   location: http://github.com/Shimuuar/histogram-fill
-
-extra-source-files:
-  README.markdown
 
 Library
   Build-Depends:        base >=3 && <5,

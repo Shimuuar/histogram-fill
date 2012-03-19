@@ -64,7 +64,7 @@ import Control.DeepSeq     (NFData(..))
 
 import qualified Data.Vector.Generic         as G
 import Data.Maybe           (fromMaybe)
-import Data.Typeable        (Typeable(..),Typeable1(..),Typeable2(..),mkTyConApp,mkTyCon)
+import Data.Typeable        -- (Typeable(..),Typeable1(..),Typeable2(..),mkTyConApp,mkTyCon)
 import Data.Vector.Generic  (Vector,(!))
 import Text.Read
 import Prelude       hiding (map,zip,foldl)
