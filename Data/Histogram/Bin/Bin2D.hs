@@ -7,6 +7,7 @@ module Data.Histogram.Bin.Bin2D (
   , (><)
   , (:><:)
   , nBins2D
+  , toIndex2D
   , fmapBinX
   , fmapBinY
   ) where
