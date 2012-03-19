@@ -1,5 +1,5 @@
 Name:           histogram-fill
-Version:        0.6.0.1
+Version:        0.6.1.0
 Cabal-Version:  >= 1.6
 License:        BSD3
 License-File:   LICENSE
@@ -13,6 +13,10 @@ Description:
   This is library for histograms filling. Its aim to provide
   convenient way to create and fill histograms. 
   .
+  Changes in 0.6.1.0
+  .
+  * Helper function and type synonym for Bin2D
+  .
   Changes in 0.6.0.1
   .
   * Fixed compilation with GHC 7.4
@@ -24,7 +28,7 @@ source-repository head
   type:     git
   location: http://github.com/Shimuuar/histogram-fill
 
-extra-source-files
+extra-source-files:
   README.markdown
 
 Library
