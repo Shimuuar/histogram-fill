@@ -5,6 +5,7 @@
 module Data.Histogram.Bin.Bin2D (
     Bin2D(..)
   , (><)
+  , (:><:)
   , nBins2D
   , fmapBinX
   , fmapBinY
