@@ -44,6 +44,7 @@ instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
   inRange (Bin2D bx by) !(x,y) = inRange bx x && inRange by y
   nBins (Bin2D bx by) = nBins bx * nBins by
   {-# INLINE toIndex #-}
+  {-# INLINE nBins   #-}
 
 -- | Convert index into pair of indices for X and Y axes
 toIndex2D :: (Bin binX, Bin binY) => Bin2D binX binY -> Int -> (Int,Int)
