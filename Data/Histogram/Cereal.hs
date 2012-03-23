@@ -19,7 +19,36 @@ import Data.Histogram.Generic (Histogram, histogramUO, histData, outOfRange, bin
 
 instance Serialize BinI where
   get   = binI <$> get <*> get
-  put b = put (lowerLimit b) >> put (upperLimit b)
+  put b = do put (lowerLimit b)
+             put (upperLimit b)
+
+instance Serialize BinInt where
+  get   = binIntStep <$> get <*> get <*> get
+  put b = do put (lowerLimit b)
+             put (binSize    b)
+             put (nBins      b)
+
+instance (RealFrac f, Serialize f) => Serialize (BinF f) where
+  get   = binFstep <$> get <*> get <*> get
+  put b = do put (lowerLimit b)
+             put (binSize    b)
+             put (nBins      b)
+
+instance Serialize BinD where
+  get   = binDstep <$> get <*> get <*> get
+  put b = do put (lowerLimit b)
+             put (binSize    b)
+             put (nBins      b)
+
+instance Serialize LogBinD where
+   get   = logBinDN <$> get <*> get <*> get
+   put b = do put (lowerLimit       b)
+              put (logBinDIncrement b)
+              put (nBins            b)
+
+instance Serialize (BinEnum a) where
+  get = BinEnum <$> get
+  put (BinEnum b) = put b
 
 instance (Serialize bX, Serialize bY) => Serialize (Bin2D bX bY) where
   get = Bin2D <$> get <*> get
