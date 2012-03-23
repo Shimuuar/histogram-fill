@@ -21,7 +21,7 @@ import Data.Histogram.Parse
 
 -- | Uniform binning in logarithmic scale. For roundtripping use:
 --
--- > b = logBinDN (lowerBound b) (logBinDIncrement b) (nBins b)
+-- > b = logBinDN (lowerLimit b) (logBinDIncrement b) (nBins b)
 data LogBinD = LogBinD
                Double -- Low border
                Double -- Increment ratio
