@@ -1,0 +1,30 @@
+Name:           histogram-fill-cereal
+Version:        0.6.0.0
+Synopsis:       Library for histograms creation.
+Description:
+  Cereal instances for histogram-fill package
+
+Cabal-Version:  >= 1.6
+License:        BSD3
+License-File:   LICENSE
+Author:         Alexey Khudyakov
+Maintainer:     Alexey Khudyakov <alexey.skladnoy@gmail.com>
+Homepage:       http://bitbucket.org/Shimuuar/histogram-fill-cereal/
+Category:       Data
+Build-Type:     Simple
+
+source-repository head
+  type:     hg
+  location: http://bitbucket.org/Shimuuar/histogram-fill-cereal
+source-repository head
+  type:     git
+  location: http://github.com/Shimuuar/histogram-fill-cereal
+
+Library
+  Build-Depends:        base >=3 && <5,
+                        cereal,
+                        vector >= 0.7,
+                        histogram-fill >= 0.6
+  Exposed-modules:      Data.Histogram.Cereal
+  Ghc-options:          -O2 -Wall
+  Ghc-prof-options:     -auto-all
