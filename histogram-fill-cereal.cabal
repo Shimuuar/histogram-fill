@@ -26,5 +26,5 @@ Library
                         vector >= 0.7,
                         histogram-fill >= 0.6
   Exposed-modules:      Data.Histogram.Cereal
-  Ghc-options:          -O2 -Wall
+  Ghc-options:          -Wall
   Ghc-prof-options:     -auto-all
