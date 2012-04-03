@@ -93,7 +93,7 @@ instance (Read bx, Read by) => Read (Bin2D bx by) where
     by <- readPrec
     return $ Bin2D bx by
 
-instance (NFData bs, NFData by) => NFData (Bin2D bx by) where
+instance (NFData bx, NFData by) => NFData (Bin2D bx by) where
   rnf (Bin2D bx by) = rnf bx `seq`
                       rnf by `seq`
                       ()
