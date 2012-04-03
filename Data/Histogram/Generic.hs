@@ -270,7 +270,8 @@ bfoldl f x0 (Histogram bin _ vec) =
 ----------------------------------------------------------------
 
 -- | Slice histogram. Values/indices specify inclusive
---   variant. Under/overflows are discarded.
+--   variant. Under/overflows are discarded. If requested value falls
+--   out of histogram range it will be truncated.
 slice :: (SliceableBin bin, Vector v a)
       => HistIndex bin          -- ^ Lower inclusive bound
       -> HistIndex bin          -- ^ Upper inclusive bound
@@ -279,8 +280,9 @@ slice :: (SliceableBin bin, Vector v a)
 slice a b (Histogram bin _ v) =
   Histogram (sliceBin i j bin) Nothing (G.slice i (j - i + 1) v)
   where
-    i = histIndex bin a
-    j = histIndex bin b
+    i = max 0 $ histIndex bin a
+    j = min n $ histIndex bin b
+    n = nBins bin - 1
 
 -- | Rebin histogram by joining @n@ adjacent bins.
 rebin :: (MergeableBin bin, Vector v a)
