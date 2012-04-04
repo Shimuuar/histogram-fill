@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module MaybeBin (
+module Data.Histogram.Bin.MaybeBin (
     MaybeBin(..)
   ) where
 
