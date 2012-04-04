@@ -31,6 +31,7 @@ module Data.Histogram.Generic (
     -- * Modification
   , map
   , bmap
+  , mapData
   , zip
   , zipSafe
     -- ** Type conversion
@@ -215,6 +216,13 @@ bmap :: (Vector v a, Vector v b, Bin bin)
      => (BinValue bin -> a -> b) -> Histogram v bin a -> Histogram v bin b
 bmap f (Histogram bin _ vec) =
   Histogram bin Nothing $ G.imap (f . fromIndex bin) vec
+
+mapData :: (Vector v a, Vector u b, Bin bin)
+        => (v a -> u b) -> Histogram v bin a -> Histogram u bin b
+mapData f (Histogram bin _ v)
+  | G.length v /= G.length v' = error "Data.Histogram.Generic.Histogram.mapData: vector length changed"
+  | otherwise                 = Histogram bin Nothing v'
+  where v' = f v
 
 -- | Zip two histograms elementwise. Bins of histograms must be equal
 --   otherwise error will be called.

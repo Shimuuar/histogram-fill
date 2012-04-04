@@ -34,6 +34,7 @@ module Data.Histogram ( -- * Immutable histogram
      -- * Modification
   , map
   , bmap
+  , mapData
   , zip
   , zipSafe
     -- ** Type conversion
@@ -128,6 +129,11 @@ map = H.map
 bmap :: (Unbox a, Unbox b, Bin bin)
      => (BinValue bin -> a -> b) -> Histogram bin a -> Histogram bin b
 bmap = H.bmap
+
+mapData :: (Unbox a, Unbox b, Bin bin)
+        => (Vector a -> Vector b) -> Histogram bin a -> Histogram bin b
+mapData = H.mapData
+
 
 zip :: (Bin bin, BinEq bin, Unbox a, Unbox b, Unbox c) 
     => (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Histogram bin c
