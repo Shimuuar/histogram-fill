@@ -17,7 +17,7 @@ import Data.Data       (Data,Typeable)
 import Text.Read       (Read(..))
 
 import Data.Histogram.Bin.Classes
-import Data.Histogram.Parse
+import Data.Histogram.Bin.Read
 
 -- | 2D bins. binX is binning along X axis and binY is one along Y
 --   axis. Data is stored in row-major order

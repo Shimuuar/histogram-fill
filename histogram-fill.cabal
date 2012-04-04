@@ -50,7 +50,7 @@ Library
                         Data.Histogram.Bin.MaybeBin
                         Data.Histogram.Bin.Bin2D
                         Data.Histogram.Bin.Extra
+                        Data.Histogram.Bin.Read
                         Data.Histogram.ST
-                        Data.Histogram.Parse
   Ghc-options:          -O2 -Wall
   Ghc-prof-options:     -auto-all

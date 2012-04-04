@@ -72,7 +72,7 @@ import Prelude       hiding (map,zip,foldl)
 import qualified Prelude    (zip)
 
 import Data.Histogram.Bin
-import Data.Histogram.Parse
+import Data.Histogram.Bin.Read
 
 ----------------------------------------------------------------
 -- Data type and smart constructors

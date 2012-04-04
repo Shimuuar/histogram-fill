@@ -1,10 +1,11 @@
 -- | Helper function for defining Read instances for bin data types.
-module Data.Histogram.Parse ( ws
-                            , eol
-                            , value
-                            , maybeValue
-                            , keyword
-                            ) where
+module Data.Histogram.Bin.Read 
+  ( ws
+  , eol
+  , value
+  , maybeValue
+  , keyword
+  ) where
 
 import Text.Read
 import Text.ParserCombinators.ReadP    (ReadP, many, satisfy, char, string)

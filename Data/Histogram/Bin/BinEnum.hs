@@ -14,7 +14,7 @@ import Text.Read       (Read(..))
 
 import Data.Histogram.Bin.Classes
 import Data.Histogram.Bin.BinI
-import Data.Histogram.Parse
+import Data.Histogram.Bin.Read
 
 -- | Bin for types which are instnaces of Enum type class. Value are
 --   converted to 'Int' using 'fromEnum' first and then binned.

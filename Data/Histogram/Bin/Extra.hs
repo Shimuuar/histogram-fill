@@ -32,7 +32,7 @@ import Data.Data          (Data,Typeable)
 import Text.Read          (Read(..))         
 
 import Data.Histogram.Bin
-import Data.Histogram.Parse
+import Data.Histogram.Bin.Read
 
 ----------------------------------------------------------------
 
