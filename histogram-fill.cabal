@@ -47,6 +47,7 @@ Library
                         Data.Histogram.Bin.BinEnum
                         Data.Histogram.Bin.BinF
                         Data.Histogram.Bin.LogBinD
+                        Data.Histogram.Bin.MaybeBin
                         Data.Histogram.Bin.Bin2D
                         Data.Histogram.Bin.Extra
                         Data.Histogram.ST
