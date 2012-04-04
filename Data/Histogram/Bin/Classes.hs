@@ -116,8 +116,8 @@ sliceBin i j b
       n = nBins b       
 
 -- | How index should be dropped
-data CutDirection = CutLower    -- ^ Drop bins with highest index
-                  | CutHigher   -- ^ Drop bins with lowest index
+data CutDirection = CutLower    -- ^ Drop bins with smallest index
+                  | CutHigher   -- ^ Drop bins with bigger index
 
 
 -- | Bin which support rebinning. 
