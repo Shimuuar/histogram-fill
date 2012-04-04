@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE Rank2Types        #-}
-
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 import Control.Applicative
 
@@ -13,6 +13,7 @@ import Test.QuickCheck.Property
 
 import Data.Typeable
 import Data.Histogram
+import Data.Histogram.Bin.MaybeBin
 import Data.Histogram.Fill
 
 import Debug.Trace
@@ -59,7 +60,7 @@ instance Arbitrary BinI where
       let maxI = 100
       lo <- choose (-maxI , maxI)
       hi <- choose (lo    , maxI)
-      return $ BinI lo hi
+      return $ binI lo hi
 
 instance Arbitrary BinInt where
     arbitrary = do
