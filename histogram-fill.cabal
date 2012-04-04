@@ -51,6 +51,6 @@ Library
                         Data.Histogram.Bin.Bin2D
                         Data.Histogram.Bin.Extra
                         Data.Histogram.ST
-  Other-modules:        Data.Histogram.Parse
+                        Data.Histogram.Parse
   Ghc-options:          -O2 -Wall
   Ghc-prof-options:     -auto-all

@@ -1,3 +1,4 @@
+-- | Helper function for defining Read instances for bin data types.
 module Data.Histogram.Parse ( ws
                             , eol
                             , value
@@ -8,37 +9,36 @@ module Data.Histogram.Parse ( ws
 import Text.Read
 import Text.ParserCombinators.ReadP    (ReadP, many, satisfy, char, string)
 
--- Whitespaces
+-- | Whitespaces
 ws :: ReadP String
 ws = many $ satisfy (`elem` " \t")
 
--- End of line
+-- | End of line
 eol :: ReadP Char
 eol = char '\n'
 
--- Equal sign
+-- | Equal sign
 eq :: ReadP ()
 eq = ws >> char '=' >> return ()
 
--- Key
-key :: String -> ReadP String
-key s = char '#' >> ws >> string s 
-
-
-getVal :: Read a => ReadPrec a
-getVal = do x <- readPrec
-            lift eol >> return x
-
--- Key value pair
+-- | Key value pair
 value :: Read a => String -> ReadPrec a
 value str = do lift $ key str >> eq
                getVal
 
--- Return optional value
+-- | Return optional value
 maybeValue :: Read a => String -> ReadPrec (Maybe a)
 maybeValue str = do lift (key str >> eq)
                     lift (ws >> eol >> return Nothing) <++ (Just `fmap` getVal)
 
--- Keyword
+-- | Keyword
 keyword :: String -> ReadPrec ()
 keyword str = lift $ key str >> ws >> eol >> return ()
+
+
+key :: String -> ReadP String
+key s = char '#' >> ws >> string s 
+
+getVal :: Read a => ReadPrec a
+getVal = do x <- readPrec
+            lift eol >> return x
