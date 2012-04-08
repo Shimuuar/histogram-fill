@@ -35,7 +35,7 @@ import Data.Histogram.Bin.Read
 data BinF f = BinF !f                  -- Lower bound
                    !f                  -- Size of bin
                    {-# UNPACK #-} !Int -- Number of bins
-              deriving (Data,Typeable)
+              deriving (Data,Typeable,Eq)
 
 -- | Create bins.
 binF :: RealFrac f =>
@@ -131,7 +131,7 @@ instance NFData (BinF f)
 data BinD = BinD {-# UNPACK #-} !Double -- Lower bound
                  {-# UNPACK #-} !Double -- Size of bin
                  {-# UNPACK #-} !Int    -- Number of bins
-            deriving (Data,Typeable)
+            deriving (Data,Typeable,Eq)
 
 -- | Create bins.
 binD :: Double -- ^ Lower bound of range
