@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Data.Histogram.Bin.MaybeBin (
@@ -5,6 +6,7 @@ module Data.Histogram.Bin.MaybeBin (
   ) where
 
 import Control.Monad   (liftM)
+import Data.Typeable   (Typeable)
 import Text.Read       (Read(..))
 
 import Data.Histogram.Bin.Classes
@@ -13,7 +15,7 @@ import Data.Histogram.Bin.Read
 
 -- | This binning algorithms adds special case of no value.
 newtype MaybeBin bin = MaybeBin bin
-                       deriving (BinEq)
+                       deriving (BinEq,Eq,Typeable)
 
 instance Bin bin => Bin (MaybeBin bin) where
   type BinValue (MaybeBin bin) = Maybe (BinValue bin)
