@@ -13,7 +13,7 @@ Description:
   .
   * Fixed compilation with GHC 7.4
 
-Cabal-Version:  >= 1.6
+Cabal-Version:  >= 1.8
 License:        BSD3
 License-File:   LICENSE
 Author:         Alexey Khudyakov
@@ -54,3 +54,16 @@ Library
                         Data.Histogram.ST
   Ghc-options:          -O2 -Wall
   Ghc-prof-options:     -auto-all
+
+test-suite tests
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        QC.hs
+  other-modules:  QC.Instances
+  ghc-options:    -Wall
+  build-depends:  base >=3 && < 5,
+                  histogram-fill,
+                  vector,
+                  QuickCheck >= 2,
+                  test-framework,
+                  test-framework-quickcheck2
