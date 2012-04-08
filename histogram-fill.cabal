@@ -1,9 +1,24 @@
 Name:           histogram-fill
-Version:        0.6.1.0
+Version:        0.6.2.0
 Synopsis:       Library for histograms creation.
 Description:    
   This is library for histograms filling. Its aim to provide
   convenient way to create and fill histograms. 
+  .
+  Changes in 0.6.2.0
+  .
+  * MaybeBin added.
+  .
+  * Helper function for defining Read instances for bins are exposed. 
+  .
+  * mapData function is added.
+  .
+  * Slicing histogram do not results in crash if indices are out of
+    bounds.
+  .
+  * Eq instances for BinF and BinD are added.
+  .
+  * NFData instance for Bin2D is fixed.
   .
   Changes in 0.6.1.0
   .
