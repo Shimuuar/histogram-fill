@@ -1,4 +1,6 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-orphans       #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 -- | Cereal instances for histogram-fill
 module Data.Histogram.Cereal (
   ) where
@@ -9,6 +11,7 @@ import Data.Serialize
 import qualified Data.Vector.Generic as G
 
 import Data.Histogram.Bin
+import Data.Histogram.Bin.MaybeBin
 import Data.Histogram.Generic (Histogram, histogramUO, histData, outOfRange, bins)
 
 
@@ -53,6 +56,9 @@ instance Serialize (BinEnum a) where
 instance (Serialize bX, Serialize bY) => Serialize (Bin2D bX bY) where
   get = Bin2D <$> get <*> get
   put (Bin2D bx by) = put bx >> put by
+
+deriving instance (Serialize bin) => Serialize (MaybeBin bin)
+
 
 
 ----------------------------------------------------------------

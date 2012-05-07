@@ -1,8 +1,12 @@
 Name:           histogram-fill-cereal
-Version:        0.6.0.0
+Version:        0.6.2.0
 Synopsis:       Library for histograms creation.
 Description:
   Cereal instances for histogram-fill package
+  .
+  Changes in 0.6.2.0
+  .
+  * Instance for 'MaybeBin' added
 
 Cabal-Version:  >= 1.6
 License:        BSD3
