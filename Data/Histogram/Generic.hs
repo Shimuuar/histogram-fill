@@ -40,6 +40,7 @@ module Data.Histogram.Generic (
     -- * Folding
   , foldl
   , bfoldl
+  , sum
     -- * Slicing & rebinning
   , slice
   , rebin
@@ -68,7 +69,7 @@ import Data.Maybe           (fromMaybe)
 import Data.Typeable        -- (Typeable(..),Typeable1(..),Typeable2(..),mkTyConApp,mkTyCon)
 import Data.Vector.Generic  (Vector,(!))
 import Text.Read
-import Prelude       hiding (map,zip,foldl)
+import Prelude       hiding (map,zip,foldl,sum)
 import qualified Prelude    (zip)
 
 import Data.Histogram.Bin
@@ -270,6 +271,10 @@ foldl f x0 (Histogram _ _ vec) =
 bfoldl :: (Bin bin, Vector v a) => (b -> BinValue bin -> a -> b) -> b -> Histogram v bin a -> b
 bfoldl f x0 (Histogram bin _ vec) =
   G.ifoldl' (\acc -> f acc . fromIndex bin) x0 vec
+
+-- | Sum contents of all bins
+sum :: (Bin bin, Vector v a, Num a) => Histogram v bin a -> a
+sum = foldl (+) 0
 
 
 

@@ -42,6 +42,7 @@ module Data.Histogram ( -- * Immutable histogram
     -- * Folding
   , foldl
   , bfoldl
+  , sum
     -- * Slicing & rebinning
   , slice
   , rebin
@@ -67,7 +68,7 @@ import qualified Data.Histogram.Generic as H
 import Data.Histogram.Generic (HistIndex(..),histIndex)
 import Data.Histogram.Bin
 
-import Prelude hiding (map,zip,foldl)
+import Prelude hiding (map,zip,foldl,sum)
 
 
 
@@ -158,6 +159,9 @@ foldl = H.foldl
 
 bfoldl :: (Bin bin, Unbox a) => (b -> BinValue bin -> a -> b) -> b -> Histogram bin a -> b
 bfoldl = H.bfoldl
+
+sum :: (Bin bin, Unbox a, Num a) => Histogram bin a -> a
+sum = foldl (+) 0
 
 
 
