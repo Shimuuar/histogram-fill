@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE CPP #-}
 -- |
 -- Module     : Data.Histogram
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -68,7 +69,7 @@ import Control.DeepSeq     (NFData(..))
 
 import qualified Data.Vector.Generic         as G
 import Data.Maybe           (fromMaybe)
-import Data.Typeable        -- (Typeable(..),Typeable1(..),Typeable2(..),mkTyConApp,mkTyCon)
+import Data.Typeable
 import Data.Vector.Generic  (Vector,(!))
 import Text.Read
 import Prelude       hiding (map,zip,foldl,sum,maximum,minimum)
@@ -128,8 +129,18 @@ instance (Show a, Show (BinValue bin), Show bin, Bin bin, Vector v a) => Show (H
           showUO Nothing      = "# Underflows = \n" ++
                                 "# Overflows  = \n"
 
+
+histTyCon :: String -> String -> TyCon
+#if MIN_VERSION_base(4,4,0)
+histTyCon = mkTyCon3 "histogram-fill"
+#else
+histTyCon m s = mkTyCon $ m ++ "." ++ s
+#endif
+
 instance Typeable1 v => Typeable2 (Histogram v) where
-  typeOf2 h = mkTyConApp (mkTyCon "Data.Histogram.Generic.Histogram") [typeOf1 (histData h)]
+  typeOf2 h = mkTyConApp (histTyCon "Data.Histogram.Generic" "Histogram") [typeOf1 $ histData h]
+
+
 
 -- | Vector do not supply 'NFData' instance so let just 'seq' it and
 --   hope it's enough. Should be enough for unboxed vectors.
