@@ -41,6 +41,8 @@ module Data.Histogram.Generic (
   , foldl
   , bfoldl
   , sum
+  , minimum
+  , maximum
     -- * Slicing & rebinning
   , slice
   , rebin
@@ -69,7 +71,7 @@ import Data.Maybe           (fromMaybe)
 import Data.Typeable        -- (Typeable(..),Typeable1(..),Typeable2(..),mkTyConApp,mkTyCon)
 import Data.Vector.Generic  (Vector,(!))
 import Text.Read
-import Prelude       hiding (map,zip,foldl,sum)
+import Prelude       hiding (map,zip,foldl,sum,maximum,minimum)
 import qualified Prelude    (zip)
 
 import Data.Histogram.Bin
@@ -275,6 +277,14 @@ bfoldl f x0 (Histogram bin _ vec) =
 -- | Sum contents of all bins
 sum :: (Bin bin, Vector v a, Num a) => Histogram v bin a -> a
 sum = foldl (+) 0
+
+-- | Maximal bin value
+minimum :: (Bin bin, Vector v a, Ord a) => Histogram v bin a -> a
+minimum = G.minimum . histData
+
+-- | Maximal bin value
+maximum :: (Bin bin, Vector v a, Ord a) => Histogram v bin a -> a
+maximum = G.maximum . histData
 
 
 

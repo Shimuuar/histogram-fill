@@ -43,6 +43,8 @@ module Data.Histogram ( -- * Immutable histogram
   , foldl
   , bfoldl
   , sum
+  , minimum
+  , maximum
     -- * Slicing & rebinning
   , slice
   , rebin
@@ -68,7 +70,7 @@ import qualified Data.Histogram.Generic as H
 import Data.Histogram.Generic (HistIndex(..),histIndex)
 import Data.Histogram.Bin
 
-import Prelude hiding (map,zip,foldl,sum)
+import Prelude hiding (map,zip,foldl,sum,maximum,minimum)
 
 
 
@@ -163,6 +165,11 @@ bfoldl = H.bfoldl
 sum :: (Bin bin, Unbox a, Num a) => Histogram bin a -> a
 sum = foldl (+) 0
 
+minimum :: (Bin bin, Unbox a, Ord a) => Histogram bin a -> a
+minimum = H.minimum
+
+maximum :: (Bin bin, Unbox a, Ord a) => Histogram bin a -> a
+maximum = H.maximum
 
 
 ----------------------------------------------------------------
