@@ -11,6 +11,7 @@
 module Data.Histogram.ST ( -- * Mutable histograms
                            MHistogram
                          , newMHistogram
+                         , fill
                          , fillOne
                          , fillOneW
                          , fillMonoid
@@ -49,29 +50,36 @@ newMHistogram zero bin = do
   return $ MHistogram n bin a
 {-# INLINE newMHistogram #-}
 
--- Generic fill
-fill :: (PrimMonad m, M.MVector v a, Bin bin) => MHistogram (PrimState m) v bin a -> BinValue bin -> (a -> a) -> m ()
-fill (MHistogram n bin arr) !x f
-  | i <  0    = M.unsafeWrite arr  n    . f =<< M.unsafeRead arr n
-  | i >= n    = M.unsafeWrite arr (n+1) . f =<< M.unsafeRead arr (n+1)
-  | otherwise = M.unsafeWrite arr  i    . f =<< M.unsafeRead arr i
+-- | Generic fill
+fill :: (PrimMonad m, M.MVector v a, Bin bin)
+     => MHistogram (PrimState m) v bin a -- ^ Mutable histogram to put value to
+     -> BinValue bin                     -- ^ Value being binned
+     -> (a -> b -> a)                    -- ^ Fold function
+     -> b                                -- ^ Value being put into histogram
+     -> m ()
+fill (MHistogram n bin arr) !x f val = do
+  a <- M.unsafeRead arr ix
+  M.unsafeWrite arr ix $! f a val
   where
-    i = toIndex bin x
+    i  = toIndex bin x
+    ix | i <  0    = n
+       | i >= n    = n+1
+       | otherwise = i
 {-# INLINE fill #-}
 
 -- | Put one value into histogram
 fillOne :: (PrimMonad m, Num a, M.MVector v a, Bin bin) => MHistogram (PrimState m) v bin a -> BinValue bin -> m ()
-fillOne h !x = fill h x (+1)
+fillOne h !x = fill h x (+) 1
 {-# INLINE fillOne #-}
 
 -- | Put one value into histogram with weight
 fillOneW :: (PrimMonad m, Num a, M.MVector v a, Bin bin) => MHistogram (PrimState m) v bin a -> (BinValue bin, a) -> m ()
-fillOneW h (!x,!w) = fill h x (+w)
-{-# INLINE fillOneW #-} 
+fillOneW h (!x,!w) = fill h x (+) w
+{-# INLINE fillOneW #-}
 
 -- | Put one monoidal element
 fillMonoid :: (PrimMonad m, Monoid a, M.MVector v a, Bin bin) => MHistogram (PrimState m) v bin a -> (BinValue bin, a) -> m ()
-fillMonoid h (!x,!m) = fill h x (`mappend` m)
+fillMonoid h (!x,!m) = fill h x mappend m
 {-# INLINE fillMonoid #-}
 
 
