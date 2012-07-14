@@ -12,9 +12,6 @@ module Data.Histogram.ST ( -- * Mutable histograms
                            MHistogram
                          , newMHistogram
                          , fill
-                         , fillOne
-                         , fillOneW
-                         , fillMonoid
                          -- , fillMonoidAccum
                          , unsafeFreezeHist
                          , freezeHist
@@ -22,7 +19,6 @@ module Data.Histogram.ST ( -- * Mutable histograms
 
 import Control.Monad.Primitive
 
-import Data.Monoid
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as M
 
@@ -50,7 +46,8 @@ newMHistogram zero bin = do
   return $ MHistogram n bin a
 {-# INLINE newMHistogram #-}
 
--- | Generic fill
+-- | Generic fill. It could be seen as left fold with multiple
+--   accumulators where accumulator is chosen by @BinValue bin@.
 fill :: (PrimMonad m, M.MVector v a, Bin bin)
      => MHistogram (PrimState m) v bin a -- ^ Mutable histogram to put value to
      -> BinValue bin                     -- ^ Value being binned
@@ -66,21 +63,6 @@ fill (MHistogram n bin arr) !x f val = do
        | i >= n    = n+1
        | otherwise = i
 {-# INLINE fill #-}
-
--- | Put one value into histogram
-fillOne :: (PrimMonad m, Num a, M.MVector v a, Bin bin) => MHistogram (PrimState m) v bin a -> BinValue bin -> m ()
-fillOne h !x = fill h x (+) 1
-{-# INLINE fillOne #-}
-
--- | Put one value into histogram with weight
-fillOneW :: (PrimMonad m, Num a, M.MVector v a, Bin bin) => MHistogram (PrimState m) v bin a -> (BinValue bin, a) -> m ()
-fillOneW h (!x,!w) = fill h x (+) w
-{-# INLINE fillOneW #-}
-
--- | Put one monoidal element
-fillMonoid :: (PrimMonad m, Monoid a, M.MVector v a, Bin bin) => MHistogram (PrimState m) v bin a -> (BinValue bin, a) -> m ()
-fillMonoid h (!x,!m) = fill h x mappend m
-{-# INLINE fillMonoid #-}
 
 
 -- | Create immutable histogram from mutable one. This operation is

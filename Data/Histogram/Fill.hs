@@ -32,12 +32,13 @@ module Data.Histogram.Fill (
   , joinHBuilder
   , treeHBuilder
     -- * Histogram constructors
+    -- ** Using unboxed vectors
   , module Data.Histogram.Bin
   , mkSimple
   , mkWeighted
   , mkMonoidal
   , mkFolder
-    -- ** Generic versions
+    -- ** Using generic vectors
   , mkSimpleG
   , mkWeightedG
   , mkMonoidalG
@@ -323,13 +324,14 @@ mkMonoidal :: (Bin bin, Unbox val, Monoid val
 mkMonoidal = mkMonoidalG
 {-# INLINE mkMonoidal #-}
 
+
 -- | Create builder. Bin content will be incremented by 1 for each
 --   item put into histogram
 mkSimpleG :: (Bin bin, G.Vector v val, Num val
             ) => bin -> HBuilder (BinValue bin) (H.Histogram v bin val)
 mkSimpleG bin = HBuilder $ do
   acc <- newMHistogram 0 bin
-  return HBuilderM { hbInput  = fillOne    acc
+  return HBuilderM { hbInput  = \x -> fill acc x (+) 1
                    , hbOutput = freezeHist acc
                    }
 {-# INLINE mkSimpleG #-}
@@ -340,7 +342,7 @@ mkWeightedG :: (Bin bin, G.Vector v val, Num val
               ) => bin -> HBuilder (BinValue bin,val) (H.Histogram v bin val)
 mkWeightedG bin = HBuilder $ do
   acc <- newMHistogram 0 bin
-  return HBuilderM { hbInput  = fillOneW acc
+  return HBuilderM { hbInput  = \(!x,!w) -> fill acc x (+) w
                    , hbOutput = freezeHist acc
                    }
 {-# INLINE mkWeightedG #-}
@@ -351,7 +353,7 @@ mkMonoidalG :: (Bin bin, G.Vector v val, Monoid val
               ) => bin -> HBuilder (BinValue bin,val) (H.Histogram v bin val)
 mkMonoidalG bin = HBuilder $ do
   acc <- newMHistogram mempty bin
-  return HBuilderM { hbInput  = fillMonoid acc
+  return HBuilderM { hbInput  = \(!x,!w) -> fill acc x mappend w
                    , hbOutput = freezeHist acc
                    }
 {-# INLINE mkMonoidalG #-}
