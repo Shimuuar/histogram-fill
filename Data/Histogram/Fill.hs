@@ -37,11 +37,14 @@ module Data.Histogram.Fill (
   , mkSimple
   , mkWeighted
   , mkMonoidal
-  , mkFolder
+  , mkFoldBuilder
     -- ** Using generic vectors
   , mkSimpleG
   , mkWeightedG
   , mkMonoidalG
+  , mkFoldBuilderG
+    -- ** Pure fold
+  , mkFolder
     -- * Fill histograms
   , fillBuilder
   , fillBuilderVec
@@ -324,6 +327,16 @@ mkMonoidal :: (Bin bin, Unbox val, Monoid val
 mkMonoidal = mkMonoidalG
 {-# INLINE mkMonoidal #-}
 
+-- | Create most generic histogram builder.
+mkFoldBuilder :: (Bin bin, Unbox val)
+              => bin               -- ^ Binning algorithm
+              -> val               -- ^ Initial value
+              -> (val -> a -> val) -- ^ Folding function
+              -> HBuilder (BinValue bin, a) (Histogram bin val)
+{-# INLINE mkFoldBuilder #-}
+mkFoldBuilder = mkFoldBuilderG
+
+
 
 -- | Create builder. Bin content will be incremented by 1 for each
 --   item put into histogram
@@ -340,23 +353,29 @@ mkSimpleG bin = HBuilder $ do
 --   for each item put into histogram
 mkWeightedG :: (Bin bin, G.Vector v val, Num val
               ) => bin -> HBuilder (BinValue bin,val) (H.Histogram v bin val)
-mkWeightedG bin = HBuilder $ do
-  acc <- newMHistogram 0 bin
-  return HBuilderM { hbInput  = \(!x,!w) -> fill acc x (+) w
-                   , hbOutput = freezeHist acc
-                   }
+mkWeightedG bin = mkFoldBuilderG bin 0 (+)
 {-# INLINE mkWeightedG #-}
 
 -- | Create builder. New value wil be mappended to current content of
 --   a bin for each item put into histogram
 mkMonoidalG :: (Bin bin, G.Vector v val, Monoid val
               ) => bin -> HBuilder (BinValue bin,val) (H.Histogram v bin val)
-mkMonoidalG bin = HBuilder $ do
-  acc <- newMHistogram mempty bin
-  return HBuilderM { hbInput  = \(!x,!w) -> fill acc x mappend w
+mkMonoidalG bin = mkFoldBuilderG bin mempty mappend
+{-# INLINE mkMonoidalG #-}
+
+-- | Create most generic histogram builder.
+mkFoldBuilderG :: (Bin bin, G.Vector v val)
+               => bin               -- ^ Binning algorithm
+               -> val               -- ^ Initial value
+               -> (val -> a -> val) -- ^ Folding function
+               -> HBuilder (BinValue bin, a) (H.Histogram v bin val)
+{-# INLINE mkFoldBuilderG #-}
+mkFoldBuilderG bin x0 f = HBuilder $ do
+  acc <- newMHistogram x0 bin
+  return HBuilderM { hbInput  = \(!x,!w) -> fill acc x f w
                    , hbOutput = freezeHist acc
                    }
-{-# INLINE mkMonoidalG #-}
+
 
 -- | Create histogram builder which just does ordinary pure fold. It
 -- is intended for use when some fold should be performed together
