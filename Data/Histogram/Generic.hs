@@ -117,7 +117,7 @@ asList (Histogram bin _ arr) =
 asVector :: (Bin bin, Vector v a, Vector v (BinValue bin,a))
          => Histogram v bin a -> v (BinValue bin, a)
 asVector (Histogram bin _ arr) =
-  G.generate (nBins bin) $ \i -> (fromIndex bin i, arr G.! i)
+  G.generate (nBins bin) $ \i -> (fromIndex bin i, arr ! i)
 
 
 
