@@ -1,0 +1,28 @@
+Changes in 0.7.0.0
+
+  * mkFoldBuilder is added to @Data.Histogram.Fill@
+  * fill functions in @Data.Histogram.ST@ are replaced with generic
+    variant.
+  * Indexing for immutable histograms is added and special constructor
+    for first and last bin are added to @HistIndex@ data type.
+  * Functions to calculate sum, minimum and maximum of immutable
+    histogram are added.
+
+Changes in 0.6.2.0
+
+  * MaybeBin added.
+  * Helper function for defining Read instances for bins are exposed. 
+  * mapData function is added.
+  * Slicing histogram do not results in crash if indices are out of
+    bounds.
+
+  * Eq instances for BinF and BinD are added.
+  * NFData instance for Bin2D is fixed.
+
+Changes in 0.6.1.0
+
+  * Helper function and type synonym for Bin2D
+
+Changes in 0.6.0.1
+
+  * Fixed compilation with GHC 7.4
