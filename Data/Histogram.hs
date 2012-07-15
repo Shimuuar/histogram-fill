@@ -12,14 +12,17 @@
 -- 'Data.Histogram.Generic' but specialzed to unboxed vectors. Refer
 -- aforementioned module for documentation.
 module Data.Histogram ( -- * Immutable histogram
-    -- * Data type
+    -- * Immutable histograms
     Histogram
   , module Data.Histogram.Bin
+    -- ** Constructors
   , histogram
   , histogramUO
-  , HistIndex(..) 
-  , histIndex
-    -- * Read histograms from string
+    -- ** Conversion to other data types
+  , asList
+  , asVector
+    -- * Serialization to strings
+    -- $serialization
   , readHistogram
   , readFileHistogram
     -- * Accessors
@@ -28,10 +31,11 @@ module Data.Histogram ( -- * Immutable histogram
   , underflows
   , overflows
   , outOfRange
-    -- ** Convert to other data types
-  , asList
-  , asVector
-     -- * Modification
+    -- ** Indexing
+  , HistIndex(..) 
+  , histIndex
+  , at
+    -- * Transformations
   , map
   , bmap
   , mapData
@@ -122,6 +126,9 @@ asVector :: (Bin bin, Unbox a, Unbox (BinValue bin), Unbox (BinValue bin,a))
          => Histogram bin a -> Vector (BinValue bin, a) 
 asVector = H.asVector
 
+at :: (Bin bin, Unbox a) => Histogram bin a -> HistIndex bin -> a
+at = H.at
+
 ----------------------------------------------------------------
 -- Modify histograms
 ----------------------------------------------------------------
@@ -149,7 +156,6 @@ zipSafe = H.zipSafe
 convertBinning :: (ConvertBin bin bin', Unbox a)
                => Histogram bin a -> Histogram bin' a
 convertBinning = H.convertBinning
-
 
 
 ----------------------------------------------------------------
