@@ -10,14 +10,17 @@
 -- 
 -- Generic immutable histograms. 
 module Data.Histogram.Generic ( 
-    -- * Data type
+    -- * Immutable histograms
     Histogram
   , module Data.Histogram.Bin
+    -- ** Constructors
   , histogram
   , histogramUO
-  , HistIndex(..) 
-  , histIndex
-   -- * Read histograms from string
+    -- ** Conversion to other data types
+  , asList
+  , asVector
+    -- * Serialization to strings
+    -- $serialization
   , readHistogram
   , readFileHistogram
     -- * Accessors
@@ -26,10 +29,10 @@ module Data.Histogram.Generic (
   , underflows
   , overflows
   , outOfRange
-    -- ** Convert to other data types
-  , asList
-  , asVector
-    -- * Modification
+    -- ** Indexing
+  , HistIndex(..) 
+  , histIndex
+    -- * Transformations
   , map
   , bmap
   , mapData
@@ -78,26 +81,16 @@ import qualified Prelude    (zip)
 import Data.Histogram.Bin
 import Data.Histogram.Bin.Read
 
+
+
 ----------------------------------------------------------------
--- Data type and smart constructors
+-- Data type & smart constructors & conversion
 ----------------------------------------------------------------
 
 -- | Immutable histogram. Histogram consists of binning algorithm,
 --   optional number of under and overflows, and data. 
 data Histogram v bin a = Histogram bin (Maybe (a,a)) (v a)
                          deriving (Eq)
-
--- | Point inside histogram's domain. It could be either bin index or
---   bin value.
-data HistIndex b
-  = Index Int          -- ^ Index for a bin
-  | Value (BinValue b) -- ^ Value
-  deriving (Typeable)
-
--- | Convert 'HistIndex' to actual index
-histIndex :: Bin b => b -> HistIndex b -> Int
-histIndex _ (Index i) = i
-histIndex b (Value x) = toIndex b x
 
 -- | Create histogram from binning algorithm and vector with
 -- data. Overflows are set to Nothing. 
@@ -114,10 +107,50 @@ histogramUO b uo v
   | nBins b == G.length v = Histogram b uo v
   | otherwise             = error "Data.Histogram.Generic.histogramUO: number of bins and vector size doesn't match"
 
+-- | Convert histogram data to list.
+asList :: (Vector v a, Bin bin) => Histogram v bin a -> [(BinValue bin, a)]
+asList (Histogram bin _ arr) = 
+  Prelude.zip (fromIndex bin <$> [0..]) (G.toList arr)
+
+-- | Convert histogram data to vector
+asVector :: (Bin bin, Vector v a, Vector v (BinValue bin,a))
+         => Histogram v bin a -> v (BinValue bin, a)
+asVector (Histogram bin _ arr) =
+  G.generate (nBins bin) $ \i -> (fromIndex bin i, arr G.! i)
+
+
 
 ----------------------------------------------------------------
 -- Instances & reading histograms from strings 
 ----------------------------------------------------------------
+
+-- $serialization
+--
+-- 'Show' instance is abused for serialization and produces human
+-- readable data like that: 
+--
+-- > # Histogram
+-- > # Underflows = 0
+-- > # Overflows  = 88
+-- > # BinI
+-- > # Low  = 0
+-- > # High = 9
+-- > 0       99
+-- > 1       91
+-- > 2       95
+-- > 3       81
+-- > 4       92
+-- > 5       105
+-- > 6       90
+-- > 7       79
+-- > 8       91
+-- > 9       89
+--
+-- It could be deserialize using 'readHistogram' function. 'Read'
+-- instance coulde provided as well but it turned out to be
+-- impractically slow.
+--
+-- Serialization with cereal package is provided by histogram-fill-cereal
 
 instance (Show a, Show (BinValue bin), Show bin, Bin bin, Vector v a) => Show (Histogram v bin a) where
     show h@(Histogram bin uo _) = "# Histogram\n" ++ showUO uo ++ show bin ++
@@ -179,7 +212,7 @@ readFileHistogram fname = readHistogram `fmap` readFile fname
 
 
 ----------------------------------------------------------------
--- Accessors & conversion
+-- Accessors
 ----------------------------------------------------------------
 
 -- | Histogram bins
@@ -192,31 +225,35 @@ histData (Histogram _ _ a) = a
 
 -- | Number of underflows
 underflows :: Histogram v bin a -> Maybe a
-underflows (Histogram _ uo _) = fst <$> uo
+underflows h = fst <$> outOfRange  h
 
 -- | Number of overflows
 overflows :: Histogram v bin a -> Maybe a
-overflows (Histogram _ uo _) = snd <$> uo
+overflows h = snd <$> outOfRange h
 
 -- | Underflows and overflows
 outOfRange :: Histogram v bin a -> Maybe (a,a)
 outOfRange (Histogram _ uo _) = uo
 
--- | Convert histogram data to list.
-asList :: (Vector v a, Bin bin) => Histogram v bin a -> [(BinValue bin, a)]
-asList (Histogram bin _ arr) = 
-  Prelude.zip (fromIndex bin <$> [0..]) (G.toList arr)
 
--- | Convert histogram data to vector
-asVector :: (Bin bin, Vector v a, Vector v (BinValue bin,a))
-         => Histogram v bin a -> v (BinValue bin, a)
-asVector (Histogram bin _ arr) =
-  G.generate (nBins bin) $ \i -> (fromIndex bin i, arr G.! i)
+
+
+-- | Point inside histogram's domain. It could be either bin index or
+--   bin value.
+data HistIndex b
+  = Index Int          -- ^ Index for a bin
+  | Value (BinValue b) -- ^ Value
+  deriving (Typeable)
+
+-- | Convert 'HistIndex' to actual index
+histIndex :: Bin b => b -> HistIndex b -> Int
+histIndex _ (Index i) = i
+histIndex b (Value x) = toIndex b x
 
 
 
 ----------------------------------------------------------------
--- Modify histograms
+-- Transformation
 ----------------------------------------------------------------
 
 -- | fmap lookalike. It's not possible to create Functor instance
@@ -355,6 +392,8 @@ rebinWorker dir k f (Histogram bin _ vec)
     n    = G.length vec `div` k
     off  = case dir of CutLower  -> G.length vec - n * k
                        CutHigher -> 0
+
+
 
 ----------------------------------------------------------------
 -- 2D histograms
