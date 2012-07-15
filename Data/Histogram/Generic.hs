@@ -32,6 +32,7 @@ module Data.Histogram.Generic (
     -- ** Indexing
   , HistIndex(..) 
   , histIndex
+  , at
     -- * Transformations
   , map
   , bmap
@@ -239,18 +240,25 @@ outOfRange (Histogram _ uo _) = uo
 
 
 -- | Point inside histogram's domain. It could be either bin index or
---   bin value.
+--   bin value. 'First' and 'Last' constructors are useful for
+--   histogram slicing.
 data HistIndex b
   = Index Int          -- ^ Index for a bin
   | Value (BinValue b) -- ^ Value
+  | First              -- ^ Bin with index 0
+  | Last               -- ^ Bin maximum index.
   deriving (Typeable)
 
 -- | Convert 'HistIndex' to actual index
 histIndex :: Bin b => b -> HistIndex b -> Int
 histIndex _ (Index i) = i
 histIndex b (Value x) = toIndex b x
+histIndex _ First     = 0
+histIndex b Last      = nBins b - 1
 
-
+-- | Index histogtam.
+at :: (Bin bin, Vector v a) => Histogram v bin a -> HistIndex bin -> a
+at (Histogram bin _ v) i = v ! histIndex bin i
 
 ----------------------------------------------------------------
 -- Transformation
