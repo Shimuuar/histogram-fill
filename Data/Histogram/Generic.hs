@@ -53,6 +53,7 @@ module Data.Histogram.Generic (
   , rebin
   , rebinFold
     -- * 2D histograms
+    -- $hist2D
     -- ** Slicing
   , sliceAlongX
   , sliceAlongY
@@ -89,7 +90,14 @@ import Data.Histogram.Bin.Read
 ----------------------------------------------------------------
 
 -- | Immutable histogram. Histogram consists of binning algorithm,
---   optional number of under and overflows, and data. 
+--   optional number of under and overflows, and data. Type parameter
+--   have following meaning:
+--
+--   [@v@] type of vector used to store bin content.
+--
+--   [@bin@] binning. It should be instance of 'Bin'. Check that type class description for details.
+--
+--   [@a@] type of bin content.
 data Histogram v bin a = Histogram bin (Maybe (a,a)) (v a)
                          deriving (Eq)
 
@@ -350,7 +358,9 @@ maximum = G.maximum . histData
 
 -- | Slice histogram. Values/indices specify inclusive
 --   variant. Under/overflows are discarded. If requested value falls
---   out of histogram range it will be truncated.
+--   out of histogram range it will be truncated. Use 'First' or
+--   'Last' constructor if you need slice from first or to last bin
+--   correspondingly.
 slice :: (SliceableBin bin, Vector v a)
       => HistIndex bin          -- ^ Lower inclusive bound
       -> HistIndex bin          -- ^ Upper inclusive bound
@@ -406,6 +416,21 @@ rebinWorker dir k f (Histogram bin _ vec)
 ----------------------------------------------------------------
 -- 2D histograms
 ----------------------------------------------------------------
+
+-- $hist2D
+--
+-- Data in 2D histograms is stored in row major order. This in fact
+-- dictated by implementation of 'Bin2D'. So indices of bin are
+-- arranged in following pattern:
+-- 
+-- >  0  1  2  3
+-- >  4  5  6  7
+-- >  8  9 10 11
+--
+-- Function from @AlongX@ family work with histogram slices along X
+-- axis (as name suggest) which are contigous and therefor are
+-- generally faster than @AlongY@ family.
+
 
 -- | Get slice of 2D histogram along X axis. This function is faster
 --   than 'sliceAlongY' since no array reallocations is required
