@@ -61,7 +61,9 @@ module Data.Histogram.Generic (
   , listSlicesAlongY
     -- ** Reducing along axis
   , reduceX
+  , breduceX
   , reduceY
+  , breduceY
     -- * Lift histogram transform to 2D
   , liftX
   , liftY
@@ -483,6 +485,14 @@ reduceX :: (Vector v a, Vector v b, Bin bX, Bin bY)
 reduceX f h@(Histogram (Bin2D _ bY) _ _) =
   Histogram bY Nothing $ G.generate (nBins bY) (f . sliceAlongX h . Index)
 
+-- | Reduce along X axis. Information about under/overlows is lost.
+breduceX :: (Vector v a, Vector v b, Bin bX, Bin bY)
+         => (BinValue bY -> Histogram v bX a -> b) -- ^ Function to reduce single slice along X axis
+         ->  Histogram v (Bin2D bX bY) a           -- ^ 2D histogram
+         ->  Histogram v bY b
+breduceX f h@(Histogram (Bin2D _ bY) _ _) =
+  Histogram bY Nothing $ G.generate (nBins bY) $ \i -> f (fromIndex bY i) $ sliceAlongX h (Index i)
+
 
 -- | Reduce along Y axis. Information about under/overflows is lost.
 reduceY :: (Vector v a, Vector v b, Bin bX, Bin bY)
@@ -491,6 +501,15 @@ reduceY :: (Vector v a, Vector v b, Bin bX, Bin bY)
         -> Histogram v bX b
 reduceY f h@(Histogram (Bin2D bX _) _ _) =
   Histogram bX Nothing $ G.generate (nBins bX) (f . sliceAlongY h . Index)
+
+-- | Reduce along Y axis. Information about under/overflows is lost.
+breduceY :: (Vector v a, Vector v b, Bin bX, Bin bY)
+         => (BinValue bX -> Histogram v bY a -> b) -- ^ Function to reduce histogram along Y axis
+         -> Histogram v (Bin2D bX bY) a -- ^ 2D histogram
+         -> Histogram v bX b
+breduceY f h@(Histogram (Bin2D bX _) _ _) =
+  Histogram bX Nothing $ G.generate (nBins bX) $ \i -> f (fromIndex bX i) $ sliceAlongY h (Index i)
+
 
 -- | Transform X slices of histogram.
 liftX :: (Bin bX, Bin bY, Bin bX', BinEq bX', Vector v a, Vector v b)

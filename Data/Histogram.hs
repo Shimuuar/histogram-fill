@@ -61,7 +61,9 @@ module Data.Histogram ( -- * Immutable histogram
   , listSlicesAlongY
     -- ** Reducing along axis
   , reduceX
+  , breduceX
   , reduceY
+  , breduceY
     -- * Lift histogram transform to 2D
   , liftX
   , liftY
@@ -243,11 +245,23 @@ reduceX :: (Unbox a, Unbox b, Bin bX, Bin bY)
         ->  Histogram bY b
 reduceX = H.reduceX
 
+breduceX :: (Unbox a, Unbox b, Bin bX, Bin bY)
+         => (BinValue bY -> Histogram bX a -> b)
+         ->  Histogram (Bin2D bX bY) a
+         ->  Histogram bY b
+breduceX = H.breduceX
+
 reduceY :: (Unbox a, Unbox b, Bin bX, Bin bY)
         => (Histogram bY a -> b)     -- ^ Function to reduce histogram along Y axis
         -> Histogram (Bin2D bX bY) a -- ^ 2D histogram
         -> Histogram bX b
 reduceY = H.reduceY
+
+breduceY :: (Unbox a, Unbox b, Bin bX, Bin bY)
+         => (BinValue bX -> Histogram bY a -> b)
+         -> Histogram (Bin2D bX bY) a
+         -> Histogram bX b
+breduceY = H.breduceY
 
 liftX :: (Bin bX, Bin bY, Bin bX', BinEq bX', Unbox a, Unbox b)
       => (Histogram bX a -> Histogram bX' b)
