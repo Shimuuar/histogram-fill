@@ -1,3 +1,7 @@
+Changes in 0.7.1.0
+
+  * breduceX and breduceY are added.
+
 Changes in 0.7.0.0
 
   * mkFoldBuilder is added to @Data.Histogram.Fill@
