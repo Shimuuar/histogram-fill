@@ -185,27 +185,26 @@ maximum = H.maximum
 ----------------------------------------------------------------
 
 slice :: (SliceableBin bin, Unbox a)
-      => HistIndex bin          -- ^ Lower inclusive bound
-      -> HistIndex bin          -- ^ Upper inclusive bound
-      -> Histogram bin a      -- ^ Histogram to slice
+      => HistIndex bin
+      -> HistIndex bin
+      -> Histogram bin a
       -> Histogram bin a
 slice = H.slice
 
 rebin :: (MergeableBin bin, Unbox a)
       => CutDirection
       -> Int      
-      -> (a -> a -> a)          -- ^ Accumulation function
+      -> (a -> a -> a)
       -> Histogram bin a
       -> Histogram bin a
 rebin = H.rebin
 -- {-# INLINE rebin #-}
 
--- | Rebin histogram
 rebinFold :: (MergeableBin bin, Unbox a, Unbox b)
           => CutDirection
           -> Int      
-          -> (b -> a -> b)          -- ^ Accumulation function
-          -> b                      -- ^ Initial value
+          -> (b -> a -> b)
+          -> b
           -> Histogram bin a
           -> Histogram bin b
 rebinFold = H.rebinFold
@@ -218,14 +217,14 @@ rebinFold = H.rebinFold
 ----------------------------------------------------------------
 
 sliceAlongX :: (Unbox a, Bin bX, Bin bY)
-            => Histogram (Bin2D bX bY) a -- ^ 2D histogram
-            -> HistIndex bY                -- ^ Position along Y axis
+            => Histogram (Bin2D bX bY) a
+            -> HistIndex bY
             -> Histogram bX a
 sliceAlongX = H.sliceAlongX
 
 sliceAlongY :: (Unbox a, Bin bX, Bin bY)
-            => Histogram (Bin2D bX bY) a -- ^ 2D histogram
-            -> HistIndex bX                -- ^ Position along X axis
+            => Histogram (Bin2D bX bY) a
+            -> HistIndex bX
             -> Histogram bY a
 sliceAlongY = H.sliceAlongY
 
@@ -240,8 +239,8 @@ listSlicesAlongY :: (Unbox a, Bin bX, Bin bY)
 listSlicesAlongY = H.listSlicesAlongY
 
 reduceX :: (Unbox a, Unbox b, Bin bX, Bin bY)
-        => (Histogram bX a -> b)      -- ^ Function to reduce single slice along X axis
-        ->  Histogram (Bin2D bX bY) a -- ^ 2D histogram
+        => (Histogram bX a -> b)
+        ->  Histogram (Bin2D bX bY) a
         ->  Histogram bY b
 reduceX = H.reduceX
 
@@ -252,8 +251,8 @@ breduceX :: (Unbox a, Unbox b, Bin bX, Bin bY)
 breduceX = H.breduceX
 
 reduceY :: (Unbox a, Unbox b, Bin bX, Bin bY)
-        => (Histogram bY a -> b)     -- ^ Function to reduce histogram along Y axis
-        -> Histogram (Bin2D bX bY) a -- ^ 2D histogram
+        => (Histogram bY a -> b)
+        -> Histogram (Bin2D bX bY) a
         -> Histogram bX b
 reduceY = H.reduceY
 
