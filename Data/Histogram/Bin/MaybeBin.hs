@@ -22,14 +22,15 @@ newtype MaybeBin bin = MaybeBin bin
                        deriving (BinEq,Eq,Typeable)
 
 instance Bin bin => Bin (MaybeBin bin) where
-  type BinValue (MaybeBin bin) = Maybe (BinValue bin)
+  type BinValue (MaybeBin bin)  = Maybe (BinValue bin)
   toIndex _            Nothing  = 0
   toIndex (MaybeBin b) (Just x) = 1 + toIndex b x
-
+  {-# INLINE toIndex #-}
   fromIndex _            0 = Nothing
   fromIndex (MaybeBin b) i = Just (fromIndex b (i-1))
-
+  {-# INLINE fromIndex #-}
   nBins (MaybeBin b) = 1 + nBins b
+  {-# INLINE nBins #-}
 
 instance VariableBin bin => VariableBin (MaybeBin bin) where
   binSizeN  _           0 = Nothing
