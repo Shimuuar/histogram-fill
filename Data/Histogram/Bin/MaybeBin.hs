@@ -3,6 +3,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Data.Histogram.Bin.MaybeBin (
     MaybeBin(..)
+  , fromMaybeBin
   ) where
 
 import Control.Monad   (liftM)
@@ -11,6 +12,9 @@ import Text.Read       (Read(..))
 
 import Data.Histogram.Bin.Classes
 import Data.Histogram.Bin.Read
+import qualified Data.Vector.Generic    as G
+import qualified Data.Histogram.Generic as H
+
 
 
 -- | This binning algorithms adds special case of no value.
@@ -38,3 +42,10 @@ instance Read bin => Read (MaybeBin bin) where
   readPrec = do
     keyword "MaybeBin"
     liftM MaybeBin readPrec
+
+
+-- | Drop bin with no events
+fromMaybeBin :: (Bin b, G.Vector v a) => H.Histogram v (MaybeBin b) a -> H.Histogram v b a
+fromMaybeBin h = H.histogram b (G.tail $ H.histData h)
+  where
+    MaybeBin b = H.bins h
