@@ -45,6 +45,8 @@ module Data.Histogram.Fill (
   , mkFoldBuilderG
     -- ** Pure fold
   , mkFolder
+    -- ** Generic constructors
+  , mkStatefulBuilder
     -- * Fill histograms
   , fillBuilder
   , fillBuilderVec
@@ -396,6 +398,17 @@ mkFolder a f = HBuilder $ do
                    , hbOutput = readSTRef ref
                    }
 {-# INLINE mkFolder #-}
+
+
+-- | Create stateful histogram builder. Output function should be safe
+--   to call multiple times and builder could be modified afterwards.
+--   So functions like @unsafeFreeze@ from @vector@ couldn't be used.
+mkStatefulBuilder :: PrimMonad m
+                  => (a -> m ()) -- ^ Add value to accumulator
+                  -> m b         -- ^ Extract result from accumulator
+                  -> HBuilderM m a b
+{-# INLINE mkStatefulBuilder #-}
+mkStatefulBuilder = HBuilderM
 
 
 
