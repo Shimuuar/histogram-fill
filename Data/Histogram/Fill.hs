@@ -390,6 +390,7 @@ mkFoldBuilderG bin x0 f = HBuilder $ do
 --   is intended for use when some fold should be performed together
 --   with histogram filling
 mkFolder :: b -> (a -> b -> b) -> HBuilder a b
+{-# INLINE mkFolder #-}
 mkFolder a f = HBuilder $ do
   ref <- newSTRef a
   return HBuilderM { hbInput  = \x -> do acc <- readSTRef ref
@@ -397,7 +398,6 @@ mkFolder a f = HBuilder $ do
                                          writeSTRef ref acc'
                    , hbOutput = readSTRef ref
                    }
-{-# INLINE mkFolder #-}
 
 
 -- | Create stateful histogram builder. Output function should be safe
