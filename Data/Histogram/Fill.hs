@@ -74,6 +74,8 @@ import qualified Data.Histogram.Generic as H
 import Data.Histogram.Bin
 import Data.Histogram.ST
 
+
+
 ----------------------------------------------------------------
 -- Type class
 ----------------------------------------------------------------
@@ -194,16 +196,18 @@ infixr 4 -<<
 -- Monadic builder
 ----------------------------------------------------------------
 
--- | Stateful histogram builder. There is no direct way to construct
---   such builder. Only way to do it is to create 'HBuilder' and use
---   'toHBuilderST' or 'toHBuilderIO'.
+-- | Stateful histogram builder. Adding value to builder could be done
+--   with 'feedOne' and result could be extracted with
+--   'freezeHBuilderM'.
 --
---   It's useful when result should be extracted many times from the
---   same accumulator.
+--   There are two ways to obtain stateful builder. First and
+--   recommended is to thaw 'HBuilder' using 'toHBuilderIO' or
+--   'toHBuilderST'. Second is to use 'mkStatefulBuilder'.
 data HBuilderM m a b = HBuilderM { hbInput  :: a -> m ()
                                  , hbOutput :: m b
                                  }
 
+-- | Builders modified using 'HistBuilder' API will share same buffer.
 instance PrimMonad m => HistBuilder (HBuilderM m) where
     modifyIn    f h = h { hbInput  = hbInput h . f }
     addCut      f h = h { hbInput  = \x -> when (f x) (hbInput h x) }
@@ -236,8 +240,8 @@ feedOne :: PrimMonad m => HBuilderM m a b -> a -> m ()
 feedOne = hbInput
 {-# INLINE feedOne #-}
 
--- | Create stateful histogram from instructions. Histograms could
---   be filled either in the ST monad or with createHistograms
+-- | Extract result from histogram builder. It's safe to call this
+--   function multiple times and mutate builder afterwards.
 freezeHBuilderM :: PrimMonad m => HBuilderM m a b -> m b
 freezeHBuilderM = hbOutput
 {-# INLINE freezeHBuilderM #-}
@@ -253,6 +257,8 @@ joinHBuilderM hs = HBuilderM { hbInput  = \x -> F.mapM_ (flip hbInput x) hs
 treeHBuilderM :: (PrimMonad m, F.Traversable f) => f (HBuilderM m a b -> HBuilderM m a' b') -> HBuilderM m a b -> HBuilderM m a' (f b')
 treeHBuilderM fs h = joinHBuilderM $ fmap ($ h) fs
 {-# INLINE treeHBuilderM #-}
+
+
 
 ----------------------------------------------------------------
 -- Stateless
@@ -378,8 +384,8 @@ mkFoldBuilderG bin x0 f = HBuilder $ do
 
 
 -- | Create histogram builder which just does ordinary pure fold. It
--- is intended for use when some fold should be performed together
--- with histogram filling
+--   is intended for use when some fold should be performed together
+--   with histogram filling
 mkFolder :: b -> (a -> b -> b) -> HBuilder a b
 mkFolder a f = HBuilder $ do
   ref <- newSTRef a
