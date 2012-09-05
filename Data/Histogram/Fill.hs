@@ -294,6 +294,7 @@ instance Monoid b => Monoid (HBuilder a b) where
     mappend h g = mappend <$> h <*> g
     mconcat     = fmap mconcat . joinHBuilder
     {-# INLINE mempty  #-}
+    {-# INLINE mappend #-}
     {-# INLINE mconcat #-}
 
 -- | Join hitogram builders in container.
