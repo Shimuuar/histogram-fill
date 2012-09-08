@@ -26,7 +26,7 @@ module Data.Histogram.Fill (
   , joinHBuilderM
   , treeHBuilderM
     -- ** Stateless
-  , HBuilder
+  , HBuilder(HBuilder)
   , toHBuilderST
   , toHBuilderIO
   , joinHBuilder
@@ -266,7 +266,8 @@ treeHBuilderM fs h = joinHBuilderM $ fmap ($ h) fs
 -- Stateless
 ----------------------------------------------------------------
 
--- | Stateless histogram builder
+-- | Wrapper around stateful histogram builder. It is much more
+--   convenient to work with than 'HBuilderM'.
 newtype HBuilder a b = HBuilder { toHBuilderST :: forall s . ST s (HBuilderM (ST s) a b)
                                   -- ^ Convert builder to stateful builder in ST monad
                                 }
