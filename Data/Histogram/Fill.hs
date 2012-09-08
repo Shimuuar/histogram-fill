@@ -268,18 +268,21 @@ treeHBuilderM fs h = joinHBuilderM $ fmap ($ h) fs
 
 -- | Wrapper around stateful histogram builder. It is much more
 --   convenient to work with than 'HBuilderM'.
-newtype HBuilder a b = HBuilder { toHBuilderST :: forall s . ST s (HBuilderM (ST s) a b)
-                                  -- ^ Convert builder to stateful builder in ST monad
-                                }
+newtype HBuilder a b = HBuilder (forall s . ST s (HBuilderM (ST s) a b))
+
+-- | Convert builder to stateful builder in ST monad
+toHBuilderST :: HBuilder a b -> ST s (HBuilderM (ST s) a b)
+{-# INLINE toHBuilderST #-}
+toHBuilderST (HBuilder hb) = hb
 
 -- | Convert builder to builder in IO monad
 toHBuilderIO :: HBuilder a b -> IO (HBuilderM IO a b)
+{-# INLINE toHBuilderIO #-}
 toHBuilderIO (HBuilder h) = do
   builder <- stToIO h
   return (HBuilderM
           (stToIO . hbInput builder)
           (stToIO $ hbOutput builder))
-{-# INLINE toHBuilderIO #-}
 
 instance HistBuilder (HBuilder) where
     modifyIn    f (HBuilder h) = HBuilder (modifyIn  f <$> h)
