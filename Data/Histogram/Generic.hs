@@ -33,6 +33,8 @@ module Data.Histogram.Generic (
   , HistIndex(..) 
   , histIndex
   , at
+  , atV
+  , atI
     -- * Transformations
   , map
   , bmap
@@ -269,6 +271,16 @@ histIndex b Last      = nBins b - 1
 -- | Index histogtam.
 at :: (Bin bin, Vector v a) => Histogram v bin a -> HistIndex bin -> a
 at (Histogram bin _ v) i = v ! histIndex bin i
+
+-- | Index histogram using bin value
+atV :: (Bin bin, Vector v a) => Histogram v bin a -> BinValue bin -> a
+atV h = at h . Value
+
+-- | Index histogram using vector index
+atI :: (Bin bin, Vector v a) => Histogram v bin a -> Int -> a
+atI h = at h . Index
+
+
 
 ----------------------------------------------------------------
 -- Transformation

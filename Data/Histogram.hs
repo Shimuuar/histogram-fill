@@ -35,6 +35,8 @@ module Data.Histogram ( -- * Immutable histogram
   , HistIndex(..) 
   , histIndex
   , at
+  , atV
+  , atI
     -- * Transformations
   , map
   , bmap
@@ -130,6 +132,14 @@ asVector = H.asVector
 
 at :: (Bin bin, Unbox a) => Histogram bin a -> HistIndex bin -> a
 at = H.at
+
+atV :: (Bin bin, Unbox a) => Histogram bin a -> BinValue bin -> a
+atV = H.atV
+
+atI :: (Bin bin, Unbox a) => Histogram bin a -> Int -> a
+atI = H.atI
+
+
 
 ----------------------------------------------------------------
 -- Modify histograms
