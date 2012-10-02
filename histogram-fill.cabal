@@ -1,9 +1,15 @@
 Name:           histogram-fill
-Version:        0.7.2.0
+Version:        0.7.3.0
 Synopsis:       Library for histograms creation.
 Description:    
   This is library for histograms filling. Its aim to provide
   convenient way to create and fill histograms. 
+  .
+  Changes in 0.7.3.0
+  .
+  * @mkStatefulBuilder@ is added and HBuilder constructor is exposed.
+  .
+  * Indexing operators for immutable histograms are added.
   .
   Changes in 0.7.2.0
   .
