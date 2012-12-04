@@ -48,9 +48,20 @@ module Data.Histogram ( -- * Immutable histogram
     -- * Folding
   , foldl
   , bfoldl
+    -- ** Specialized folds
   , sum
   , minimum
+  , minimumBy
   , maximum
+  , maximumBy
+  , minIndex
+  , minIndexBy
+  , maxIndex
+  , maxIndexBy
+  , minBin
+  , minBinBy
+  , maxBin
+  , maxBinBy
     -- * Slicing & rebinning
   , slice
   , rebin
@@ -181,13 +192,47 @@ bfoldl :: (Bin bin, Unbox a) => (b -> BinValue bin -> a -> b) -> b -> Histogram 
 bfoldl = H.bfoldl
 
 sum :: (Bin bin, Unbox a, Num a) => Histogram bin a -> a
-sum = foldl (+) 0
+sum = H.sum
+
 
 minimum :: (Bin bin, Unbox a, Ord a) => Histogram bin a -> a
 minimum = H.minimum
 
+minimumBy :: (Bin bin, Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> a
+minimumBy = H.minimumBy
+
 maximum :: (Bin bin, Unbox a, Ord a) => Histogram bin a -> a
 maximum = H.maximum
+
+maximumBy :: (Bin bin, Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> a
+maximumBy = H.maximumBy
+
+
+minIndex :: (Bin bin, Ord a, Unbox a) => Histogram bin a -> Int
+minIndex = H.minIndex
+
+minIndexBy :: (Bin bin, Ord a, Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> Int
+minIndexBy = H.minIndexBy
+
+maxIndex :: (Bin bin, Ord a, Unbox a) => Histogram bin a -> Int
+maxIndex = H.maxIndex
+
+maxIndexBy :: (Bin bin, Ord a, Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> Int
+maxIndexBy = H.maxIndexBy
+
+
+minBin :: (Bin bin, Ord a, Unbox a) => Histogram bin a -> BinValue bin
+minBin = H.minBin
+
+minBinBy :: (Bin bin, Ord a, Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> BinValue bin
+minBinBy = H.minBinBy
+
+maxBin :: (Bin bin, Ord a, Unbox a) => Histogram bin a -> BinValue bin
+maxBin = H.maxBin
+
+maxBinBy :: (Bin bin, Ord a, Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> BinValue bin
+maxBinBy = H.maxBinBy
+
 
 
 ----------------------------------------------------------------
