@@ -77,7 +77,7 @@ Library
   Build-Depends:        base >=3 && <5,
                         deepseq,
                         primitive,
-                        vector >= 0.7
+                        vector >= 0.10.0.1
   Exposed-modules:      Data.Histogram
                         Data.Histogram.Generic
                         Data.Histogram.Fill

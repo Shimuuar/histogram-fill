@@ -201,9 +201,9 @@ instance Typeable1 v => Typeable2 (Histogram v) where
 
 -- | Vector do not supply 'NFData' instance so let just 'seq' it and
 --   hope it's enough. Should be enough for unboxed vectors.
-instance (NFData a, NFData bin) => NFData (Histogram v bin a) where
-   rnf (Histogram bin uo vec) = 
-     rnf bin `seq` rnf uo `seq` seq vec ()
+instance (NFData a, NFData bin, NFData (v a)) => NFData (Histogram v bin a) where
+   rnf (Histogram bin uo vec) =
+     rnf bin `seq` rnf uo `seq` rnf vec `seq` ()
 
 -- | If vector is a functor then histogram is functor as well
 instance (Functor v) => Functor (Histogram v bin) where
