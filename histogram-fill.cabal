@@ -7,6 +7,12 @@ Description:
   .
   Changes in 0.7.3.0
   .
+  * Function for searching for minimum/maximum added.
+  .
+  * @NFData@ instance is fixed.
+  .
+  Changes in 0.7.3.0
+  .
   * @mkStatefulBuilder@ is added and HBuilder constructor is exposed.
   .
   * Indexing operators for immutable histograms are added.
