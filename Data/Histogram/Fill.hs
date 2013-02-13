@@ -68,8 +68,8 @@ import Data.STRef
 import Data.Monoid            (Monoid(..))
 import Data.Vector.Unboxed    (Unbox)
 import qualified Data.Vector.Generic as G
-import qualified Data.Foldable       as F (Foldable,mapM_)
-import qualified Data.Traversable    as F (Traversable,mapM)
+import qualified Data.Foldable       as F
+import qualified Data.Traversable    as F
 
 import Data.Histogram
 import qualified Data.Histogram.Generic as H
@@ -176,10 +176,10 @@ infixr 4 -<<
 -- >   (forceInt -<< mkSimple (BinI 0 4) <<? even)
 -- >   (forceInt -<< mkSimple (BinI 0 4) <<? odd)
 --
--- Another approach is to use 'joinHBuilder' to simultaneously fill
+-- Another approach is to use 'F.sequenceA' to simultaneously fill
 -- list (or any other 'Travesable'). 
 --
--- > joinHBuilder [
+-- > Data.Traversable.sequenceA [
 -- >     forceInt -<< mkSimple (BinI 0 4) <<? even
 -- >   , forceInt -<< mkSimple (BinI 0 4) <<? odd
 -- >   ]
@@ -233,9 +233,10 @@ instance (PrimMonad m, Monoid b) => Monoid (HBuilderM m a b) where
                        , hbOutput = return mempty
                        }
     mappend h1 h2 = mappend <$> h1 <*> h2
-    mconcat = fmap mconcat . joinHBuilderM
+    mconcat = fmap mconcat . F.sequenceA
     {-# INLINE mempty  #-}
     {-# INLINE mconcat #-}
+
 
 -- | Put one item into histogram
 feedOne :: PrimMonad m => HBuilderM m a b -> a -> m ()
@@ -253,11 +254,12 @@ joinHBuilderM :: (F.Traversable f, PrimMonad m) => f (HBuilderM m a b) -> HBuild
 joinHBuilderM hs = HBuilderM { hbInput  = \x -> F.mapM_ (flip hbInput x) hs
                              , hbOutput = F.mapM hbOutput hs
                              }
-{-# INLINE joinHBuilderM #-}
+{-# INLINE     joinHBuilderM #-}
+{-# DEPRECATED joinHBuilderM "Use Data.Traversable.sequenceA instead" #-}
 
 -- | Apply functions to builder
 treeHBuilderM :: (PrimMonad m, F.Traversable f) => f (HBuilderM m a b -> HBuilderM m a' b') -> HBuilderM m a b -> HBuilderM m a' (f b')
-treeHBuilderM fs h = joinHBuilderM $ fmap ($ h) fs
+treeHBuilderM fs h = F.sequenceA $ fmap ($ h) fs
 {-# INLINE treeHBuilderM #-}
 
 
@@ -298,7 +300,7 @@ instance Applicative (HBuilder a) where
 instance Monoid b => Monoid (HBuilder a b) where
     mempty      = HBuilder (return mempty)
     mappend h g = mappend <$> h <*> g
-    mconcat     = fmap mconcat . joinHBuilder
+    mconcat     = fmap mconcat . F.sequenceA
     {-# INLINE mempty  #-}
     {-# INLINE mappend #-}
     {-# INLINE mconcat #-}
@@ -306,7 +308,8 @@ instance Monoid b => Monoid (HBuilder a b) where
 -- | Join hitogram builders in container.
 joinHBuilder :: F.Traversable f => f (HBuilder a b) -> HBuilder a (f b)
 joinHBuilder hs = HBuilder (joinHBuilderM <$> F.mapM toHBuilderST hs)
-{-# INLINE joinHBuilder #-}
+{-# INLINE     joinHBuilder #-}
+{-# DEPRECATED joinHBuilder "Use Data.Traversable.sequenceA instead" #-}
 
 -- | Apply function to builder
 treeHBuilder :: F.Traversable f => f (HBuilder a b -> HBuilder a' b') -> HBuilder a b -> HBuilder a' (f b')
