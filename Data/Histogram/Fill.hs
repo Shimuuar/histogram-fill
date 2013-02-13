@@ -23,13 +23,11 @@ module Data.Histogram.Fill (
   , HBuilderM
   , feedOne
   , freezeHBuilderM
-  , joinHBuilderM
   , treeHBuilderM
     -- ** Stateless
   , HBuilder(HBuilder)
   , toHBuilderST
   , toHBuilderIO
-  , joinHBuilder
   , treeHBuilder
     -- * Histogram constructors
     -- ** Using unboxed vectors
@@ -57,6 +55,9 @@ module Data.Histogram.Fill (
   , forceFloat
     -- * Examples
     -- $examples
+    -- * Deprecated functions
+  , joinHBuilder
+  , joinHBuilderM
   ) where
 
 import Control.Applicative
@@ -313,7 +314,7 @@ joinHBuilder hs = HBuilder (joinHBuilderM <$> F.mapM toHBuilderST hs)
 
 -- | Apply function to builder
 treeHBuilder :: F.Traversable f => f (HBuilder a b -> HBuilder a' b') -> HBuilder a b -> HBuilder a' (f b')
-treeHBuilder fs h = joinHBuilder $ fmap ($ h) fs
+treeHBuilder fs h = F.sequenceA $ fmap ($ h) fs
 {-# INLINE treeHBuilder #-}
 
 
