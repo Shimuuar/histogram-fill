@@ -97,7 +97,9 @@ class HistBuilder h where
     -- | Change input of builder by applying function to it.
     modifyIn      :: (a' -> a) -> h a b -> h a' b
     -- | Put all values in container into builder 
-    fromContainer :: F.Foldable f => h a b -> h (f a) b
+    fromContainer :: (forall m. Monad m => (a -> m ()) -> f a -> m ())
+                     -- ^ @mapM_@ function for container
+                  -> h a b -> h (f a) b
     -- | Add cut to histogram. Value would be putted into histogram
     --   only if condition is true. 
     addCut        :: (a -> Bool) -> h a b -> h a b
@@ -110,7 +112,7 @@ class HistBuilder h where
 
 -- | Modify input of builder to use composite input
 (<<-|) :: (HistBuilder h, F.Foldable f) => h a b -> (a' -> f a) -> h a' b
-h <<-| f = fromContainer h <<- f
+h <<-| f = fromContainer F.mapM_ h <<- f
 {-# INLINE (<<-|) #-}
 
 -- | Add cut for input
@@ -212,10 +214,10 @@ data HBuilderM m a b = HBuilderM { hbInput  :: a -> m ()
 
 -- | Builders modified using 'HistBuilder' API will share same buffer.
 instance PrimMonad m => HistBuilder (HBuilderM m) where
-    modifyIn    f h = h { hbInput  = hbInput h . f }
-    addCut      f h = h { hbInput  = \x -> when (f x) (hbInput h x) }
-    fromContainer h = h { hbInput  = F.mapM_ (hbInput h) }
-    modifyOut   f h = h { hbOutput = f `liftM` hbOutput h }
+    modifyIn      f      h = h { hbInput  = hbInput h . f }
+    addCut        f      h = h { hbInput  = \x -> when (f x) (hbInput h x) }
+    fromContainer fmapM_ h = h { hbInput  = fmapM_ (hbInput h) }
+    modifyOut     f      h = h { hbOutput = f `liftM` hbOutput h }
 
 instance PrimMonad m => Functor (HBuilderM m a) where
     fmap = modifyOut
@@ -275,10 +277,10 @@ toHBuilderIO (HBuilder h) = do
           (stToIO $ hbOutput builder))
 
 instance HistBuilder (HBuilder) where
-    modifyIn    f (HBuilder h) = HBuilder (modifyIn  f <$> h)
-    addCut      f (HBuilder h) = HBuilder (addCut    f <$> h)
-    fromContainer (HBuilder h) = HBuilder (fromContainer <$> h)
-    modifyOut   f (HBuilder h) = HBuilder (modifyOut f <$> h)
+    modifyIn      f      (HBuilder h) = HBuilder (modifyIn  f <$> h)
+    addCut        f      (HBuilder h) = HBuilder (addCut    f <$> h)
+    fromContainer fmapM_ (HBuilder h) = HBuilder (fromContainer fmapM_ <$> h)
+    modifyOut     f      (HBuilder h) = HBuilder (modifyOut f <$> h)
 
 instance Functor (HBuilder a) where
     fmap = modifyOut
