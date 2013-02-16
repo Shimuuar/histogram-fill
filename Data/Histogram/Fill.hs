@@ -23,12 +23,10 @@ module Data.Histogram.Fill (
   , HBuilderM
   , feedOne
   , freezeHBuilderM
-  , treeHBuilderM
     -- ** Stateless
   , HBuilder(HBuilder)
   , toHBuilderST
   , toHBuilderIO
-  , treeHBuilder
     -- * Histogram constructors
     -- ** Using unboxed vectors
   , module Data.Histogram.Bin
@@ -58,6 +56,8 @@ module Data.Histogram.Fill (
     -- * Deprecated functions
   , joinHBuilder
   , joinHBuilderM
+  , treeHBuilderM
+  , treeHBuilder
   ) where
 
 import Control.Applicative
@@ -250,19 +250,6 @@ freezeHBuilderM :: PrimMonad m => HBuilderM m a b -> m b
 freezeHBuilderM = hbOutput
 {-# INLINE freezeHBuilderM #-}
 
--- | Join histogram builders in container
-joinHBuilderM :: (F.Traversable f, PrimMonad m) => f (HBuilderM m a b) -> HBuilderM m a (f b)
-joinHBuilderM hs = HBuilderM { hbInput  = \x -> F.mapM_ (flip hbInput x) hs
-                             , hbOutput = F.mapM hbOutput hs
-                             }
-{-# INLINE     joinHBuilderM #-}
-{-# DEPRECATED joinHBuilderM "Use Data.Traversable.sequenceA instead" #-}
-
--- | Apply functions to builder
-treeHBuilderM :: (PrimMonad m, F.Traversable f) => f (HBuilderM m a b -> HBuilderM m a' b') -> HBuilderM m a b -> HBuilderM m a' (f b')
-treeHBuilderM fs h = F.sequenceA $ fmap ($ h) fs
-{-# INLINE treeHBuilderM #-}
-
 
 
 ----------------------------------------------------------------
@@ -305,17 +292,6 @@ instance Monoid b => Monoid (HBuilder a b) where
     {-# INLINE mempty  #-}
     {-# INLINE mappend #-}
     {-# INLINE mconcat #-}
-
--- | Join hitogram builders in container.
-joinHBuilder :: F.Traversable f => f (HBuilder a b) -> HBuilder a (f b)
-joinHBuilder hs = HBuilder (joinHBuilderM <$> F.mapM toHBuilderST hs)
-{-# INLINE     joinHBuilder #-}
-{-# DEPRECATED joinHBuilder "Use Data.Traversable.sequenceA instead" #-}
-
--- | Apply function to builder
-treeHBuilder :: F.Traversable f => f (HBuilder a b -> HBuilder a' b') -> HBuilder a b -> HBuilder a' (f b')
-treeHBuilder fs h = F.sequenceA $ fmap ($ h) fs
-{-# INLINE treeHBuilder #-}
 
 
 
@@ -461,3 +437,37 @@ forceDouble = id
 
 forceFloat :: H.Histogram v bin Float -> H.Histogram v bin Float
 forceFloat = id
+
+
+
+----------------------------------------------------------------
+-- Deprecated
+----------------------------------------------------------------
+
+-- | Join histogram builders in container
+joinHBuilderM :: (F.Traversable f, PrimMonad m) => f (HBuilderM m a b) -> HBuilderM m a (f b)
+joinHBuilderM hs = HBuilderM { hbInput  = \x -> F.mapM_ (flip hbInput x) hs
+                             , hbOutput = F.mapM hbOutput hs
+                             }
+{-# INLINE     joinHBuilderM #-}
+{-# DEPRECATED joinHBuilderM "Use Data.Traversable.sequenceA instead" #-}
+
+-- | Apply functions to builder
+treeHBuilderM :: (PrimMonad m, F.Traversable f) => f (HBuilderM m a b -> HBuilderM m a' b') -> HBuilderM m a b -> HBuilderM m a' (f b')
+treeHBuilderM fs h = F.traverse ($ h) fs
+{-# INLINE     treeHBuilderM #-}
+{-# DEPRECATED treeHBuilderM
+  "Use Data.Traversable.traverse. treeHBuilderM fs h = F.traverse ($ h) fs" #-}
+
+-- | Join hitogram builders in container.
+joinHBuilder :: F.Traversable f => f (HBuilder a b) -> HBuilder a (f b)
+joinHBuilder hs = HBuilder (joinHBuilderM <$> F.mapM toHBuilderST hs)
+{-# INLINE     joinHBuilder #-}
+{-# DEPRECATED joinHBuilder "Use Data.Traversable.sequenceA instead" #-}
+
+-- | Apply function to builder
+treeHBuilder :: F.Traversable f => f (HBuilder a b -> HBuilder a' b') -> HBuilder a b -> HBuilder a' (f b')
+treeHBuilder fs h = F.sequenceA $ fmap ($ h) fs
+{-# INLINE     treeHBuilder #-}
+{-# DEPRECATED treeHBuilder
+  "Use Data.Traversable.traverse. treeHBuilderM fs h = F.traverse ($ h) fs" #-}
