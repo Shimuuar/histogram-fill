@@ -27,6 +27,7 @@ module Data.Histogram.Fill (
   , HBuilder(HBuilder)
   , toHBuilderST
   , toHBuilderIO
+  , toHBuilderM
     -- * Histogram constructors
     -- ** Using unboxed vectors
   , module Data.Histogram.Bin
@@ -65,7 +66,7 @@ import Control.Monad       (when,liftM,liftM2)
 import Control.Monad.ST
 import Control.Monad.Primitive
 
-import Data.STRef
+import Data.PrimRef
 import Data.Monoid            (Monoid(..))
 import Data.Vector.Unboxed    (Unbox)
 import qualified Data.Vector.Generic as G
@@ -260,27 +261,28 @@ freezeHBuilderM = hbOutput
 
 -- | Wrapper around stateful histogram builder. It is much more
 --   convenient to work with than 'HBuilderM'.
-newtype HBuilder a b = HBuilder (forall s . ST s (HBuilderM (ST s) a b))
+newtype HBuilder a b = HBuilder (forall m. PrimMonad m => m (HBuilderM m a b))
+
+-- | Convert builder to stateful builder in primitive monad
+toHBuilderM :: PrimMonad m => HBuilder a b -> m (HBuilderM m a b)
+{-# INLINE toHBuilderM #-}
+toHBuilderM (HBuilder hb) = hb
 
 -- | Convert builder to stateful builder in ST monad
 toHBuilderST :: HBuilder a b -> ST s (HBuilderM (ST s) a b)
 {-# INLINE toHBuilderST #-}
-toHBuilderST (HBuilder hb) = hb
+toHBuilderST = toHBuilderM
 
 -- | Convert builder to builder in IO monad
 toHBuilderIO :: HBuilder a b -> IO (HBuilderM IO a b)
 {-# INLINE toHBuilderIO #-}
-toHBuilderIO (HBuilder h) = do
-  builder <- stToIO h
-  return (HBuilderM
-          (stToIO . hbInput builder)
-          (stToIO $ hbOutput builder))
+toHBuilderIO = toHBuilderM
 
 instance HistBuilder (HBuilder) where
-    modifyIn      f      (HBuilder h) = HBuilder (modifyIn  f <$> h)
-    addCut        f      (HBuilder h) = HBuilder (addCut    f <$> h)
-    fromContainer fmapM_ (HBuilder h) = HBuilder (fromContainer fmapM_ <$> h)
-    modifyOut     f      (HBuilder h) = HBuilder (modifyOut f <$> h)
+    modifyIn      f      (HBuilder h) = HBuilder (modifyIn  f `liftM` h)
+    addCut        f      (HBuilder h) = HBuilder (addCut    f `liftM` h)
+    fromContainer fmapM_ (HBuilder h) = HBuilder (fromContainer fmapM_ `liftM` h)
+    modifyOut     f      (HBuilder h) = HBuilder (modifyOut f `liftM` h)
 
 instance Functor (HBuilder a) where
     fmap = modifyOut
@@ -378,11 +380,9 @@ mkFoldBuilderG bin x0 f = HBuilder $ do
 mkFolder :: b -> (a -> b -> b) -> HBuilder a b
 {-# INLINE mkFolder #-}
 mkFolder a f = HBuilder $ do
-  ref <- newSTRef a
-  return HBuilderM { hbInput  = \x -> do acc <- readSTRef ref
-                                         let !acc' = f x acc
-                                         writeSTRef ref acc'
-                   , hbOutput = readSTRef ref
+  ref <- newPrimRef a
+  return HBuilderM { hbInput  = \x -> modifyPrimRef' ref (f x)
+                   , hbOutput = readPrimRef ref
                    }
 
 
@@ -449,9 +449,7 @@ forceFloat = id
 
 -- | Join histogram builders in container
 joinHBuilderM :: (F.Traversable f, PrimMonad m) => f (HBuilderM m a b) -> HBuilderM m a (f b)
-joinHBuilderM hs = HBuilderM { hbInput  = \x -> F.mapM_ (flip hbInput x) hs
-                             , hbOutput = F.mapM hbOutput hs
-                             }
+joinHBuilderM = F.sequenceA
 {-# INLINE     joinHBuilderM #-}
 {-# DEPRECATED joinHBuilderM "Use Data.Traversable.sequenceA instead" #-}
 
@@ -464,13 +462,13 @@ treeHBuilderM fs h = F.traverse ($ h) fs
 
 -- | Join hitogram builders in container.
 joinHBuilder :: F.Traversable f => f (HBuilder a b) -> HBuilder a (f b)
-joinHBuilder hs = HBuilder (joinHBuilderM <$> F.mapM toHBuilderST hs)
+joinHBuilder = F.sequenceA
 {-# INLINE     joinHBuilder #-}
 {-# DEPRECATED joinHBuilder "Use Data.Traversable.sequenceA instead" #-}
 
 -- | Apply function to builder
 treeHBuilder :: F.Traversable f => f (HBuilder a b -> HBuilder a' b') -> HBuilder a b -> HBuilder a' (f b')
-treeHBuilder fs h = F.sequenceA $ fmap ($ h) fs
+treeHBuilder fs h = F.traverse ($ h) fs
 {-# INLINE     treeHBuilder #-}
 {-# DEPRECATED treeHBuilder
   "Use Data.Traversable.traverse. treeHBuilderM fs h = F.traverse ($ h) fs" #-}
