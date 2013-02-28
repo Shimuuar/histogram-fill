@@ -66,7 +66,8 @@ License:        BSD3
 License-File:   LICENSE
 Author:         Alexey Khudyakov
 Maintainer:     Alexey Khudyakov <alexey.skladnoy@gmail.com>
-Homepage:       http://bitbucket.org/Shimuuar/histogram-fill/
+Homepage:       https://bitbucket.org/Shimuuar/histogram-fill/
+Bug-tracker:	https://github.com/Shimuuar/histogram-fill/issues
 Category:       Data
 Build-Type:     Simple
 extra-source-files:
@@ -80,27 +81,29 @@ source-repository head
   location: http://github.com/Shimuuar/histogram-fill
 
 Library
-  Build-Depends:        base >=3 && <5,
-                        deepseq,
-                        primitive,
-                        vector >= 0.10.0.1
-  Exposed-modules:      Data.Histogram
-                        Data.Histogram.Generic
-                        Data.Histogram.Fill
-                        Data.Histogram.Bin
-                        Data.Histogram.Bin.Classes
-                        Data.Histogram.Bin.BinI
-                        Data.Histogram.Bin.BinInt
-                        Data.Histogram.Bin.BinEnum
-                        Data.Histogram.Bin.BinF
-                        Data.Histogram.Bin.LogBinD
-                        Data.Histogram.Bin.MaybeBin
-                        Data.Histogram.Bin.Bin2D
-                        Data.Histogram.Bin.Extra
-                        Data.Histogram.Bin.Read
-                        Data.Histogram.ST
   Ghc-options:          -O2 -Wall
   Ghc-prof-options:     -auto-all
+  Build-Depends:
+    base >=3 && <5,
+    deepseq,
+    primitive,
+    vector >= 0.10.0.1
+  Exposed-modules:
+    Data.Histogram
+    Data.Histogram.Generic
+    Data.Histogram.Fill
+    Data.Histogram.Bin
+    Data.Histogram.Bin.Classes
+    Data.Histogram.Bin.BinI
+    Data.Histogram.Bin.BinInt
+    Data.Histogram.Bin.BinEnum
+    Data.Histogram.Bin.BinF
+    Data.Histogram.Bin.LogBinD
+    Data.Histogram.Bin.MaybeBin
+    Data.Histogram.Bin.Bin2D
+    Data.Histogram.Bin.Extra
+    Data.Histogram.Bin.Read
+    Data.Histogram.ST
 
 test-suite tests
   type:           exitcode-stdio-1.0
@@ -108,9 +111,21 @@ test-suite tests
   main-is:        QC.hs
   other-modules:  QC.Instances
   ghc-options:    -Wall
-  build-depends:  base >=3 && < 5,
-                  histogram-fill,
-                  vector,
-                  QuickCheck >= 2,
-                  test-framework,
-                  test-framework-quickcheck2
+  build-depends:
+    base >=3 && < 5,
+    histogram-fill,
+    vector,
+    QuickCheck >= 2,
+    test-framework,
+    test-framework-quickcheck2
+
+Benchmark benchmarks
+  Type:           exitcode-stdio-1.0
+  Main-is:        benchmark.hs
+  hs-source-dirs: benchmarks
+  build-depends:
+    base >=3 && <5,
+    histogram-fill,
+    mwc-random,
+    vector,
+    criterion
