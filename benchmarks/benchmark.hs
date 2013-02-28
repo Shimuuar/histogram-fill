@@ -23,23 +23,14 @@ main =
     , bench "BinD><BinD" $ nf (toIndex (binD 0 10 1 >< binD 0 10 1)) (0.3,0.5)
     ]
   , bgroup "hist"
-    [ bench "BinI-2"    $ nf (fill (forceInt    -<< mkSimple   (binI0 100))) (mkRange  100)
-    , bench "BinI-3"    $ nf (fill (forceInt    -<< mkSimple   (binI0 100))) (mkRange  1000)
-    , bench "BinI-4"    $ nf (fill (forceInt    -<< mkSimple   (binI0 100))) (mkRange  10000)
-    , bench "BinI-w2"   $ nf (fill (forceDouble -<< mkWeighted (binI0 100))) (mkRangeW 100)
-    , bench "BinI-w3"   $ nf (fill (forceDouble -<< mkWeighted (binI0 100))) (mkRangeW 1000)
-    , bench "BinI-w4"   $ nf (fill (forceDouble -<< mkWeighted (binI0 100))) (mkRangeW 10000)
+    [ bench "BinI-2"    $ nf (fillBuilderVec (forceInt    -<< mkSimple   (binI0 100))) (mkRange  100)
+    , bench "BinI-3"    $ nf (fillBuilderVec (forceInt    -<< mkSimple   (binI0 100))) (mkRange  1000)
+    , bench "BinI-4"    $ nf (fillBuilderVec (forceInt    -<< mkSimple   (binI0 100))) (mkRange  10000)
+    , bench "BinI-w2"   $ nf (fillBuilderVec (forceDouble -<< mkWeighted (binI0 100))) (mkRangeW 100)
+    , bench "BinI-w3"   $ nf (fillBuilderVec (forceDouble -<< mkWeighted (binI0 100))) (mkRangeW 1000)
+    , bench "BinI-w4"   $ nf (fillBuilderVec (forceDouble -<< mkWeighted (binI0 100))) (mkRangeW 10000)
     ]
   ]
-
--- Fill histogram from vector
-fill :: (U.Unbox a, Bin bin, Num val)
-      => HBuilder a (Histogram bin val) -> U.Vector a -> Histogram bin val
-fill hb vec = runST $ do
-  h <- toHBuilderST hb
-  U.mapM_ (feedOne h) vec
-  freezeHBuilderM h
-{-# INLINE fill #-}
 
 mkRange n = runST $ do
   gen <- create
