@@ -411,7 +411,8 @@ fillBuilder hb xs =
 
 -- | Fill histogram builder.
 fillBuilderVec :: G.Vector v a => HBuilder a b -> v a -> b
-fillBuilderVec hb vec =
+{-# INLINE fillBuilderVec #-}
+fillBuilderVec hb = \vec ->
     runST $ do h <- toHBuilderST hb
                G.mapM_ (feedOne h) vec
                freezeHBuilderM h
