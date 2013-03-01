@@ -1,9 +1,16 @@
 Name:           histogram-fill
-Version:        0.7.4.0
+Version:        0.8.0.0
 Synopsis:       Library for histograms creation.
 Description:    
   This is library for histograms filling. Its aim to provide
   convenient way to create and fill histograms. 
+  .
+  Changes in 0.8.0.0
+  .
+  * @toHBuilderM@ added and internal definition of @HBuilder@ is
+    changed. It required adding dependency on @monad-primitive@.
+  .
+  * @joinHBuilder@ and @treeHBuilder@ are deprecated.
   .
   Changes in 0.7.3.0
   .
@@ -27,7 +34,7 @@ Description:
   .
   Changes in 0.7.0.0
   .
-  * mkFoldBuilder is added to @Data.Histogram.Fill@
+  * @mkFoldBuilder@ is added to @Data.Histogram.Fill@
   .
   * fill functions in @Data.Histogram.ST@ are replaced with generic
     variant.
@@ -67,7 +74,7 @@ License-File:   LICENSE
 Author:         Alexey Khudyakov
 Maintainer:     Alexey Khudyakov <alexey.skladnoy@gmail.com>
 Homepage:       https://bitbucket.org/Shimuuar/histogram-fill/
-Bug-tracker:	https://github.com/Shimuuar/histogram-fill/issues
+Bug-reports:    https://github.com/Shimuuar/histogram-fill/issues
 Category:       Data
 Build-Type:     Simple
 extra-source-files:
