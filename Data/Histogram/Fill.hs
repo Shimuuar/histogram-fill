@@ -20,7 +20,7 @@ module Data.Histogram.Fill (
   , (-<<)
     -- * Histogram builders
     -- ** Stateful
-  , HBuilderM
+  , HBuilderM(..)
   , feedOne
   , freezeHBuilderM
     -- ** Stateless
