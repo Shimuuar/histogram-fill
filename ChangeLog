@@ -1,11 +1,37 @@
+Changes in 0.8.1.0
+
+  * Constructor of @HBuilderM@ exported.
+
+  Changes in 0.8.0.0
+
+  * @toHBuilderM@ added and internal definition of @HBuilder@ is
+    changed. It required adding dependency on @monad-primitive@.
+
+  * @joinHBuilder@ and @treeHBuilder@ are deprecated.
+
+
+Changes in 0.7.4.0
+
+  * Function for searching for minimum/maximum added.
+
+  * @NFData@ instance is fixed.
+
+  Changes in 0.7.3.0
+
+  * @mkStatefulBuilder@ is added and HBuilder constructor is exposed.
+
+  * Indexing operators for immutable histograms are added.
+
 
 Changes in 0.7.2.0
 
   * fromMaybeBin added.
 
+
 Changes in 0.7.1.0
 
   * breduceX and breduceY are added.
+
 
 Changes in 0.7.0.0
 
@@ -17,10 +43,11 @@ Changes in 0.7.0.0
   * Functions to calculate sum, minimum and maximum of immutable
     histogram are added.
 
+
 Changes in 0.6.2.0
 
   * MaybeBin added.
-  * Helper function for defining Read instances for bins are exposed. 
+  * Helper function for defining Read instances for bins are exposed.
   * mapData function is added.
   * Slicing histogram do not results in crash if indices are out of
     bounds.
@@ -28,9 +55,11 @@ Changes in 0.6.2.0
   * Eq instances for BinF and BinD are added.
   * NFData instance for Bin2D is fixed.
 
+
 Changes in 0.6.1.0
 
   * Helper function and type synonym for Bin2D
+
 
 Changes in 0.6.0.1
 
