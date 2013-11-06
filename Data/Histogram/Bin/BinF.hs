@@ -26,12 +26,15 @@ import Data.Histogram.Bin.Classes
 import Data.Histogram.Bin.Read
 
 
--- | Floaintg point bins with equal sizes.
---
---   Since 'BinF' is paramentric it couldn't be unpacked. So @BinF
---   Double@ will be always slower than 'BinD'. For roundtripping use:
+-- | Floating point bins of equal size. Use following function for
+--   construction and inspection of value:
 --
 -- > b = binFstep (lowerLimit b) (binSize b) (nBins b)
+--
+--   Performance note. Since @BinF@ is parametric in its value it
+--   could not be unpacked and every access to data will require
+--   pointer indirection. 'BinD' is binning specialized to @Doubles@
+--   and it's always faster than @BinF Double@.
 data BinF f = BinF !f                  -- Lower bound
                    !f                  -- Size of bin
                    {-# UNPACK #-} !Int -- Number of bins
@@ -126,8 +129,8 @@ instance NFData (BinF f)
 -- Floating point bin /Specialized for Double
 ----------------------------------------------------------------
 
--- | Floaintg point bins with equal sizes. If you work with Doubles
--- this data type should be used instead of 'BinF'. Roundtripping is same as with 'BinF'
+-- | Floating point bins of equal sizes. If you work with Doubles this
+--   data type should be used instead of 'BinF'.
 data BinD = BinD {-# UNPACK #-} !Double -- Lower bound
                  {-# UNPACK #-} !Double -- Size of bin
                  {-# UNPACK #-} !Int    -- Number of bins
