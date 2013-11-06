@@ -53,7 +53,7 @@ class Bin b where
   --   of instance. Funtion may fail for invalid indices but
   --   encouraged not to do so.
   fromIndex :: b -> Int -> BinValue b
-  -- | Total number of bins.
+  -- | Total number of bins. Must be non-negative.
   nBins :: b -> Int
   -- | Check whether value in range. Have default
   --   implementation. Should satisfy:
