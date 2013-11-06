@@ -17,6 +17,7 @@ module Data.Histogram.ST ( -- * Mutable histograms
                          , freezeHist
                          ) where
 
+import Control.Monad
 import Control.Monad.Primitive
 
 import qualified Data.Vector.Generic         as G
@@ -42,6 +43,11 @@ data MHistogram s v bin a =
 newMHistogram :: (PrimMonad m, Bin bin, M.MVector v a) => a -> bin -> m (MHistogram (PrimState m) v bin a)
 newMHistogram zero bin = do
   let n = nBins bin
+  -- NOTE: replicate behaves strangely when n is negative it may fail
+  --       immediately or proceed and create invalid vector which
+  --       leads to memory corruption. So we want to check that.
+  when (n < 0) $
+    error "Data.Histogram.ST.newMHistogram: negative number of bins"
   a  <- M.replicate (n + 2) zero
   return $ MHistogram n bin a
 {-# INLINE newMHistogram #-}
