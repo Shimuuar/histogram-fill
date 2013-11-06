@@ -54,7 +54,11 @@ binFn :: RealFrac f =>
       -> f -- ^ Size of step
       -> f -- ^ Approximation of end of range
       -> BinF f
-binFn from step to = BinF from step (round $ (to - from) / step)
+binFn from step to
+  | n <= 0    = error "Data.Histogram.Bin.BinF.binFn: nonpositive number of bins"
+  | otherwise = BinF from step n
+  where
+    n = round $ (to - from) / step
 
 -- | Create bins
 binFstep :: RealFrac f =>
@@ -62,7 +66,10 @@ binFstep :: RealFrac f =>
          -> f      -- ^ Size of step
          -> Int    -- ^ Number of bins
          -> BinF f
-binFstep = BinF
+binFstep from step n
+  | n <= 0    = error "Data.Histogram.Bin.BinF.binFstep: nonpositive number of bins"
+  | step < 0  = BinF (from + step * fromIntegral n) (-step) n
+  | otherwise = BinF from step n 
 
 -- | 'scaleBinF a b' scales BinF using linear transform 'a+b*x'
 scaleBinF :: (Show f, RealFrac f) => f -> f -> BinF f -> BinF f
@@ -148,14 +155,22 @@ binDn :: Double -- ^ Begin of range
       -> Double -- ^ Size of step
       -> Double -- ^ Approximation of end of range
       -> BinD
-binDn from step to = BinD from step (round $ (to - from) / step)
+binDn from step to
+  | n <= 0    = error "Data.Histogram.Bin.BinF.binDn: nonpositive number of bins"
+  | otherwise = BinD from step n
+  where
+    n = round $ (to - from) / step
 
 -- | Create bins
 binDstep :: Double -- ^ Begin of range
          -> Double -- ^ Size of step
          -> Int    -- ^ Number of bins
          -> BinD
-binDstep = BinD
+binDstep from step n
+  | n <= 0    = error "Data.Histogram.Bin.BinF.binDstep: nonpositive number of bins"
+  | step < 0  = BinD (from + step * fromIntegral n) (-step) n
+  | otherwise = BinD from step n 
+
 
 -- | 'scaleBinF a b' scales BinF using linear transform 'a+b*x'
 scaleBinD :: Double -> Double -> BinD -> BinD
