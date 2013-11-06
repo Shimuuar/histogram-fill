@@ -1,3 +1,9 @@
+Changes in 0.8.2.0
+
+  * Smart constructors for BinF and BinD check that bin number is not
+    negative.
+
+
 Changes in 0.8.1.0
 
   * Constructor of @HBuilderM@ exported.
