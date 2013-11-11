@@ -45,12 +45,14 @@ binIntN :: Int                  -- ^ Lower bound
         -> Int                  -- ^ Bin size
         -> Int                  -- ^ Upper bound
         -> BinInt
-binIntN lo n hi 
-  | n < 0     = error "Data.Histogram.Bin.BinInt.binIntN: negative bin size"
-  | n > rng   = BinInt lo 1 rng
-  | otherwise = BinInt lo undefined n
+binIntN lo n hi
+  | n  < 0    = error "Data.Histogram.Bin.BinInt.binIntN: negative bin size"
+  | hi < lo   = binIntN hi n lo
+  | n  >= rng = BinInt lo 1 rng
+  | otherwise = BinInt lo (rng `div` n) size
   where
-    rng = hi - lo + 1
+    size = rng `div` n
+    rng  = hi - lo + 1
 
 binIntStep :: Int               -- ^ Lower bound
            -> Int               -- ^ Bin size
