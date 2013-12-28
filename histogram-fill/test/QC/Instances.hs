@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-# LANGUAGE FlexibleInstances #-}
-module QC.Instances() where
+module QC.Instances where
 
 import Control.Applicative
 import Test.QuickCheck
@@ -80,3 +80,26 @@ instance (Bin bin, U.Unbox a, Arbitrary bin, Arbitrary a) => Arbitrary (Histogra
     arbitrary = do
       bin <- suchThat arbitrary ((<333) . nBins)
       histogramUO bin <$> arbitrary <*> (U.fromList <$> vectorOf (nBins bin) arbitrary)
+
+
+----------------------------------------------------------------
+-- Arbitrary for bin values
+----------------------------------------------------------------
+
+-- | It's difficult to generate values that will fall into allowed
+--   range of the bin. Simple @inRange x ===> ...@ won't do because QC
+--   will generate large and larger values and eventually will give up.
+class ArbitraryBin bin where
+  -- | Generates arbitrary bin value that lies in range
+  arbitraryBinVal :: bin -> Gen (BinValue bin)
+
+instance ArbitraryBin BinI where
+  arbitraryBinVal bin = choose (lowerLimit bin, lowerLimit bin)
+
+instance (Enum e, Ord e) => ArbitraryBin (BinEnum e) where
+  arbitraryBinVal bin =
+    toEnum <$> choose (fromEnum $ lowerLimit bin, fromEnum $ lowerLimit bin)
+
+instance (ArbitraryBin bX, ArbitraryBin bY) => ArbitraryBin (Bin2D bX bY) where
+  arbitraryBinVal (Bin2D bX bY) =
+    (,) <$> arbitraryBinVal bX <*> arbitraryBinVal bY

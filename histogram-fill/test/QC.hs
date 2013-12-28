@@ -7,7 +7,7 @@ import Test.Tasty.QuickCheck (testProperty)
 
 import Data.Histogram
 import Data.Histogram.Bin.MaybeBin
-import QC.Instances ()
+import QC.Instances
 
 
 
@@ -74,15 +74,18 @@ prop_ReadShow :: (Read a, Show a, Eq a) => T a -> a -> Bool
 prop_ReadShow _ = isIdentity (read . show)
 
 -- > toIndex . fromIndex == id
-prop_ToFrom :: Bin bin => T bin -> Int -> bin -> Property
-prop_ToFrom _ i bin =
-  i >= 0 && i < nBins bin  ==>  isIdentity (toIndex bin . fromIndex bin) i
+prop_ToFrom :: Bin bin => T bin -> bin -> Gen Bool
+prop_ToFrom _ bin = do
+  i <- choose (0,nBins bin - 1)
+  return $ isIdentity (toIndex bin . fromIndex bin) i
 
 -- > fromIndex . toIndex == id
 -- Hold only for integral bins
-prop_FromTo :: (Bin bin, Eq (BinValue bin)) => T bin -> BinValue bin -> bin -> Property
-prop_FromTo _ x bin =
-  inRange bin x  ==>  isIdentity (fromIndex bin . toIndex bin) x
+prop_FromTo :: (Bin bin, Eq (BinValue bin), ArbitraryBin bin)
+            => T bin -> bin -> Gen Bool
+prop_FromTo _ bin = do
+  x <- arbitraryBinVal bin
+  return $ isIdentity (fromIndex bin . toIndex bin) x
 
 -- > inRange b x == indexInRange b x
 prop_InRange :: (Bin bin) => T bin -> bin -> BinValue bin -> Bool
