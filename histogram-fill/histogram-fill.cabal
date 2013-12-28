@@ -15,7 +15,6 @@ Bug-reports:    https://github.com/Shimuuar/histogram-fill/issues
 Category:       Data
 Build-Type:     Simple
 extra-source-files:
-  README.markdown
   ChangeLog
 
 source-repository head
