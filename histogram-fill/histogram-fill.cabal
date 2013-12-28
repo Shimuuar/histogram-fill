@@ -56,14 +56,14 @@ test-suite tests
   hs-source-dirs: test
   main-is:        QC.hs
   other-modules:  QC.Instances
-  ghc-options:    -Wall
+  ghc-options:    -O2 -Wall
   build-depends:
     base >=3 && < 5,
     histogram-fill,
     vector,
     QuickCheck >= 2,
-    test-framework,
-    test-framework-quickcheck2
+    tasty,
+    tasty-quickcheck
 
 Benchmark benchmarks
   Type:           exitcode-stdio-1.0

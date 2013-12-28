@@ -2,8 +2,8 @@
 import Data.Typeable
 
 import Test.QuickCheck
-import Test.Framework                       (Test,testGroup,defaultMain)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
+import Test.Tasty            (TestTree,testGroup,defaultMain)
+import Test.Tasty.QuickCheck (testProperty)
 
 import Data.Histogram
 import Data.Histogram.Bin.MaybeBin
@@ -14,8 +14,8 @@ import QC.Instances ()
 ----------------------------------------------------------------
 --
 ----------------------------------------------------------------
-tests :: [Test]
-tests =
+tests :: TestTree
+tests = testGroup "tests"
   [ testGroup "Bins"
     [ testsBin (T :: T BinI)
     , testsBin (T :: T BinInt) 
@@ -49,7 +49,7 @@ tests =
 testsBin :: ( Read a, Show a, Show (BinValue a), Eq a, Typeable a
             , Bin a
             , Arbitrary a, Arbitrary (BinValue a)
-            ) => T a -> Test
+            ) => T a -> TestTree
 testsBin t
   = testGroup ("Bin test for " ++ show (typeOfT t))
   [ testProperty "read . show = id"         $ prop_ReadShow t
@@ -58,7 +58,7 @@ testsBin t
   ]
 
 testSliceBin :: ( Show b, Typeable b, SliceableBin b, Arbitrary b
-                ) => T b -> Test
+                ) => T b -> TestTree
 testSliceBin t 
   = testGroup ("Slice tests for" ++ show (typeOfT t))
   [ testProperty "N of bins"  $ prop_sliceBin t

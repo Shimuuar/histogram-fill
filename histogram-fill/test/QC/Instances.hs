@@ -29,7 +29,7 @@ instance Arbitrary BinInt where
     let maxI = 100
     base <- choose (-maxI,maxI)
     step <- choose (1,10)
-    n    <- choose (1,10^3)
+    n    <- choose (1,1000)
     return $ BinInt base step n
 
 instance (Arbitrary a, Ord a, Enum a) => Arbitrary (BinEnum a) where
@@ -41,28 +41,28 @@ instance (Arbitrary a, Ord a, Enum a) => Arbitrary (BinEnum a) where
 instance Arbitrary (BinF Float) where
   arbitrary = do
     lo <- choose (-1.0e+3-1 , 1.0e+3)
-    n  <- choose (1, 10^3)
+    n  <- choose (1, 1000)
     hi <- choose (lo , 1.0e+3+1)
     return $ binF lo n hi
 
 instance Arbitrary (BinF Double) where
   arbitrary = do
     lo <- choose (-1.0e+6-1 , 1.0e+6)
-    n  <- choose (1, 10^6)
+    n  <- choose (1, 1000*1000)
     hi <- choose (lo , 1.0e+6+1)
     return $ binF lo n hi
 
 instance Arbitrary BinD where
   arbitrary = do
     lo <- choose (-1.0e+6-1 , 1.0e+6)
-    n  <- choose (1, 10^6)
+    n  <- choose (1, 1000*1000)
     hi <- choose (lo , 1.0e+6+1)
     return $ binD lo n hi
 
 instance Arbitrary LogBinD where
   arbitrary = do
     lo <- choose (1.0e-6 , 1.0e+6)
-    n  <- choose (1, 10^6)
+    n  <- choose (1, 1000*1000)
     hi <- choose (lo , 1.0e+6+1)
     return $ logBinD lo n hi
 
