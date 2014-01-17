@@ -1,4 +1,8 @@
 {-# LANGUAGE FlexibleContexts  #-}
+module Test.Histogram (
+  tests
+  ) where
+
 import Data.Typeable
 
 import Test.QuickCheck
@@ -7,15 +11,15 @@ import Test.Tasty.QuickCheck (testProperty)
 
 import Data.Histogram
 import Data.Histogram.Bin.MaybeBin
-import QC.Instances
-
+import Data.Histogram.QuickCheck
 
 
 ----------------------------------------------------------------
 --
 ----------------------------------------------------------------
-tests :: TestTree
-tests = testGroup "tests"
+
+tests :: [TestTree]
+tests = testGroup "Histogram"
   [ testGroup "Bins"
     [ testsBin (T :: T BinI)
     , testsBin (T :: T BinInt) 
@@ -118,11 +122,3 @@ paramOfT _ = undefined
 
 typeOfT :: Typeable a => T a -> TypeRep
 typeOfT = typeOf . paramOfT
-
-----------------------------------------------------------------
--- Main
-----------------------------------------------------------------
-
-main :: IO ()
-main =
-  defaultMain tests
