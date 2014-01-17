@@ -1,0 +1,32 @@
+Name:           histogram-fill-quickcheck
+Version:        0.6.2.0
+Synopsis:       QuickCheck instances for histogram-fill
+Description:
+  QuickCheck instances for histogram-fill package
+
+Cabal-Version:  >= 1.6
+License:        BSD3
+License-File:   LICENSE
+Author:         Alexey Khudyakov
+Maintainer:     Alexey Khudyakov <alexey.skladnoy@gmail.com>
+Homepage:       http://bitbucket.org/Shimuuar/histogram-fill-cereal/
+Category:       Data
+Build-Type:     Simple
+
+source-repository head
+  type:     hg
+  location: http://bitbucket.org/Shimuuar/histogram-fill
+source-repository head
+  type:     git
+  location: http://github.com/Shimuuar/histogram-fill
+
+Library
+  Ghc-options:          -Wall
+  Ghc-prof-options:     -auto-all
+  Build-Depends:
+    base           >= 3 && <5,
+    vector         >= 0.7,
+    histogram-fill >= 0.6,
+    QuickCheck     >= 2
+  Exposed-modules:
+    Data.Histogram.QuickCheck
