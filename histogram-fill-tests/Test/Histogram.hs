@@ -6,7 +6,7 @@ module Test.Histogram (
 import Data.Typeable
 
 import Test.QuickCheck
-import Test.Tasty            (TestTree,testGroup,defaultMain)
+import Test.Tasty            (TestTree,testGroup)
 import Test.Tasty.QuickCheck (testProperty)
 
 import Data.Histogram
@@ -18,7 +18,7 @@ import Data.Histogram.QuickCheck
 --
 ----------------------------------------------------------------
 
-tests :: [TestTree]
+tests :: TestTree
 tests = testGroup "Histogram"
   [ testGroup "Bins"
     [ testsBin (T :: T BinI)
