@@ -113,7 +113,7 @@ import Data.Histogram.Bin.Read
 --   [@bin@] binning. It should be instance of 'Bin'. Check that type class description for details.
 --
 --   [@a@] type of bin content.
-data Histogram v bin a = Histogram bin (Maybe (a,a)) (v a)
+data Histogram v bin a = Histogram !bin !(Maybe (a,a)) !(v a)
                          deriving (Eq)
 
 -- | Create histogram from binning algorithm and vector with
