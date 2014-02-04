@@ -114,7 +114,11 @@ import Data.Histogram.Bin.Read
 --
 --   [@a@] type of bin content.
 data Histogram v bin a = Histogram !bin !(Maybe (a,a)) !(v a)
+#if MIN_VERSION_base(4,7,0)
+                         deriving (Eq, Typeable)
+#else
                          deriving (Eq)
+#endif
 
 -- | Create histogram from binning algorithm and vector with
 -- data. Overflows are set to Nothing. 
@@ -187,16 +191,19 @@ instance (Show a, Show (BinValue bin), Show bin, Bin bin, Vector v a) => Show (H
                                 "# Overflows  = \n"
 
 
+#if !MIN_VERSION_base(4,7,0)
+
 histTyCon :: String -> String -> TyCon
 #if MIN_VERSION_base(4,4,0)
 histTyCon = mkTyCon3 "histogram-fill"
 #else
 histTyCon m s = mkTyCon $ m ++ "." ++ s
 #endif
+-- end MIN_VERSION_base(4,4,0)
 
 instance Typeable1 v => Typeable2 (Histogram v) where
   typeOf2 h = mkTyConApp (histTyCon "Data.Histogram.Generic" "Histogram") [typeOf1 $ histData h]
-
+#endif
 
 
 -- | Vector do not supply 'NFData' instance so let just 'seq' it and
