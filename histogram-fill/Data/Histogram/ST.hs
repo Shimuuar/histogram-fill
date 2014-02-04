@@ -43,9 +43,10 @@ data MHistogram s v bin a =
 newMHistogram :: (PrimMonad m, Bin bin, M.MVector v a) => a -> bin -> m (MHistogram (PrimState m) v bin a)
 newMHistogram zero bin = do
   let n = nBins bin
-  -- NOTE: replicate behaves strangely when n is negative it may fail
-  --       immediately or proceed and create invalid vector which
-  --       leads to memory corruption. So we want to check that.
+  -- NOTE: replicate will create vector of zero length requested
+  --       length is negative. Thus if number of bins is negative buffer
+  --       will be shorter than 2. And it's assumed that there's always at
+  --       least 2 bin. Consequently it could lead to memory corruption.
   when (n < 0) $
     error "Data.Histogram.ST.newMHistogram: negative number of bins"
   a  <- M.replicate (n + 2) zero
