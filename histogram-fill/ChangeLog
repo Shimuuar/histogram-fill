@@ -2,30 +2,32 @@ Changes in 0.8.2.0
 
   * Smart constructors for BinF and BinD check that bin number is not
     negative.
+  * Fixed bug in `binInt'
+  * Fields of `Histogram' data type are strict now.
+  * Compatibility with GHC 7.8
 
 
 Changes in 0.8.1.0
 
   * Constructor of @HBuilderM@ exported.
 
-  Changes in 0.8.0.0
 
-  * @toHBuilderM@ added and internal definition of @HBuilder@ is
+Changes in 0.8.0.0
+
+  * `toHBuilderM' added and internal definition of `HBuilder' is
     changed. It required adding dependency on @monad-primitive@.
-
-  * @joinHBuilder@ and @treeHBuilder@ are deprecated.
+  * `joinHBuilder' and @treeHBuilder@ are deprecated.
 
 
 Changes in 0.7.4.0
 
   * Function for searching for minimum/maximum added.
-
   * @NFData@ instance is fixed.
 
-  Changes in 0.7.3.0
 
-  * @mkStatefulBuilder@ is added and HBuilder constructor is exposed.
+Changes in 0.7.3.0
 
+  * `mkStatefulBuilder' is added and HBuilder constructor is exposed.
   * Indexing operators for immutable histograms are added.
 
 
@@ -41,11 +43,11 @@ Changes in 0.7.1.0
 
 Changes in 0.7.0.0
 
-  * mkFoldBuilder is added to @Data.Histogram.Fill@
-  * fill functions in @Data.Histogram.ST@ are replaced with generic
+  * mkFoldBuilder is added to `Data.Histogram.Fill'
+  * fill functions in `Data.Histogram.ST' are replaced with generic
     variant.
   * Indexing for immutable histograms is added and special constructor
-    for first and last bin are added to @HistIndex@ data type.
+    for first and last bin are added to `HistIndex' data type.
   * Functions to calculate sum, minimum and maximum of immutable
     histogram are added.
 
@@ -57,7 +59,6 @@ Changes in 0.6.2.0
   * mapData function is added.
   * Slicing histogram do not results in crash if indices are out of
     bounds.
-
   * Eq instances for BinF and BinD are added.
   * NFData instance for Bin2D is fixed.
 
