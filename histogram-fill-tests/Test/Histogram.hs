@@ -1,3 +1,4 @@
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE FlexibleContexts  #-}
 module Test.Histogram (
   tests
@@ -61,11 +62,12 @@ testsBin t
   , testProperty "inRange"                  $ prop_InRange  t
   ]
 
-testSliceBin :: ( Show b, Typeable b, SliceableBin b, Arbitrary b
+testSliceBin :: ( Show b, Typeable b, SliceableBin b, Arbitrary b, IntervalBin b
                 ) => T b -> TestTree
 testSliceBin t 
   = testGroup ("Slice tests for" ++ show (typeOfT t))
-  [ testProperty "N of bins"  $ prop_sliceBin t
+  [ testProperty "N of bins"  $ prop_sliceBinN   t
+  , testProperty "N of bins"  $ prop_sliceBinVal t
   ]
 
 
@@ -99,13 +101,26 @@ prop_InRange _ b x
     indexInRange i = i >= 0  &&  i < nBins b
 
 -- Sliced bin have correct number of bins
-prop_sliceBin :: (SliceableBin b) => T b -> b -> Gen Bool
-prop_sliceBin _ bin = do
-  let n = nBins bin
-  i <- choose (0, n-1)
-  j <- choose (i, n-1)
+prop_sliceBinN :: (SliceableBin b) => T b -> b -> Gen Bool
+prop_sliceBinN _ bin = do
+  (i,j) <- genBinIndex bin
   return $ nBins (sliceBin i j bin) == (j - i + 1)
 
+-- S;liced bin is at correct position
+prop_sliceBinVal :: (SliceableBin b, IntervalBin b) => T b -> b -> Gen Bool
+prop_sliceBinVal _ bin = do
+  (i,j) <- genBinIndex bin
+  let b              = sliceBin i j bin
+      inside x (m,n) = x >= m && x <= n
+  return $ (fromIndex b  0            `inside` binInterval bin i)
+        && (fromIndex b (nBins b - 1) `inside` binInterval bin j)
+
+-- Select indices for bin slicing
+genBinIndex :: Bin bin => bin -> Gen (Int,Int)
+genBinIndex (nBins -> n) = do
+  i <- choose (0, n-1)
+  j <- choose (i, n-1)
+  return (i,j)
 
 
 ----------------------------------------------------------------

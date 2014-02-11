@@ -108,7 +108,10 @@ class Bin b => SliceableBin b where
   unsafeSliceBin :: Int -> Int -> b -> b
 
 -- | Slice bin using indices
-sliceBin :: SliceableBin b => Int -> Int -> b -> b
+sliceBin :: SliceableBin b
+         => Int                 -- ^ Index of first bin
+         -> Int                 -- ^ Index of last bin
+         -> b -> b
 sliceBin i j b 
   | i < 0  ||  j < 0  ||  i > j  ||  i >= n  ||  j >= n = error "sliceBin: bad slice"
   | otherwise                                           = unsafeSliceBin i j b
