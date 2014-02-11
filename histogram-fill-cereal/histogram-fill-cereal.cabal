@@ -1,6 +1,6 @@
 Name:           histogram-fill-cereal
 Version:        0.6.2.1
-Synopsis:       Library for histograms creation.
+Synopsis:       Binary instances for histogram-fill package
 Description:
   Cereal instances for histogram-fill package
 
