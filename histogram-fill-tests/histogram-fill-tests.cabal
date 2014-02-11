@@ -32,14 +32,17 @@ test-suite tests
   Main-is:        Test.hs
   Other-modules:
     Test.Histogram
+    Test.Binary
     Test.Cereal
   Build-depends:
     base >=3 && < 5,
     histogram-fill,
+    histogram-fill-binary,
     histogram-fill-cereal,
     histogram-fill-quickcheck,
     vector,
     cereal,
+    binary,
     QuickCheck >= 2,
     tasty,
     tasty-quickcheck
