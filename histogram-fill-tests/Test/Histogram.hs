@@ -23,8 +23,8 @@ tests :: TestTree
 tests = testGroup "Histogram"
   [ testGroup "Bins"
     [ testsBin (T :: T BinI)
-    , testsBin (T :: T BinInt) 
-    , testsBin (T :: T (BinF Float)) 
+    , testsBin (T :: T BinInt)
+    , testsBin (T :: T (BinF Float))
     , testsBin (T :: T (BinF Float))
     , testsBin (T :: T BinD)
     , testsBin (T :: T (BinEnum Char))
@@ -32,20 +32,27 @@ tests = testGroup "Histogram"
     , testsBin (T :: T (MaybeBin BinI))
     , testsBin (T :: T (Bin2D BinI BinI))
     ]
-  , testGroup "fromIndex . toIndex == is" 
+  , testGroup "fromIndex . toIndex == is"
     [ testProperty "BinI"    $ prop_FromTo (T :: T BinI)
     , testProperty "BinEnum" $ prop_FromTo (T :: T (BinEnum Char))
     , testProperty "Bin2D"   $ prop_FromTo (T :: T (Bin2D BinI BinI))
     ]
   , testGroup "Sliceable bins"
     [ testSliceBin (T :: T BinI)
-    , testSliceBin (T :: T BinInt) 
-    , testSliceBin (T :: T (BinF Float)) 
+    , testSliceBin (T :: T BinInt)
+    , testSliceBin (T :: T (BinF Float))
     , testSliceBin (T :: T (BinF Float))
     , testSliceBin (T :: T BinD)
     , testSliceBin (T :: T (BinEnum Char))
     , testSliceBin (T :: T LogBinD)
-    ]      
+    ]
+  , testGroup "Mergeable bins"
+    [ testMergeBin (T :: T BinInt)
+    , testMergeBin (T :: T (BinF Float))
+    , testMergeBin (T :: T (BinF Float))
+    , testMergeBin (T :: T BinD)
+    , testMergeBin (T :: T LogBinD)
+    ]
   , testGroup "Histogram"
     [ testProperty "read . show"  (isIdentity (readHistogram . show) :: Histogram BinI Int -> Bool)
     ]
@@ -64,10 +71,17 @@ testsBin t
 
 testSliceBin :: ( Show b, Typeable b, SliceableBin b, Arbitrary b, IntervalBin b
                 ) => T b -> TestTree
-testSliceBin t 
-  = testGroup ("Slice tests for" ++ show (typeOfT t))
+testSliceBin t
+  = testGroup ("Slice tests for " ++ show (typeOfT t))
   [ testProperty "N of bins"  $ prop_sliceBinN   t
-  , testProperty "N of bins"  $ prop_sliceBinVal t
+  , testProperty "Bins value" $ prop_sliceBinVal t
+  ]
+
+testMergeBin :: ( Show b, Typeable b, MergeableBin b, Arbitrary b, Bin1D b
+                ) => T b -> TestTree
+testMergeBin t
+  = testGroup ("Merge tests for " ++ show (typeOfT t))
+  [ testProperty "Merge"  $ prop_Merge t
   ]
 
 
@@ -95,7 +109,7 @@ prop_FromTo _ bin = do
 
 -- > inRange b x == indexInRange b x
 prop_InRange :: (Bin bin) => T bin -> bin -> BinValue bin -> Bool
-prop_InRange _ b x 
+prop_InRange _ b x
   = inRange b x == indexInRange (toIndex b x)
   where
     indexInRange i = i >= 0  &&  i < nBins b
@@ -121,6 +135,22 @@ genBinIndex (nBins -> n) = do
   i <- choose (0, n-1)
   j <- choose (i, n-1)
   return (i,j)
+
+-- Check that merge works properly
+prop_Merge :: (MergeableBin b, Bin1D b, Show b)
+           => T b -> b -> Property
+prop_Merge _ bin0 = do
+  n   <- choose (1, nBins bin0)
+  dir <- arbitrary
+  let bin = mergeBins dir n bin0
+      lim = case dir of
+        CutLower  -> upperLimit
+        CutHigher -> lowerLimit
+  printTestCase     ("N = " ++ show n)
+    $ printTestCase (case dir of { CutLower-> "CutLower"; CutHigher -> "CutHigher"})
+    $ printTestCase (show bin)
+    $ lim bin   == lim bin0
+   && nBins bin == (nBins bin0 `div` n)
 
 
 ----------------------------------------------------------------
