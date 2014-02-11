@@ -72,6 +72,12 @@ instance Arbitrary bin => Arbitrary (MaybeBin bin) where
 instance (Arbitrary bx, Arbitrary by) => Arbitrary (Bin2D bx by) where
     arbitrary = Bin2D <$> arbitrary <*> arbitrary
 
+instance Arbitrary CutDirection where
+  arbitrary = elements [ CutLower
+                       , CutHigher
+                       ]
+
+
 ----------------------------------------------------------------
 -- Histogram instance
 ----------------------------------------------------------------
