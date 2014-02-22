@@ -77,7 +77,7 @@ testSliceBin t
   , testProperty "Bins value" $ prop_sliceBinVal t
   ]
 
-testMergeBin :: ( Show b, Typeable b, MergeableBin b, Arbitrary b, Bin1D b
+testMergeBin :: ( Show b, Typeable b, MergeableBin b, Arbitrary b, Bin1D b, AEq (BinValue b)
                 ) => T b -> TestTree
 testMergeBin t
   = testGroup ("Merge tests for " ++ show (typeOfT t))
@@ -137,7 +137,7 @@ genBinIndex (nBins -> n) = do
   return (i,j)
 
 -- Check that merge works properly
-prop_Merge :: (MergeableBin b, Bin1D b, Show b)
+prop_Merge :: (MergeableBin b, AEq (BinValue b), Bin1D b, Show b)
            => T b -> b -> Property
 prop_Merge _ bin0 = do
   n   <- choose (1, nBins bin0)
@@ -149,7 +149,7 @@ prop_Merge _ bin0 = do
   printTestCase     ("N = " ++ show n)
     $ printTestCase (case dir of { CutLower-> "CutLower"; CutHigher -> "CutHigher"})
     $ printTestCase (show bin)
-    $ lim bin   == lim bin0
+    $ lim bin   ~= lim bin0
    && nBins bin == (nBins bin0 `div` n)
 
 
@@ -167,3 +167,16 @@ paramOfT _ = undefined
 
 typeOfT :: Typeable a => T a -> TypeRep
 typeOfT = typeOf . paramOfT
+
+class AEq a where
+  (~=) :: a -> a -> Bool
+
+instance AEq Float where
+  x ~= y = abs (x - y) < 1e-4 * max (abs x) (abs y)
+
+instance AEq Double where
+  x ~= y = abs (x - y) < 1e-12 * max (abs x) (abs y)
+
+instance AEq Int where
+  (~=) = (==)
+
