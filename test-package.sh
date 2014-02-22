@@ -2,7 +2,7 @@
 set -e # Bail on first error
 set -v # Be verbose
 
-if "x$1" = histogram-fill-tests; then
+if [ "x$1" = histogram-fill-tests ]; then
     cabal-1.18 configure --enable-tests -v2  # -v2 provides useful information for debugging
     cabal-1.18 test
 else
