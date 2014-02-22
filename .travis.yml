@@ -40,5 +40,6 @@ install:
 script:
  - sh test-package.sh histogram-fill
  - sh test-package.sh histogram-fill-cereal
+ - sh test-package.sh histogram-fill-binary
  - sh test-package.sh histogram-fill-quickcheck
  - sh test-package.sh histogram-fill-tests
