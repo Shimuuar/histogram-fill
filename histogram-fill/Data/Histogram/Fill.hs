@@ -214,15 +214,15 @@ data HBuilderM m a b = HBuilderM { hbInput  :: a -> m ()
                                  }
 
 -- | Builders modified using 'HistBuilder' API will share same buffer.
-instance PrimMonad m => HistBuilder (HBuilderM m) where
+instance Monad m => HistBuilder (HBuilderM m) where
     modifyIn      f      h = h { hbInput  = hbInput h . f }
     addCut        f      h = h { hbInput  = \x -> when (f x) (hbInput h x) }
     fromContainer fmapM_ h = h { hbInput  = fmapM_ (hbInput h) }
     modifyOut     f      h = h { hbOutput = f `liftM` hbOutput h }
 
-instance PrimMonad m => Functor (HBuilderM m a) where
+instance Monad m => Functor (HBuilderM m a) where
     fmap = modifyOut
-instance PrimMonad m => Applicative (HBuilderM m a) where
+instance Monad m => Applicative (HBuilderM m a) where
     pure x = HBuilderM { hbInput  = const $ return ()
                        , hbOutput = return x
                        }
@@ -232,7 +232,7 @@ instance PrimMonad m => Applicative (HBuilderM m a) where
                                         return (a b)
                         }
 
-instance (PrimMonad m, Monoid b) => Monoid (HBuilderM m a b) where
+instance (Monad m, Monoid b) => Monoid (HBuilderM m a b) where
     mempty = HBuilderM { hbInput  = \_ -> return ()
                        , hbOutput = return mempty
                        }
@@ -243,13 +243,13 @@ instance (PrimMonad m, Monoid b) => Monoid (HBuilderM m a b) where
 
 
 -- | Put one item into histogram
-feedOne :: PrimMonad m => HBuilderM m a b -> a -> m ()
+feedOne :: Monad m => HBuilderM m a b -> a -> m ()
 feedOne = hbInput
 {-# INLINE feedOne #-}
 
 -- | Extract result from histogram builder. It's safe to call this
 --   function multiple times and mutate builder afterwards.
-freezeHBuilderM :: PrimMonad m => HBuilderM m a b -> m b
+freezeHBuilderM :: Monad m => HBuilderM m a b -> m b
 freezeHBuilderM = hbOutput
 {-# INLINE freezeHBuilderM #-}
 
@@ -389,7 +389,7 @@ mkFolder a f = HBuilder $ do
 -- | Create stateful histogram builder. Output function should be safe
 --   to call multiple times and builder could be modified afterwards.
 --   So functions like @unsafeFreeze@ from @vector@ couldn't be used.
-mkStatefulBuilder :: PrimMonad m
+mkStatefulBuilder :: Monad m
                   => (a -> m ()) -- ^ Add value to accumulator
                   -> m b         -- ^ Extract result from accumulator
                   -> HBuilderM m a b
@@ -448,13 +448,13 @@ forceFloat = id
 ----------------------------------------------------------------
 
 -- | Join histogram builders in container
-joinHBuilderM :: (F.Traversable f, PrimMonad m) => f (HBuilderM m a b) -> HBuilderM m a (f b)
+joinHBuilderM :: (F.Traversable f, Monad m) => f (HBuilderM m a b) -> HBuilderM m a (f b)
 joinHBuilderM = F.sequenceA
 {-# INLINE     joinHBuilderM #-}
 {-# DEPRECATED joinHBuilderM "Use Data.Traversable.sequenceA instead" #-}
 
 -- | Apply functions to builder
-treeHBuilderM :: (PrimMonad m, F.Traversable f) => f (HBuilderM m a b -> HBuilderM m a' b') -> HBuilderM m a b -> HBuilderM m a' (f b')
+treeHBuilderM :: (Monad m, F.Traversable f) => f (HBuilderM m a b -> HBuilderM m a' b') -> HBuilderM m a b -> HBuilderM m a' (f b')
 treeHBuilderM fs h = F.traverse ($ h) fs
 {-# INLINE     treeHBuilderM #-}
 {-# DEPRECATED treeHBuilderM
