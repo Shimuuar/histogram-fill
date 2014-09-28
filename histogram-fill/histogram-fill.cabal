@@ -1,5 +1,5 @@
 Name:           histogram-fill
-Version:        0.8.2.0
+Version:        0.8.3.0
 Synopsis:       Library for histograms creation.
 Description:
   This is library for histograms filling. Its aim to provide
