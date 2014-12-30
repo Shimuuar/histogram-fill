@@ -1,6 +1,8 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
+
 module Data.Histogram.Bin.BinInt (
     BinInt(..)
   , binInt
@@ -10,6 +12,7 @@ module Data.Histogram.Bin.BinInt (
 
 import Control.DeepSeq (NFData(..))
 import Control.Monad   (liftM3)
+import GHC.Generics    (Generic)
 import Data.Data       (Data,Typeable)
 import Text.Read       (Read(..))
 
@@ -25,7 +28,7 @@ data BinInt = BinInt
               {-# UNPACK #-} !Int -- Low bound
               {-# UNPACK #-} !Int -- Bin size
               {-# UNPACK #-} !Int -- Number of bins
-              deriving (Eq,Data,Typeable)
+              deriving (Eq,Data,Typeable,Generic)
 
 
 -- | Construct BinInt.

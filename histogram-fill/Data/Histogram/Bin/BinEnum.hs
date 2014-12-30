@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveGeneric #-}
 module Data.Histogram.Bin.BinEnum (
     BinEnum(..)
   , binEnum
@@ -9,6 +10,7 @@ module Data.Histogram.Bin.BinEnum (
 
 import Control.DeepSeq (NFData(..))
 import Control.Monad   (liftM)
+import GHC.Generics    (Generic)
 import Data.Data       (Data,Typeable)
 import Text.Read       (Read(..))
 
@@ -19,7 +21,7 @@ import Data.Histogram.Bin.Read
 -- | Bin for types which are instnaces of Enum type class. Value are
 --   converted to 'Int' using 'fromEnum' first and then binned.
 newtype BinEnum a = BinEnum BinI
-                    deriving (Eq,Data,Typeable,BinEq)
+                    deriving (Eq,Data,Typeable,BinEq,Generic)
 
 -- | Create enum based bin
 binEnum :: Enum a => a -> a -> BinEnum a
