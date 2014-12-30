@@ -1,6 +1,8 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
+
 module Data.Histogram.Bin.BinF (
     -- * Generic and slow
     BinF
@@ -19,6 +21,7 @@ module Data.Histogram.Bin.BinF (
 import Control.DeepSeq (NFData(..))
 import Control.Monad   (liftM3)
 import GHC.Float       (double2Int)
+import GHC.Generics    (Generic())
 import Data.Data       (Data,Typeable)
 import Text.Read       (Read(..))
 
@@ -38,7 +41,7 @@ import Data.Histogram.Bin.Read
 data BinF f = BinF !f                  -- Lower bound
                    !f                  -- Size of bin
                    {-# UNPACK #-} !Int -- Number of bins
-              deriving (Data,Typeable,Eq)
+              deriving (Data,Typeable,Eq,Generic)
 
 -- | Create bins.
 binF :: RealFrac f =>
@@ -128,7 +131,7 @@ instance Show f => Show (BinF f) where
 instance (Read f, RealFrac f) => Read (BinF f) where
   readPrec = keyword "BinF" >> liftM3 BinF (value "Base") (value "Step") (value "N")
 
-instance NFData (BinF f)
+instance NFData f => NFData (BinF f)
 
 
 
@@ -141,7 +144,7 @@ instance NFData (BinF f)
 data BinD = BinD {-# UNPACK #-} !Double -- Lower bound
                  {-# UNPACK #-} !Double -- Size of bin
                  {-# UNPACK #-} !Int    -- Number of bins
-            deriving (Data,Typeable,Eq)
+            deriving (Data,Typeable,Eq,Generic)
 
 -- | Create bins.
 binD :: Double -- ^ Lower bound of range

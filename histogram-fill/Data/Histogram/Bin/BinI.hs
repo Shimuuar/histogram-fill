@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 module Data.Histogram.Bin.BinI (
     BinI
   , binI
@@ -10,6 +11,7 @@ module Data.Histogram.Bin.BinI (
 import Control.DeepSeq (NFData(..))
 import Control.Monad   (liftM2)
 import Data.Data       (Data,Typeable)
+import GHC.Generics    (Generic)
 import Text.Read       (Read(..))
 
 import Data.Histogram.Bin.Classes
@@ -26,7 +28,7 @@ import Data.Histogram.Bin.Read
 data BinI = BinI
             {-# UNPACK #-} !Int -- Lower bound (inclusive)
             {-# UNPACK #-} !Int -- Upper bound (inclusive)
-            deriving (Eq,Data,Typeable)
+            deriving (Eq,Data,Typeable,Generic)
 
 -- | Safe constructor for BinI. It checks that upper bound is
 --   greater or equal than lower bound
