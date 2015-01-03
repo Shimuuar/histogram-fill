@@ -128,7 +128,8 @@ instance Show f => Show (BinF f) where
 instance (Read f, RealFrac f) => Read (BinF f) where
   readPrec = keyword "BinF" >> liftM3 BinF (value "Base") (value "Step") (value "N")
 
-instance NFData (BinF f)
+instance NFData f => NFData (BinF f) where
+  rnf (BinF a b _) = rnf a `seq` rnf b
 
 
 
@@ -235,4 +236,5 @@ instance Show BinD where
 instance Read BinD where
   readPrec = keyword "BinD" >> liftM3 BinD (value "Base") (value "Step") (value "N")
 
-instance NFData BinD
+instance NFData BinD where
+  rnf b = b `seq` ()

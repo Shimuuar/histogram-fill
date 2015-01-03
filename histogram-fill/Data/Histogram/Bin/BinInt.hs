@@ -109,4 +109,5 @@ instance Show BinInt where
 instance Read BinInt where
   readPrec = keyword "BinInt" >> liftM3 BinInt (value "Base") (value "Step") (value "Bins")
 
-instance NFData BinInt
+instance NFData BinInt where
+  rnf b = b `seq` ()

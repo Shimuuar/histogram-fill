@@ -110,4 +110,5 @@ instance Read LogBinD where
     keyword "LogBinD"
     liftM3 logBinD (value "Lo") (value "N") (value "Hi")
 
-instance NFData LogBinD
+instance NFData LogBinD where
+  rnf b = b `seq` ()

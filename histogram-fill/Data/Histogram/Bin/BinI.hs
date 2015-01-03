@@ -76,4 +76,5 @@ instance Show BinI where
 instance Read BinI where
   readPrec = keyword "BinI" >> liftM2 BinI (value "Low") (value "High")
 
-instance NFData BinI
+instance NFData BinI where
+  rnf b = b `seq` ()
