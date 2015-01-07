@@ -24,7 +24,7 @@ module Data.Histogram.Bin.Extra ( Enum2D(..)
 import Control.Applicative ((<$>), Applicative(..))
 import Control.Monad       (forM_,liftM2, guard)
 import Control.Monad.ST    (ST)
-import Control.DeepSeq     (NFData(..)
+import Control.DeepSeq     (NFData(..))
 
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as M

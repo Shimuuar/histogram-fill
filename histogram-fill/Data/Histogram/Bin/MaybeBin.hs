@@ -7,7 +7,7 @@ module Data.Histogram.Bin.MaybeBin (
   ) where
 
 import Control.Monad   (liftM)
-import Control.DeepSeq (NFData(..)
+import Control.DeepSeq (NFData(..))
 import Data.Typeable   (Typeable)
 import Text.Read       (Read(..))
 
