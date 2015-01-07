@@ -23,9 +23,9 @@ import Data.Histogram.Bin.Read
 --
 -- > b = logBinDN (lowerLimit b) (logBinDIncrement b) (nBins b)
 data LogBinD = LogBinD
-               Double -- Low border
-               Double -- Increment ratio
-               Int    -- Number of bins
+               {-# UNPACK #-} !Double -- Low border
+               {-# UNPACK #-} !Double -- Increment ratio
+               {-# UNPACK #-} !Int    -- Number of bins
                deriving (Eq,Data,Typeable)
 
 -- | Increment ratio for 'LogBinD'
