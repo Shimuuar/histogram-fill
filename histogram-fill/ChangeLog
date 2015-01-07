@@ -1,3 +1,9 @@
+Changes in 0.8.4.1
+
+  * All fields of LogDinD are strict and unpacked. This fixes NFData
+    instance and improves performance
+
+
 Changes in 0.8.4.0
 
   * Missing instances for CutDirection added
