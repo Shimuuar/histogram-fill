@@ -1,3 +1,12 @@
+Changes in 0.8.4.0
+
+  * Missing instances for CutDirection added
+
+  * Missing NFData instances for MaybeBin, BinEnum2D, BinPermute
+
+  * Compatibility with deepseq 1.4
+
+
 Changes in 0.8.3.0
 
   * Constraints are relaxed from `PrimMonad' to `Monad' wherever possible in
