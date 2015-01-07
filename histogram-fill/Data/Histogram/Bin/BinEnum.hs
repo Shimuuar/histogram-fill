@@ -51,4 +51,5 @@ instance Show (BinEnum a) where
 instance Read (BinEnum a) where
   readPrec = keyword "BinEnum" >> liftM BinEnum readPrec
 
-instance NFData (BinEnum a)
+instance NFData (BinEnum a) where
+  rnf b = b `seq` ()
