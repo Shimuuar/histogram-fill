@@ -1,6 +1,8 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE DeriveGeneric         #-}
 -- |
 -- Module     : Data.Histogram.Bin
 -- Copyright  : Copyright (c) 2011, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -31,8 +33,11 @@ module Data.Histogram.Bin.Classes (
   , ConvertBin(..)
   ) where
 
+import Data.Data (Typeable,Data)
 import qualified Data.Vector.Generic as G
 import           Data.Vector.Generic    (Vector)
+import GHC.Generics (Generic)
+
 
 
 -- | This type represent some abstract data binning algorithms. It
@@ -121,7 +126,7 @@ sliceBin i j b
 -- | How index should be dropped
 data CutDirection = CutLower    -- ^ Drop bins with smallest index
                   | CutHigher   -- ^ Drop bins with bigger index
-
+                  deriving (Show,Typeable,Data,Generic)
 
 -- | Bin which support rebinning. 
 class Bin b => MergeableBin b where
