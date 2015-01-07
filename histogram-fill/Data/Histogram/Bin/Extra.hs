@@ -24,6 +24,7 @@ module Data.Histogram.Bin.Extra ( Enum2D(..)
 import Control.Applicative ((<$>), Applicative(..))
 import Control.Monad       (forM_,liftM2, guard)
 import Control.Monad.ST    (ST)
+import Control.DeepSeq     (NFData(..)
 
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as M
@@ -81,6 +82,8 @@ instance (Read i, Enum2D i) => Read (BinEnum2D i) where
       keyword "BinEnum2D"
       liftM2 binEnum2D (value "Low") (value "High")
 
+instance NFData (BinEnum2D i) where
+  rnf b = b `seq` ()
 
 ----------------------------------------------------------------
 -- Permutation
@@ -124,6 +127,8 @@ instance Read BinI => Read (BinPermute BinI) where
                           Nothing -> fail "Invalid permutation"
                 return $ BinPermute b to from
 
+instance NFData b => NFData (BinPermute b) where
+  rnf (BinPermute b va vb) = rnf b `seq` va `seq` vb `seq` ()
 
 -- Check whether this viable permutation
 checkPermutationTable :: Bin b => b -> U.Vector Int -> Maybe (U.Vector Int)
@@ -162,4 +167,3 @@ permuteBin b f = BinPermute b <$>
                  checkPermutationTable b (invertPermutationTable to)
     where
       to   = U.map f $ U.enumFromN 0 (nBins b)
-

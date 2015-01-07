@@ -7,6 +7,7 @@ module Data.Histogram.Bin.MaybeBin (
   ) where
 
 import Control.Monad   (liftM)
+import Control.DeepSeq (NFData(..)
 import Data.Typeable   (Typeable)
 import Text.Read       (Read(..))
 
@@ -44,6 +45,8 @@ instance Read bin => Read (MaybeBin bin) where
     keyword "MaybeBin"
     liftM MaybeBin readPrec
 
+instance NFData bin => NFData (MaybeBin bin) where
+  rnf (MaybeBin b) = rnf b
 
 -- | Drop bin with no events
 fromMaybeBin :: (Bin b, G.Vector v a) => H.Histogram v (MaybeBin b) a -> H.Histogram v b a
