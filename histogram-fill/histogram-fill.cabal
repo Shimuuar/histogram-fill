@@ -37,15 +37,14 @@ Library
   Exposed-modules:
     Data.Histogram
     Data.Histogram.Generic
-    Data.Histogram.Adaptable              
     Data.Histogram.Fill
     Data.Histogram.Bin
     Data.Histogram.Bin.Classes
     Data.Histogram.Bin.BinI
     Data.Histogram.Bin.BinInt
     Data.Histogram.Bin.BinEnum
-    Data.Histogram.Bin.BinDU
     Data.Histogram.Bin.BinF
+    Data.Histogram.Bin.BinVar
     Data.Histogram.Bin.LogBinD
     Data.Histogram.Bin.MaybeBin
     Data.Histogram.Bin.Bin2D
