@@ -2,6 +2,8 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Histogram.Bin.BinVar (
@@ -11,7 +13,6 @@ module Data.Histogram.Bin.BinVar (
   , cuts
   , deleteCut
   , addCut
-  , fromBin1D
   ) where
 
 import           Control.DeepSeq (NFData(..))
@@ -22,10 +23,10 @@ import Data.Vector.Generic  (Vector,(!))
 
 import           Data.Histogram.Bin.Classes
 
-{-| bins of variable size.
-   Bins are defined by a vector of `cuts` marking the boundary between bins. This assumes that the entire range is continuous.  There are n+1 cuts for n bins. This also implies that cuts are in ascending order.
-
--}
+-- | Bins of variable size. Bins are defined by a vector of `cuts`
+--   marking the boundary between bins. This assumes that the entire
+--   range is continuous.  There are n+1 cuts for n bins. This also
+--   implies that cuts are in ascending order.
 newtype BinVar v a = BinVar { _cuts :: v a } -- vector of cuts
                      deriving (Data,Typeable,Eq)
 
@@ -35,13 +36,15 @@ unsafeBinVar :: v a -- ^ cuts
 unsafeBinVar = BinVar
 
 -- | Create variable bins unsafely
-binVar :: (Vector v (a,a), Vector v a, Ord a) 
+binVar :: (Vector v (a,a), Vector v a, Ord a)
        => v a -- ^ cuts
        -> BinVar v a
 binVar c
-    | G.length c < 2 = error "Data.Histogram.Bin.BinVar.binVar': nonpositive number of bins"
-    | G.any (uncurry (>)) (G.zip (G.init c) (G.drop 1 c)) = error "Data.Histogram.Bin.BinVar.binVar': cuts not in ascending order"
-    | otherwise = BinVar c
+  | G.length c < 2
+  = error "Data.Histogram.Bin.BinVar.binVar': nonpositive number of bins"
+  | G.any (uncurry (>)) (G.zip c (G.tail c))
+  = error "Data.Histogram.Bin.BinVar.binVar': cuts not in ascending order"
+  | otherwise = BinVar c
 
 -- | access cuts
 cuts :: BinVar v a -> v a
@@ -56,7 +59,7 @@ instance (Vector v a, Num a, Ord a, Fractional a) => Bin (BinVar v a) where
           _ -> i-1
 
   fromIndex (BinVar c) !i
-      | i >= G.length c - 1 = 
+      | i >= G.length c - 1 =
             error "Data.Histogram.Bin.BinVar.fromIndex: above range"
       | otherwise = ((c ! i) + (c ! (i+1)))/2
 
@@ -92,27 +95,33 @@ instance (NFData (v a)) => NFData (BinVar v a) where
    rnf (BinVar c) =
      rnf c `seq` ()
 
--- | delete a cut, which effectively reduces the entire range of the bins (if the cut was the first or last one) or merges two bins (if the cut was in the middle)
-deleteCut :: (Vector v a, Num a, Ord a, Fractional a) 
-          => BinVar v a -- bin 
-          -> Int        -- cut index 
+-- | Delete a cut, which effectively reduces the entire range of the
+--   bins (if the cut was the first or last one) or merges two bins
+--   (if the cut was in the middle)
+deleteCut :: (Vector v a, Num a, Ord a, Fractional a)
+          => BinVar v a -- bin
+          -> Int        -- cut index
           -> BinVar v a
 deleteCut (BinVar c) !i
-  | G.length c <= 2 = 
+  | G.length c <= 2 =
     error "Data.Histogram.Bin.BinVar.deleteCut: deleting cut but 2 or less cuts"
   | otherwise = BinVar (G.take i c G.++ G.drop (i+1) c)
 
 -- | insert a new cut which effectively extends the range of the bins or splits a bin
-addCut :: (Vector v a, Num a, Ord a, Fractional a) 
-       => BinVar v a -- bin 
+addCut :: (Vector v a, Num a, Ord a, Fractional a)
+       => BinVar v a -- bin
        -> a          -- new cut value
        -> BinVar v a
 addCut (BinVar c) !x = BinVar (G.concat [G.take i c, G.singleton x, G.drop i c])
   where
     i = fromMaybe (G.length c) (G.findIndex (> x) c)
 
-fromBin1D :: (IntervalBin b, Vector v (BinValue b, BinValue b),Vector v (BinValue b)) => b -> BinVar v (BinValue b)
-fromBin1D b = 
-  let buckets = binsList b in
-  binVar (G.init (G.map fst buckets) `G.snoc` G.last (G.map snd buckets))
-
+instance ( IntervalBin b
+         , Vector v (BinValue b, BinValue b)
+         , Vector v (BinValue b)
+         , a ~ (BinValue b)
+         , Fractional a)
+         => ConvertBin b (BinVar v a) where
+  convertBin b =
+    let buckets = binsList b
+    in  binVar (G.init (G.map fst buckets) `G.snoc` G.last (G.map snd buckets))
