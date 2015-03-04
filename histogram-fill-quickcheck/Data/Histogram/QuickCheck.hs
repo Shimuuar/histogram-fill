@@ -1,16 +1,21 @@
 -- Yes I DO want orphans here
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
 -- | Arbitrary instances for histogram-fill
 module Data.Histogram.QuickCheck where
 
 import Control.Applicative
 import Test.QuickCheck
+import Data.List
 import qualified Data.Vector.Unboxed as U
+import qualified Data.Vector.Generic as G
+import System.Random (Random)
 
 import Data.Histogram
 import Data.Histogram.Bin.MaybeBin
-
+import Data.Histogram.Bin.BinVar
 
 
 ----------------------------------------------------------------
@@ -70,7 +75,13 @@ instance Arbitrary bin => Arbitrary (MaybeBin bin) where
   arbitrary = MaybeBin <$> arbitrary
 
 instance (Arbitrary bx, Arbitrary by) => Arbitrary (Bin2D bx by) where
-    arbitrary = Bin2D <$> arbitrary <*> arbitrary
+  arbitrary = Bin2D <$> arbitrary <*> arbitrary
+
+instance (Arbitrary a, Ord a, G.Vector v a, G.Vector v (a,a)) => Arbitrary (BinVar v a) where
+  arbitrary = do
+    n    <- choose (2,333)
+    cuts <- vector n
+    return $ binVar $ G.fromList $ sort cuts
 
 instance Arbitrary CutDirection where
   arbitrary = elements [ CutLower
@@ -109,3 +120,6 @@ instance (Enum e, Ord e) => ArbitraryBin (BinEnum e) where
 instance (ArbitraryBin bX, ArbitraryBin bY) => ArbitraryBin (Bin2D bX bY) where
   arbitraryBinVal (Bin2D bX bY) =
     (,) <$> arbitraryBinVal bX <*> arbitraryBinVal bY
+
+instance (Random a, Ord a, Fractional a, G.Vector v a) => ArbitraryBin (BinVar v a) where
+  arbitraryBinVal bin = choose (lowerLimit bin, lowerLimit bin)

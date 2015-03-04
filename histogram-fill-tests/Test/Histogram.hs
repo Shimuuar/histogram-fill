@@ -138,7 +138,7 @@ genBinIndex (nBins -> n) = do
 
 -- Check that merge works properly
 prop_Merge :: (MergeableBin b, AEq (BinValue b), Bin1D b, Show b)
-           => T b -> b -> Property
+           => T b -> b -> Gen Property
 prop_Merge _ bin0 = do
   n   <- choose (1, nBins bin0)
   dir <- arbitrary
@@ -146,11 +146,12 @@ prop_Merge _ bin0 = do
       lim = case dir of
         CutLower  -> upperLimit
         CutHigher -> lowerLimit
-  printTestCase     ("N = " ++ show n)
-    $ printTestCase (case dir of { CutLower-> "CutLower"; CutHigher -> "CutHigher"})
-    $ printTestCase (show bin)
-    $ lim bin   ~= lim bin0
-   && nBins bin == (nBins bin0 `div` n)
+  return $ counterexample     ("N = " ++ show n)
+         $ counterexample (case dir of { CutLower-> "CutLower"; CutHigher -> "CutHigher"})
+         $ counterexample (show bin)
+         $ lim bin   ~= lim bin0
+        && nBins bin == (nBins bin0 `div` n)
+
 
 
 ----------------------------------------------------------------

@@ -27,6 +27,7 @@ Library
     base           >= 3 && <5,
     vector         >= 0.7,
     histogram-fill >= 0.6,
+    random,
     QuickCheck     >= 2
   Exposed-modules:
     Data.Histogram.QuickCheck
