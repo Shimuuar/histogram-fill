@@ -5,6 +5,7 @@ module Test.Histogram (
   ) where
 
 import Data.Typeable
+import qualified Data.Vector.Unboxed as U
 
 import Test.QuickCheck
 import Test.Tasty            (TestTree,testGroup)
@@ -12,6 +13,7 @@ import Test.Tasty.QuickCheck (testProperty)
 
 import Data.Histogram
 import Data.Histogram.Bin.MaybeBin
+import Data.Histogram.Bin.BinVar
 import Data.Histogram.QuickCheck
 
 
@@ -31,6 +33,8 @@ tests = testGroup "Histogram"
     , testsBin (T :: T LogBinD)
     , testsBin (T :: T (MaybeBin BinI))
     , testsBin (T :: T (Bin2D BinI BinI))
+    , testsBin (T :: T (BinVar U.Vector Double))
+    -- , testsBin (T :: T (BinVar U.Vector Int))
     ]
   , testGroup "fromIndex . toIndex == is"
     [ testProperty "BinI"    $ prop_FromTo (T :: T BinI)
@@ -45,6 +49,8 @@ tests = testGroup "Histogram"
     , testSliceBin (T :: T BinD)
     , testSliceBin (T :: T (BinEnum Char))
     , testSliceBin (T :: T LogBinD)
+    , testSliceBin (T :: T (BinVar U.Vector Double))
+    -- , testSliceBin (T :: T (BinVar U.Vector Int))
     ]
   , testGroup "Mergeable bins"
     [ testMergeBin (T :: T BinInt)

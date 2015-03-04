@@ -28,7 +28,8 @@ import           Data.Histogram.Bin.Classes
 --   range is continuous.  There are n+1 cuts for n bins. This also
 --   implies that cuts are in ascending order.
 newtype BinVar v a = BinVar { _cuts :: v a } -- vector of cuts
-                     deriving (Data,Typeable,Eq)
+                     deriving (Data,Typeable,Eq,Read)
+-- FIXME: add Read isntance
 
 -- | Create variable bins unsafely
 unsafeBinVar :: v a -- ^ cuts
@@ -58,11 +59,11 @@ instance (Vector v a, Num a, Ord a, Fractional a) => Bin (BinVar v a) where
           0 -> error "Data.Histogram.Bin.BinVar.toIndex: below range"
           _ -> i-1
 
+  -- FIXME: We use fractional here but it means that we cannot use it for Int!
   fromIndex (BinVar c) !i
       | i >= G.length c - 1 =
             error "Data.Histogram.Bin.BinVar.fromIndex: above range"
       | otherwise = ((c ! i) + (c ! (i+1)))/2
-
   nBins (BinVar c) = if G.length c < 2 then 0 else G.length c - 1
   {-# INLINE toIndex #-}
 
