@@ -1,3 +1,4 @@
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE BangPatterns #-}
@@ -5,7 +6,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE UndecidableInstances #-}
 module Data.Histogram.Bin.BinVar (
     BinVar(..)
   , unsafeBinVar
@@ -19,7 +19,8 @@ import           Control.DeepSeq (NFData(..))
 import           Data.Data (Data,Typeable)
 import           Data.Maybe
 import qualified Data.Vector.Generic as G
-import Data.Vector.Generic  (Vector,(!))
+import           Data.Vector.Generic  (Vector,(!))
+import qualified Data.Vector.Fusion.Stream as S
 
 import           Data.Histogram.Bin.Classes
 
@@ -54,13 +55,13 @@ unsafeBinVar :: v a -- ^ cuts
 unsafeBinVar = BinVar
 
 -- | Create variable bins unsafely
-binVar :: (Vector v (a,a), Vector v a, Ord a)
+binVar :: (Vector v a, Ord a)
        => v a -- ^ cuts
        -> BinVar v a
 binVar c
   | G.length c < 2
   = error "Data.Histogram.Bin.BinVar.binVar': nonpositive number of bins"
-  | G.any (uncurry (>)) (G.zip c (G.tail c))
+  | S.or $ S.zipWith (>) (G.stream c) (G.stream (G.tail c))
   = error "Data.Histogram.Bin.BinVar.binVar': cuts not in ascending order"
   | otherwise = BinVar c
 
@@ -98,11 +99,13 @@ instance (Vector v a, Num a, Ord a, Fractional a) => VariableBin (BinVar v a) wh
   binSizeN (BinVar c) !i = c ! (i+1) - c ! i
 
 -- | Equality is up to 3e-11 (2/3th of digits)
-instance (Vector v (a,a), Vector v a, Num a, Ord a, Fractional a) => BinEq (BinVar v a) where
+instance (Vector v a, Ord a, Fractional a) => BinEq (BinVar v a) where
   binEq (BinVar c) (BinVar c')
-    =  isNothing (G.find (\(d,d') -> d - d' > eps * abs d) (G.zip c c'))
+    =  (G.length c == G.length c')
+    && (S.and (S.zipWith eq (G.stream c) (G.stream c')))
     where
-      eps = 3e-11
+      eq x y = abs (x - y) < eps * (abs x `max` abs y)
+      eps    = 3e-11
 
 instance (Vector v a, Show a, Num a, Ord a, Fractional a) => Show (BinVar v a) where
   show (BinVar c) = "# BinVar cuts\n" ++ concat (fmap showCut (G.toList c)) ++ "\n\n"
