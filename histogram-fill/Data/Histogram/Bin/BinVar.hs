@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -5,7 +6,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
-
 module Data.Histogram.Bin.BinVar (
     BinVar(..)
   , unsafeBinVar
@@ -28,8 +28,25 @@ import           Data.Histogram.Bin.Classes
 --   range is continuous.  There are n+1 cuts for n bins. This also
 --   implies that cuts are in ascending order.
 newtype BinVar v a = BinVar { _cuts :: v a } -- vector of cuts
-                     deriving (Data,Typeable,Eq,Read)
+                     deriving (Eq,Read
+#if MIN_VERSION_base(4,7,0)
+                              , Typeable
+#endif
+                              )
 -- FIXME: add Read isntance
+
+#if !MIN_VERSION_base(4,7,0)
+histTyCon :: String -> String -> TyCon
+#if MIN_VERSION_base(4,4,0)
+histTyCon = mkTyCon3 "histogram-fill"
+#else
+histTyCon m s = mkTyCon $ m ++ "." ++ s
+#endif
+-- end MIN_VERSION_base(4,4,0)
+instance Typeable1 v => Typeable1 (BinVar v) where
+  typeOf1 h = mkTyConApp (histTyCon "Data.Histogram.Bin.BinVar" "BinVar")
+                         [typeOf1 $ histData h]
+#endif
 
 -- | Create variable bins unsafely
 unsafeBinVar :: v a -- ^ cuts
