@@ -4,6 +4,7 @@ set -v # Be verbose
 
 if [ "$1" = histogram-fill-tests ]; then
     cd "$1"
+    cabal install tasty tasty-quickcheck
     cabal configure --enable-tests -v2  # -v2 provides useful information for debugging
     cabal test
 else
