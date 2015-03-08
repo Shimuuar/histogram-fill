@@ -63,7 +63,7 @@ binVar :: (Vector v a, Ord a)
 binVar c
   | G.length c < 2
   = error "Data.Histogram.Bin.BinVar.binVar': nonpositive number of bins"
-  | S.or $ S.zipWith (>) (G.stream c) (G.stream (G.tail c))
+  | S.or $ S.zipWith (>=) (G.stream c) (G.stream (G.tail c))
   = error "Data.Histogram.Bin.BinVar.binVar': cuts not in ascending order"
   | otherwise = BinVar c
 
