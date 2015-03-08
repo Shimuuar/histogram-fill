@@ -16,7 +16,7 @@ module Data.Histogram.Bin.BinVar (
   ) where
 
 import           Control.DeepSeq (NFData(..))
-import           Data.Data       (Data,Typeable)
+import           Data.Typeable
 import           Data.Maybe
 import qualified Data.Vector.Generic as G
 import           Data.Vector.Generic  (Vector,(!))
