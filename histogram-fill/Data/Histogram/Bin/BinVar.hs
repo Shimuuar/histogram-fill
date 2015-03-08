@@ -16,25 +16,27 @@ module Data.Histogram.Bin.BinVar (
   ) where
 
 import           Control.DeepSeq (NFData(..))
-import           Data.Data (Data,Typeable)
+import           Data.Data       (Data,Typeable)
 import           Data.Maybe
 import qualified Data.Vector.Generic as G
 import           Data.Vector.Generic  (Vector,(!))
 import qualified Data.Vector.Fusion.Stream as S
+import           Text.Read       (Read(..))
 
 import           Data.Histogram.Bin.Classes
+import           Data.Histogram.Bin.Read
+
 
 -- | Bins of variable size. Bins are defined by a vector of `cuts`
 --   marking the boundary between bins. This assumes that the entire
 --   range is continuous.  There are n+1 cuts for n bins. This also
 --   implies that cuts are in ascending order.
 newtype BinVar v a = BinVar { _cuts :: v a } -- vector of cuts
-                     deriving (Eq,Read
+                     deriving (Eq
 #if MIN_VERSION_base(4,7,0)
                               , Typeable
 #endif
                               )
--- FIXME: add Read isntance
 
 #if !MIN_VERSION_base(4,7,0)
 histTyCon :: String -> String -> TyCon
@@ -107,10 +109,14 @@ instance (Vector v a, Ord a, Fractional a) => BinEq (BinVar v a) where
       eq x y = abs (x - y) < eps * (abs x `max` abs y)
       eps    = 3e-11
 
-instance (Vector v a, Show a, Num a, Ord a, Fractional a) => Show (BinVar v a) where
-  show (BinVar c) = "# BinVar cuts\n" ++ concat (fmap showCut (G.toList c)) ++ "\n\n"
-    where
-      showCut x = show x ++ "\t"
+instance (Vector v a, Show a, Fractional a) => Show (BinVar v a) where
+  show (BinVar c) = "# BinVar\n# cuts = " ++ show (G.toList c) ++ "\n"
+
+instance (Vector v a, Read a, Ord a, Fractional a) => Read (BinVar v a) where
+  readPrec = do keyword "BinVar"
+                xs <- value "cuts"
+                return $ binVar $ G.fromList xs
+
 
 instance (NFData (v a)) => NFData (BinVar v a) where
    rnf (BinVar c) =
