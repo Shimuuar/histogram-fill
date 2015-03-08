@@ -80,9 +80,14 @@ instance (Arbitrary bx, Arbitrary by) => Arbitrary (Bin2D bx by) where
 instance (Arbitrary a, Ord a, G.Vector v a, G.Vector v (a,a)) => Arbitrary (BinVar v a) where
   arbitrary = do
     n    <- choose (2,333)
-    cuts <- vector n
+    cuts <- vector n `suchThat` (\x -> nub x == x)
     return $ binVar $ G.fromList $ sort cuts
-  shrink = fmap (binVar . G.fromList) . filter ((>=2) . length) . shrink . G.toList . cuts
+  shrink = fmap (binVar . G.fromList)
+         . filter ((>=2) . length)
+         . filter (\x -> nub x == x)
+         . shrink
+         . G.toList
+         . cuts
 
 instance Arbitrary CutDirection where
   arbitrary = elements [ CutLower
