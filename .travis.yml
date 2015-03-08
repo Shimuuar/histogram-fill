@@ -35,8 +35,8 @@ install:
 # command which exits with a non-zero exit code causes the build to fail.
 #
 script:
- - sh test-package.sh histogram-fill
- - sh test-package.sh histogram-fill-cereal
- - sh test-package.sh histogram-fill-binary
- - sh test-package.sh histogram-fill-quickcheck
- - sh test-package.sh histogram-fill-tests
+ - sh test-package.sh      histogram-fill
+ - sh test-package.sh      histogram-fill-cereal
+ - sh test-package.sh      histogram-fill-binary
+ - sh test-package.sh      histogram-fill-quickcheck
+ - sh test-package-test.sh histogram-fill-tests
