@@ -47,8 +47,8 @@ histTyCon m s = mkTyCon $ m ++ "." ++ s
 #endif
 -- end MIN_VERSION_base(4,4,0)
 instance Typeable1 v => Typeable1 (BinVar v) where
-  typeOf1 h = mkTyConApp (histTyCon "Data.Histogram.Bin.BinVar" "BinVar")
-                         [typeOf1 $ histData h]
+  typeOf1 b = mkTyConApp (histTyCon "Data.Histogram.Bin.BinVar" "BinVar")
+                         [typeOf1 $ cuts b]
 #endif
 
 -- | Create variable bins unsafely
