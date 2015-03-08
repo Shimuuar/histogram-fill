@@ -82,6 +82,7 @@ instance (Arbitrary a, Ord a, G.Vector v a, G.Vector v (a,a)) => Arbitrary (BinV
     n    <- choose (2,333)
     cuts <- vector n
     return $ binVar $ G.fromList $ sort cuts
+  shrink = fmap (binVar . G.fromList) . filter ((>=2) . length) . shrink . G.toList . cuts
 
 instance Arbitrary CutDirection where
   arbitrary = elements [ CutLower
