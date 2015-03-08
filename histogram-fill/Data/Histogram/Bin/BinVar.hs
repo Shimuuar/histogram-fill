@@ -74,9 +74,9 @@ cuts (BinVar c) = c
 instance (Vector v a, Num a, Ord a, Fractional a) => Bin (BinVar v a) where
   type BinValue (BinVar v a) = a
   toIndex (BinVar c) !x = case G.findIndex (>x) c of
-      Nothing -> error "Data.Histogram.Bin.BinVar.toIndex: above range"
+      Nothing -> G.length c - 1
       Just i  -> case i of
-          0 -> error "Data.Histogram.Bin.BinVar.toIndex: below range"
+          0 -> -1
           _ -> i-1
 
   -- FIXME: We use fractional here but it means that we cannot use it for Int!
