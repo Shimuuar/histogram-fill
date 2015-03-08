@@ -72,7 +72,7 @@ binVar c
 cuts :: BinVar v a -> v a
 cuts (BinVar c) = c
 
-instance (Vector v a, Num a, Ord a, Fractional a) => Bin (BinVar v a) where
+instance (Vector v a, Ord a, Fractional a) => Bin (BinVar v a) where
   type BinValue (BinVar v a) = a
   toIndex (BinVar c) !x = case G.findIndex (>x) c of
       Nothing -> G.length c - 1
@@ -88,17 +88,17 @@ instance (Vector v a, Num a, Ord a, Fractional a) => Bin (BinVar v a) where
   nBins (BinVar c) = if G.length c < 2 then 0 else G.length c - 1
   {-# INLINE toIndex #-}
 
-instance (Vector v a, Num a, Ord a, Fractional a) => IntervalBin (BinVar v a) where
+instance (Vector v a, Ord a, Fractional a) => IntervalBin (BinVar v a) where
   binInterval (BinVar c) i = (c ! i, c ! (i+1))
 
-instance (Vector v a, Num a, Ord a, Fractional a) => Bin1D (BinVar v a) where
+instance (Vector v a, Ord a, Fractional a) => Bin1D (BinVar v a) where
   lowerLimit (BinVar c) = G.head c
   upperLimit (BinVar c) = G.last c
 
-instance (Vector v a, Num a, Ord a, Fractional a) => SliceableBin (BinVar v a) where
+instance (Vector v a, Ord a, Fractional a) => SliceableBin (BinVar v a) where
   unsafeSliceBin i j (BinVar c) = BinVar (G.drop i $ G.take (j-i) c)
 
-instance (Vector v a, Num a, Ord a, Fractional a) => VariableBin (BinVar v a) where
+instance (Vector v a, Ord a, Fractional a) => VariableBin (BinVar v a) where
   binSizeN (BinVar c) !i = c ! (i+1) - c ! i
 
 -- | Equality is up to 3e-11 (2/3th of digits)
@@ -126,7 +126,7 @@ instance (NFData (v a)) => NFData (BinVar v a) where
 -- | Delete a cut, which effectively reduces the entire range of the
 --   bins (if the cut was the first or last one) or merges two bins
 --   (if the cut was in the middle)
-deleteCut :: (Vector v a, Num a, Ord a, Fractional a)
+deleteCut :: (Vector v a, Ord a, Fractional a)
           => BinVar v a -- bin
           -> Int        -- cut index
           -> BinVar v a
@@ -136,7 +136,7 @@ deleteCut (BinVar c) !i
   | otherwise = BinVar (G.take i c G.++ G.drop (i+1) c)
 
 -- | insert a new cut which effectively extends the range of the bins or splits a bin
-addCut :: (Vector v a, Num a, Ord a, Fractional a)
+addCut :: (Vector v a, Ord a, Fractional a)
        => BinVar v a -- bin
        -> a          -- new cut value
        -> BinVar v a
