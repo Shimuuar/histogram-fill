@@ -27,6 +27,7 @@ import           Data.Histogram.Bin.Classes
 import           Data.Histogram.Bin.Read
 
 
+
 -- | Bins of variable size. Bins are defined by a vector of `cuts`
 --   marking the boundary between bins. This assumes that the entire
 --   range is continuous.  There are n+1 cuts for n bins. This also
@@ -144,11 +145,10 @@ addCut (BinVar c) !x = BinVar (G.concat [G.take i c, G.singleton x, G.drop i c])
     i = fromMaybe (G.length c) (G.findIndex (> x) c)
 
 instance ( Bin1D b
-         , Vector v (BinValue b, BinValue b)
          , Vector v (BinValue b)
          , a ~ (BinValue b)
          , Fractional a)
          => ConvertBin b (BinVar v a) where
-  convertBin b =
-    let buckets = binsList b
-    in  binVar (G.init (G.map fst buckets) `G.snoc` G.last (G.map snd buckets))
+  convertBin b
+    = binVar
+    $ lowerLimit b `G.cons` G.generate (nBins b) (snd . binInterval b)
