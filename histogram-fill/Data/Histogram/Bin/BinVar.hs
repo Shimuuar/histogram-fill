@@ -143,7 +143,7 @@ addCut (BinVar c) !x = BinVar (G.concat [G.take i c, G.singleton x, G.drop i c])
   where
     i = fromMaybe (G.length c) (G.findIndex (> x) c)
 
-instance ( IntervalBin b
+instance ( Bin1D b
          , Vector v (BinValue b, BinValue b)
          , Vector v (BinValue b)
          , a ~ (BinValue b)
