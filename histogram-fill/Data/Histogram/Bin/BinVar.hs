@@ -101,7 +101,7 @@ instance (Vector v a, Ord a, Fractional a) => Bin1D (BinVarG v a) where
   upperLimit (BinVarG c) = G.last c
 
 instance (Vector v a, Ord a, Fractional a) => SliceableBin (BinVarG v a) where
-  unsafeSliceBin i j (BinVarG c) = BinVarG (G.drop i $ G.take (j-i) c)
+  unsafeSliceBin i j (BinVarG c) = BinVarG (G.drop i $ G.take (j + 2) c)
 
 instance (Vector v a, Ord a, Fractional a) => VariableBin (BinVarG v a) where
   binSizeN (BinVarG c) !i = c ! (i+1) - c ! i
