@@ -5,11 +5,11 @@ module Test.Histogram (
   ) where
 
 import Data.Typeable
-import qualified Data.Vector.Unboxed as U
 
 import Test.QuickCheck
 import Test.Tasty            (TestTree,testGroup)
 import Test.Tasty.QuickCheck (testProperty)
+import Text.Printf
 
 import Data.Histogram
 import Data.Histogram.Bin.MaybeBin
@@ -33,8 +33,8 @@ tests = testGroup "Histogram"
     , testsBin (T :: T LogBinD)
     , testsBin (T :: T (MaybeBin BinI))
     , testsBin (T :: T (Bin2D BinI BinI))
-    , testsBin (T :: T (BinVar U.Vector Double))
-    -- , testsBin (T :: T (BinVar U.Vector Int))
+    , testsBin (T :: T (BinVar Double))
+    -- , testsBin (T :: T (BinVar Int))
     ]
   , testGroup "fromIndex . toIndex == is"
     [ testProperty "BinI"    $ prop_FromTo (T :: T BinI)
@@ -49,8 +49,8 @@ tests = testGroup "Histogram"
     , testSliceBin (T :: T BinD)
     , testSliceBin (T :: T (BinEnum Char))
     , testSliceBin (T :: T LogBinD)
-    , testSliceBin (T :: T (BinVar U.Vector Double))
-    -- , testSliceBin (T :: T (BinVar U.Vector Int))
+    , testSliceBin (T :: T (BinVar Double))
+    -- , testSliceBin (T :: T (BinVar Int))
     ]
   , testGroup "Mergeable bins"
     [ testMergeBin (T :: T BinInt)
@@ -121,12 +121,19 @@ prop_InRange _ b x
     indexInRange i = i >= 0  &&  i < nBins b
 
 -- Sliced bin have correct number of bins
-prop_sliceBinN :: (SliceableBin b) => T b -> b -> Gen Bool
+prop_sliceBinN :: (SliceableBin b, Show b) => T b -> b -> Gen Property
 prop_sliceBinN _ bin = do
   (i,j) <- genBinIndex bin
-  return $ nBins (sliceBin i j bin) == (j - i + 1)
+  let bin'    = sliceBin i j bin
+      nExpect = j - i + 1
+      nGot    = nBins bin'
+  return
+    $ counterexample ("Sliced =\n" ++ show bin')
+    $ counterexample (printf "(i,j) = (%i, %i)" i j)
+    $ counterexample (printf "expected: %i, got: %i" nExpect nGot)
+    $ nExpect == nGot
 
--- S;liced bin is at correct position
+-- Sliced bin is at correct position
 prop_sliceBinVal :: (SliceableBin b, IntervalBin b) => T b -> b -> Gen Bool
 prop_sliceBinVal _ bin = do
   (i,j) <- genBinIndex bin
