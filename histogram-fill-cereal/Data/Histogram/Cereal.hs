@@ -12,6 +12,7 @@ import qualified Data.Vector.Generic as G
 
 import Data.Histogram.Bin
 import Data.Histogram.Bin.MaybeBin
+import Data.Histogram.Bin.BinVar
 import Data.Histogram.Generic (Histogram, histogramUO, histData, outOfRange, bins)
 
 
@@ -58,6 +59,13 @@ instance (Serialize bX, Serialize bY) => Serialize (Bin2D bX bY) where
   put (Bin2D bx by) = put bx >> put by
 
 deriving instance (Serialize bin) => Serialize (MaybeBin bin)
+
+instance (G.Vector v a, Serialize a, Ord a) => Serialize (BinVarG v a) where
+  get = binVar <$> do n <- get
+                      G.replicateM n get
+  put b = do let v = cuts b
+             put (G.length v)
+             G.forM_ v put
 
 
 
