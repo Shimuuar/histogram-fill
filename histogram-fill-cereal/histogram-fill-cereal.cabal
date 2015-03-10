@@ -1,5 +1,5 @@
 Name:           histogram-fill-cereal
-Version:        0.6.2.1
+Version:        0.8.5.0
 Synopsis:       Binary instances for histogram-fill package
 Description:
   Cereal instances for histogram-fill package
@@ -26,8 +26,8 @@ source-repository head
 Library
   Build-Depends:        base >=3 && <5,
                         cereal,
-                        vector >= 0.7,
-                        histogram-fill >= 0.6
+                        vector         >= 0.7,
+                        histogram-fill >= 0.8.5.0
   Exposed-modules:      Data.Histogram.Cereal
   Ghc-options:          -Wall
   Ghc-prof-options:     -auto-all

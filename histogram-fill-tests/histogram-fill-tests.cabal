@@ -36,10 +36,10 @@ test-suite tests
     Test.Cereal
   Build-depends:
     base >=3 && < 5,
-    histogram-fill,
-    histogram-fill-binary,
-    histogram-fill-cereal,
-    histogram-fill-quickcheck,
+    histogram-fill            >=0.8.5.0,
+    histogram-fill-binary     >=0.8.5.0,
+    histogram-fill-cereal     >=0.8.5.0,
+    histogram-fill-quickcheck >=0.8.5.0,
     vector,
     cereal,
     binary,

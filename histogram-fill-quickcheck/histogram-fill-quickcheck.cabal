@@ -1,5 +1,5 @@
 Name:           histogram-fill-quickcheck
-Version:        0.6.2.0
+Version:        0.8.5.0
 Synopsis:       QuickCheck instances for histogram-fill
 Description:
   QuickCheck instances for histogram-fill package
@@ -26,7 +26,7 @@ Library
   Build-Depends:
     base           >= 3 && <5,
     vector         >= 0.7,
-    histogram-fill >= 0.6,
+    histogram-fill >= 0.8.5.0,
     random,
     QuickCheck     >= 2
   Exposed-modules:
