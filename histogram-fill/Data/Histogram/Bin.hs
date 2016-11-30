@@ -1,7 +1,7 @@
--- Requred for Bin2D conversions
+-- Required for Bin2D conversions
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverlappingInstances #-}
--- Yes I DO want orphans here
+-- Yes, I DO want orphans here
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -- |
 -- Module     : Data.Histogram.Bin
@@ -10,8 +10,8 @@
 -- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- Stability  : experimental
 --
--- Binning algorithms. This is mapping from set of interest to integer
--- indices and approximate reverse.
+-- Binning algorithms. This is a mapping from set of interest to integer
+-- indices and an approximate reverse.
 
 module Data.Histogram.Bin ( 
     -- * Type classes
