@@ -131,7 +131,7 @@ h <<-$ f = f h
 (-<<) = modifyOut
 {-# INLINE (-<<) #-}
 
--- Fixity of operator
+-- Fixity of operators
 infixl 5 <<-
 infixl 5 <<-|
 infixl 5 <<?
@@ -142,12 +142,12 @@ infixr 4 -<<
 -- $examples
 --
 -- All examples will make use of operators to create builders. It's
--- possible to avoid their use but operators offer clear notation and
--- compose nicely in pipeline. Also note that data flows from right to
--- left as with '.' operator.
+-- possible to avoid their use, but operators offer clear notation and
+-- compose nicely in a pipeline. Also note that data flows from right to
+-- left as with the '.' operator.
 --
--- First example just counts ints in in [0..4] inclusive range.
--- 'fillBuilder' is used to put all values into accumulator.
+-- First example just counts ints in the [0..4] inclusive range.
+-- 'fillBuilder' is used to put all values into an accumulator.
 --
 -- > ghci> let h = forceInt -<< mkSimple (BinI 0 4)
 -- > ghci> fillBuilder h [0,0,0,1,1,2,3,4,4,4]
@@ -163,33 +163,33 @@ infixr 4 -<<
 -- > 3       1
 -- > 4       3
 --
--- More involved example only accept even numbers. Filtering could be
--- achieved with either 'addCut' or '<<?' operator.
+-- More involved example that only accepts even numbers. Filtering could be
+-- achieved with either 'addCut' or the '<<?' operator.
 --
 -- > forceInt -<< mkSimple (BinI 0 4) <<? even
 --
--- Although for example above same result could be acheved by
--- filtering of input it doesn't work when multiple histograms with
+-- Although for example above same result could be achieved by
+-- filtering of input, it doesn't work when multiple histograms with
 -- different cuts are filled simultaneously.
 --
--- Next example illustrate use of applicative interface. Here two
--- histograms are filled at the same time. First accept only even
--- numbers and second only odd ones. Results are put into the tuple.
+-- Next example illustrates the use of an applicative interface. Here
+-- two histograms are filled at the same time. First accept only even
+-- numbers and second only the odd ones. Results are put into the tuple.
 --
 -- > (,) <$> 
 -- >   (forceInt -<< mkSimple (BinI 0 4) <<? even)
 -- >   (forceInt -<< mkSimple (BinI 0 4) <<? odd)
 --
 -- Another approach is to use 'F.sequenceA' to simultaneously fill
--- list (or any other 'Travesable'). 
+-- a list (or any other 'Traversable'). 
 --
 -- > Data.Traversable.sequenceA [
 -- >     forceInt -<< mkSimple (BinI 0 4) <<? even
 -- >   , forceInt -<< mkSimple (BinI 0 4) <<? odd
 -- >   ]
 --
--- If one wants to collect result from many histograms he can take an
--- advantage of 'Monoid' instance of 'HBuilder'. Example below
+-- If one wants to collect results from many histograms he can take an
+-- advantage of the 'Monoid' instance of 'HBuilder'. Example below
 -- concatenates string outputs of individual histograms.
 --
 -- > mconcat [
@@ -202,18 +202,18 @@ infixr 4 -<<
 -- Monadic builder
 ----------------------------------------------------------------
 
--- | Stateful histogram builder. Adding value to builder could be done
---   with 'feedOne' and result could be extracted with
+-- | Stateful histogram builder. Adding a value to builder could be done
+--   with 'feedOne' and the result could be extracted with
 --   'freezeHBuilderM'.
 --
---   There are two ways to obtain stateful builder. First and
---   recommended is to thaw 'HBuilder' using 'toHBuilderIO' or
---   'toHBuilderST'. Second is to use 'mkStatefulBuilder'.
+--   There are two ways to obtain a stateful builder. First and
+--   recommended way is to thaw 'HBuilder' using 'toHBuilderIO' or
+--   'toHBuilderST'. Second possibility is to use 'mkStatefulBuilder'.
 data HBuilderM m a b = HBuilderM { hbInput  :: a -> m ()
                                  , hbOutput :: m b
                                  }
 
--- | Builders modified using 'HistBuilder' API will share same buffer.
+-- | Builders modified using 'HistBuilder' API will share the same buffer.
 instance Monad m => HistBuilder (HBuilderM m) where
     modifyIn      f      h = h { hbInput  = hbInput h . f }
     addCut        f      h = h { hbInput  = \x -> when (f x) (hbInput h x) }
@@ -242,13 +242,13 @@ instance (Monad m, Monoid b) => Monoid (HBuilderM m a b) where
     {-# INLINE mconcat #-}
 
 
--- | Put one item into histogram
+-- | Put one item into the histogram
 feedOne :: HBuilderM m a b -> a -> m ()
 feedOne = hbInput
 {-# INLINE feedOne #-}
 
--- | Extract result from histogram builder. It's safe to call this
---   function multiple times and mutate builder afterwards.
+-- | Extract the result from a histogram builder. It's safe to call
+--   this function multiple times, and mutate the builder afterwards.
 freezeHBuilderM :: HBuilderM m a b -> m b
 freezeHBuilderM = hbOutput
 {-# INLINE freezeHBuilderM #-}
@@ -259,21 +259,21 @@ freezeHBuilderM = hbOutput
 -- Stateless
 ----------------------------------------------------------------
 
--- | Wrapper around stateful histogram builder. It is much more
---   convenient to work with than 'HBuilderM'.
+-- | Wrapper around the stateful histogram builder. It is much more
+--   convenient to work with this one than with 'HBuilderM'.
 newtype HBuilder a b = HBuilder (forall m. PrimMonad m => m (HBuilderM m a b))
 
--- | Convert builder to stateful builder in primitive monad
+-- | Convert the builder to a stateful builder in a primitive monad
 toHBuilderM :: PrimMonad m => HBuilder a b -> m (HBuilderM m a b)
 {-# INLINE toHBuilderM #-}
 toHBuilderM (HBuilder hb) = hb
 
--- | Convert builder to stateful builder in ST monad
+-- | Convert the builder to stateful builder in the ST monad
 toHBuilderST :: HBuilder a b -> ST s (HBuilderM (ST s) a b)
 {-# INLINE toHBuilderST #-}
 toHBuilderST = toHBuilderM
 
--- | Convert builder to builder in IO monad
+-- | Convert the builder to builder in the IO monad
 toHBuilderIO :: HBuilder a b -> IO (HBuilderM IO a b)
 {-# INLINE toHBuilderIO #-}
 toHBuilderIO = toHBuilderM
@@ -304,27 +304,27 @@ instance Monoid b => Monoid (HBuilder a b) where
 ----------------------------------------------------------------
 
 -- | Create builder. Bin content will be incremented by 1 for each
---   item put into histogram
+--   item put into the histogram
 mkSimple :: (Bin bin, Unbox val, Num val
             ) => bin -> HBuilder (BinValue bin) (Histogram bin val)
 mkSimple = mkSimpleG
 {-# INLINE mkSimple #-}
 
--- | Create builder. Bin content will incremented by weight supplied
---   for each item put into histogram
+-- | Create builder. Bin content will be incremented by the weight supplied
+--   for each item put into the histogram
 mkWeighted :: (Bin bin, Unbox val, Num val
               ) => bin -> HBuilder (BinValue bin,val) (Histogram bin val)
 mkWeighted = mkWeightedG
 {-# INLINE mkWeighted #-}
 
--- | Create builder. New value wil be mappended to current content of
---   a bin for each item put into histogram
+-- | Create builder. New value will be mappended to current content of
+--   a bin for each item put into the histogram
 mkMonoidal :: (Bin bin, Unbox val, Monoid val
               ) => bin -> HBuilder (BinValue bin,val) (Histogram bin val)
 mkMonoidal = mkMonoidalG
 {-# INLINE mkMonoidal #-}
 
--- | Create most generic histogram builder.
+-- | Create a most generic histogram builder.
 mkFoldBuilder :: (Bin bin, Unbox val)
               => bin               -- ^ Binning algorithm
               -> val               -- ^ Initial value
@@ -336,7 +336,7 @@ mkFoldBuilder = mkFoldBuilderG
 
 
 -- | Create builder. Bin content will be incremented by 1 for each
---   item put into histogram
+--   item put into the histogram
 mkSimpleG :: (Bin bin, G.Vector v val, Num val
             ) => bin -> HBuilder (BinValue bin) (H.Histogram v bin val)
 mkSimpleG bin = HBuilder $ do
@@ -346,15 +346,15 @@ mkSimpleG bin = HBuilder $ do
                    }
 {-# INLINE mkSimpleG #-}
 
--- | Create builder. Bin content will incremented by weight supplied
---   for each item put into histogram
+-- | Create builder. Bin content will incremented by the weight supplied
+--   for each item put into the histogram
 mkWeightedG :: (Bin bin, G.Vector v val, Num val
               ) => bin -> HBuilder (BinValue bin,val) (H.Histogram v bin val)
 mkWeightedG bin = mkFoldBuilderG bin 0 (+)
 {-# INLINE mkWeightedG #-}
 
--- | Create builder. New value wil be mappended to current content of
---   a bin for each item put into histogram
+-- | Create builder. New value will be mappended to current content of
+--   a bin for each item put into the histogram
 mkMonoidalG :: (Bin bin, G.Vector v val, Monoid val
               ) => bin -> HBuilder (BinValue bin,val) (H.Histogram v bin val)
 mkMonoidalG bin = mkFoldBuilderG bin mempty mappend
@@ -376,7 +376,7 @@ mkFoldBuilderG bin x0 f = HBuilder $ do
 
 -- | Create histogram builder which just does ordinary pure fold. It
 --   is intended for use when some fold should be performed together
---   with histogram filling
+--   with histogram filling.
 mkFolder :: b -> (a -> b -> b) -> HBuilder a b
 {-# INLINE mkFolder #-}
 mkFolder a f = HBuilder $ do
@@ -387,8 +387,8 @@ mkFolder a f = HBuilder $ do
                    }
 
 
--- | Create stateful histogram builder. Output function should be safe
---   to call multiple times and builder could be modified afterwards.
+-- | Create stateful histogram builder. The output function should be safe
+--   to call multiple times and the builder could be modified afterwards.
 --   So functions like @unsafeFreeze@ from @vector@ couldn't be used.
 mkStatefulBuilder :: (a -> m ()) -- ^ Add value to accumulator
                   -> m b         -- ^ Extract result from accumulator
@@ -421,14 +421,14 @@ fillBuilderVec hb = \vec ->
 
 -- $auxillary
 --
--- In some cases builder constructors do not constrain output type
--- enough. Output type is still parametric in value type of histogram.
--- Functions below are just 'id' function with more restrictive
+-- In some cases the builder constructors do not constrain the output type
+-- enough. The output type is still parametric in value type of histogram.
+-- Functions below are just the 'id' function with a more restrictive
 -- signature.
 --
--- In example below 'forceInt' used to fix type of histogram to
--- 'Histogram BinI Int'. Without it compiler cannot infer type of
--- intermediate histogram.
+-- In example below 'forceInt' used to fix type of the histogram to
+-- 'Histogram BinI Int'. Without it, the compiler cannot infer type of
+-- the intermediate histogram.
 --
 -- > show . forceInt -<< mkSimple (BinI 1 10)
 
@@ -447,26 +447,26 @@ forceFloat = id
 -- Deprecated
 ----------------------------------------------------------------
 
--- | Join histogram builders in container
+-- | Join histogram builders in a container
 joinHBuilderM :: (F.Traversable f, Monad m) => f (HBuilderM m a b) -> HBuilderM m a (f b)
 joinHBuilderM = F.sequenceA
 {-# INLINE     joinHBuilderM #-}
 {-# DEPRECATED joinHBuilderM "Use Data.Traversable.sequenceA instead" #-}
 
--- | Apply functions to builder
+-- | Apply functions to the builder
 treeHBuilderM :: (Monad m, F.Traversable f) => f (HBuilderM m a b -> HBuilderM m a' b') -> HBuilderM m a b -> HBuilderM m a' (f b')
 treeHBuilderM fs h = F.traverse ($ h) fs
 {-# INLINE     treeHBuilderM #-}
 {-# DEPRECATED treeHBuilderM
   "Use Data.Traversable.traverse. treeHBuilderM fs h = F.traverse ($ h) fs" #-}
 
--- | Join hitogram builders in container.
+-- | Join histogram builders in a container.
 joinHBuilder :: F.Traversable f => f (HBuilder a b) -> HBuilder a (f b)
 joinHBuilder = F.sequenceA
 {-# INLINE     joinHBuilder #-}
 {-# DEPRECATED joinHBuilder "Use Data.Traversable.sequenceA instead" #-}
 
--- | Apply function to builder
+-- | Apply function to a builder
 treeHBuilder :: F.Traversable f => f (HBuilder a b -> HBuilder a' b') -> HBuilder a b -> HBuilder a' (f b')
 treeHBuilder fs h = F.traverse ($ h) fs
 {-# INLINE     treeHBuilder #-}

@@ -104,8 +104,8 @@ import Data.Histogram.Bin.Read
 -- Data type & smart constructors & conversion
 ----------------------------------------------------------------
 
--- | Immutable histogram. Histogram consists of binning algorithm,
---   optional number of under and overflows, and data. Type parameter
+-- | Immutable histogram. A histogram consists of a binning algorithm,
+--   an optional number of under- and overflows, and data. Type parameters
 --   have following meaning:
 --
 --   [@v@] type of vector used to store bin content.
@@ -133,7 +133,7 @@ instance Applicative Overflows where
   Overflow f g <*> Overflow a b = Overflow (f a) (g b)
   _            <*> _            = NoOverflow
 
--- | Create histogram from binning algorithm and vector with
+-- | Create histogram from binning algorithm and a vector with
 -- data. Overflows are set to Nothing.
 --
 -- Number of bins and vector size must match.
@@ -191,7 +191,7 @@ asVector (Histogram bin _ arr) =
 -- > 9       89
 --
 -- It could be deserialize using 'readHistogram' function. 'Read'
--- instance coulde provided as well but it turned out to be
+-- instance could be provided as well but it turned out to be
 -- impractically slow.
 --
 -- Serialization with cereal package is provided by histogram-fill-cereal
@@ -239,8 +239,8 @@ histHeader = do
                              Just (u',o') -> Overflow u' o'
 
 
--- | Convert String to histogram. Histogram do not have Read instance
---   because of slowness of ReadP
+-- | Convert a 'String' to a histogram. Histogram does not have a 'Read' instance
+--   because of the slowness of ReadP
 readHistogram :: (Read bin, Read a, Bin bin, Vector v a) => String -> Histogram v bin a
 readHistogram str =
     let (h,rest) = case readPrec_to_S histHeader 0 str of
@@ -344,7 +344,7 @@ zip :: (BinEq bin, Vector v a, Vector v b, Vector v c) =>
 zip f ha hb = fromMaybe (error msg) $ zipSafe f ha hb
   where msg = "Data.Histogram.Generic.Histogram.histZip: bins are different"
 
--- | Zip two histogram elementwise. If bins are not equal return `Nothing`
+-- | Zip two histograms elementwise. If bins are not equal return `Nothing`
 zipSafe :: (BinEq bin, Vector v a, Vector v b, Vector v c) =>
            (a -> b -> c) -> Histogram v bin a -> Histogram v bin b -> Maybe (Histogram v bin c)
 zipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
@@ -395,7 +395,7 @@ minimum = G.minimum . histData
 minimumBy :: (Vector v a) => (a -> a -> Ordering) -> Histogram v bin a -> a
 minimumBy f = G.minimumBy f . histData
 
--- | Maximal bin content
+-- | Maximal bin content.
 maximum :: (Vector v a, Ord a) => Histogram v bin a -> a
 maximum = G.maximum . histData
 
@@ -404,7 +404,7 @@ maximumBy :: (Vector v a) => (a -> a -> Ordering) -> Histogram v bin a -> a
 maximumBy f = G.maximumBy f . histData
 
 
--- | Index of a bin with minimal content
+-- | Index of a bin with minimal content.
 minIndex :: ( Ord a, Vector v a) => Histogram v bin a -> Int
 minIndex = G.minIndex . histData
 
@@ -412,7 +412,7 @@ minIndex = G.minIndex . histData
 minIndexBy :: (Vector v a) => (a -> a -> Ordering) -> Histogram v bin a -> Int
 minIndexBy f = G.minIndexBy f . histData
 
--- | Index of a bin with maximal content
+-- | Index of a bin with maximal content.
 maxIndex :: (Ord a, Vector v a) => Histogram v bin a -> Int
 maxIndex = G.maxIndex . histData
 
@@ -429,7 +429,7 @@ minBin = minBinBy compare
 minBinBy :: (Bin bin, Vector v a) => (a -> a -> Ordering) -> Histogram v bin a -> BinValue bin
 minBinBy f h = fromIndex (bins h) $ minIndexBy f h
 
--- | Value of a bin with maximal content
+-- | Value of a bin with maximal content.
 maxBin :: (Bin bin, Ord a, Vector v a) => Histogram v bin a -> BinValue bin
 maxBin = maxBinBy compare
 
@@ -444,10 +444,10 @@ maxBinBy f h = fromIndex (bins h) $ maxIndexBy f h
 -- Slicing and reducing histograms
 ----------------------------------------------------------------
 
--- | Slice histogram. Values/indices specify inclusive
+-- | Slice a histogram. Values/indices specify inclusive
 --   variant. Under/overflows are discarded. If requested value falls
---   out of histogram range it will be truncated. Use 'First' or
---   'Last' constructor if you need slice from first or to last bin
+--   out of histogram range, it will be truncated. Use 'First' or
+--   'Last' constructor if you need to slice from first or to last bin
 --   correspondingly.
 slice :: (SliceableBin bin, Vector v a)
       => HistIndex bin          -- ^ Lower inclusive bound
@@ -508,20 +508,20 @@ rebinWorker dir k f (Histogram bin _ vec)
 -- $hist2D
 --
 -- Data in 2D histograms is stored in row major order. This in fact
--- dictated by implementation of 'Bin2D'. So indices of bin are
--- arranged in following pattern:
+-- is dictated by the implementation of 'Bin2D'. So indices of the bin are
+-- arranged in the following pattern:
 --
 -- >  0  1  2  3
 -- >  4  5  6  7
 -- >  8  9 10 11
 --
--- Function from @AlongX@ family work with histogram slices along X
--- axis (as name suggest) which are contigous and therefor are
--- generally faster than @AlongY@ family.
+-- Functions from @AlongX@ family work with histogram slices along the X
+-- axis (as the name suggests) which are contigous, and therefore are
+-- generally faster than those from the @AlongY@ family.
 
 
--- | Get slice of 2D histogram along X axis. This function is faster
---   than 'sliceAlongY' since no array reallocations is required
+-- | Get slice of 2D histogram along the X axis. This function is faster
+--   than 'sliceAlongY' since no array reallocations are required.
 sliceAlongX :: (Vector v a, Bin bX, Bin bY)
             => Histogram v (Bin2D bX bY) a -- ^ 2D histogram
             -> HistIndex bY                -- ^ Position along Y axis

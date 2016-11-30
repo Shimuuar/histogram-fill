@@ -8,9 +8,9 @@
 -- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- Stability  : experimental
 -- 
--- Immutable histograms. This module export same APi as
--- 'Data.Histogram.Generic' but specialzed to unboxed vectors. Refer
--- aforementioned module for documentation.
+-- Immutable histograms. This module exports the same API as
+-- 'Data.Histogram.Generic' but specialized to unboxed vectors. Refer
+-- to the aforementioned module for documentation.
 module Data.Histogram ( -- * Immutable histogram
     -- * Immutable histograms
     Histogram
@@ -93,8 +93,8 @@ import Prelude hiding (map,zip,foldl,sum,maximum,minimum)
 
 
 
--- | Immutable histogram. Histogram consists of binning algorithm,
---   optional number of under and overflows, and data. 
+-- | Immutable histogram. A histogram consists of a binning algorithm,
+--   an optional number of under and overflows, and data. 
 type Histogram bin a = H.Histogram U.Vector bin a
 
 histogram :: (Unbox a, Bin bin) => bin -> Vector a -> Histogram bin a
