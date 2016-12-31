@@ -45,12 +45,8 @@ type BinVar = BinVarG U.Vector
 
 #if !MIN_VERSION_base(4,7,0)
 histTyCon :: String -> String -> TyCon
-#if MIN_VERSION_base(4,4,0)
 histTyCon = mkTyCon3 "histogram-fill"
-#else
-histTyCon m s = mkTyCon $ m ++ "." ++ s
-#endif
--- end MIN_VERSION_base(4,4,0)
+
 instance Typeable1 v => Typeable1 (BinVarG v) where
   typeOf1 b = mkTyConApp (histTyCon "Data.Histogram.Bin.BinVar" "BinVarG")
                          [typeOf1 $ cuts b]

@@ -192,14 +192,8 @@ instance (Show a, Show (BinValue bin), Show bin, Bin bin, Vector v a) => Show (H
 
 
 #if !MIN_VERSION_base(4,7,0)
-
 histTyCon :: String -> String -> TyCon
-#if MIN_VERSION_base(4,4,0)
 histTyCon = mkTyCon3 "histogram-fill"
-#else
-histTyCon m s = mkTyCon $ m ++ "." ++ s
-#endif
--- end MIN_VERSION_base(4,4,0)
 
 instance Typeable1 v => Typeable2 (Histogram v) where
   typeOf2 h = mkTyConApp (histTyCon "Data.Histogram.Generic" "Histogram") [typeOf1 $ histData h]
