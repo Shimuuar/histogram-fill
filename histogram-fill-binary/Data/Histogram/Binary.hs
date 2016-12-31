@@ -1,6 +1,7 @@
-{-# OPTIONS_GHC -fno-warn-orphans       #-}
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# OPTIONS_GHC -fno-warn-orphans       #-}
 -- | Cereal instances for histogram-fill
 module Data.Histogram.Binary (
   ) where
