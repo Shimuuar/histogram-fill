@@ -3,15 +3,10 @@
 # lines listings versions you don't need/want testing for.
 
 env:
- - CABALVER=1.16 GHCVER=7.4.1
- - CABALVER=1.16 GHCVER=7.4.2
- - CABALVER=1.16 GHCVER=7.6.1
- - CABALVER=1.16 GHCVER=7.6.2
  - CABALVER=1.18 GHCVER=7.6.3
- - CABALVER=1.18 GHCVER=7.8.1
- - CABALVER=1.18 GHCVER=7.8.2
  - CABALVER=1.18 GHCVER=7.8.3
- - CABALVER=1.22 GHCVER=7.10.1
+ - CABALVER=1.22 GHCVER=7.10.3
+ - CABALVER=1.24 GHCVER=8.0.1
  - CABALVER=head GHCVER=head
 
 matrix:
@@ -21,9 +16,9 @@ matrix:
 
 # Note: the distinction between `before_install` and `install` is not important.
 before_install:
- - sudo add-apt-repository -y ppa:hvr/ghc
- - sudo apt-get update
- - sudo apt-get install cabal-install-$CABALVER ghc-$GHCVER
+ - travis_retry sudo add-apt-repository -y ppa:hvr/ghc
+ - travis_retry sudo apt-get update
+ - travis_retry sudo apt-get install cabal-install-$CABALVER ghc-$GHCVER
  - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$PATH
 
 install:
