@@ -66,9 +66,9 @@ import Control.Monad       (when,liftM,liftM2)
 import Control.Monad.ST
 import Control.Monad.Primitive
 
-import Data.PrimRef
 import Data.Monoid            (Monoid(..))
 import Data.Vector.Unboxed    (Unbox)
+import Data.Primitive.MutVar
 import qualified Data.Vector.Generic as G
 import qualified Data.Foldable       as F
 import qualified Data.Traversable    as F
@@ -380,9 +380,10 @@ mkFoldBuilderG bin x0 f = HBuilder $ do
 mkFolder :: b -> (a -> b -> b) -> HBuilder a b
 {-# INLINE mkFolder #-}
 mkFolder a f = HBuilder $ do
-  ref <- newPrimRef a
-  return HBuilderM { hbInput  = \x -> modifyPrimRef' ref (f x)
-                   , hbOutput = readPrimRef ref
+  ref <- newMutVar a
+  return HBuilderM { hbInput  = \a -> do b <- readMutVar ref
+                                         writeMutVar ref $! f a b
+                   , hbOutput = readMutVar ref
                    }
 
 

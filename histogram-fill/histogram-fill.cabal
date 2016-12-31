@@ -29,9 +29,8 @@ Library
   Ghc-prof-options:     -auto-all
   Build-Depends: base            >= 4.6 && <5
                , deepseq
-               , primitive
+               , primitive       >= 0.5
                , ghc-prim
-               , monad-primitive >= 0.1
                , vector          >= 0.10.0.1
   Exposed-modules:
     Data.Histogram
