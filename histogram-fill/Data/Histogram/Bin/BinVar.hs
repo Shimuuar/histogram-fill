@@ -1,11 +1,11 @@
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 module Data.Histogram.Bin.BinVar (
     BinVarG(..)
   , BinVar
@@ -21,7 +21,6 @@ import           Data.Typeable
 import           Data.Maybe
 import qualified Data.Vector.Generic as G
 import           Data.Vector.Generic  (Vector,(!))
-import qualified Data.Vector.Fusion.Stream as S
 import qualified Data.Vector.Unboxed       as U
 import           Text.Read       (Read(..))
 
@@ -63,13 +62,13 @@ unsafeBinVar :: v a -- ^ cuts
 unsafeBinVar = BinVarG
 
 -- | Create variable bins unsafely
-binVar :: (Vector v a, Ord a)
+binVar :: (Vector v a, Vector v Bool, Ord a)
        => v a -- ^ cuts
        -> BinVarG v a
 binVar c
   | G.length c < 2
   = error "Data.Histogram.Bin.BinVar.binVar': nonpositive number of bins"
-  | S.or $ S.zipWith (>=) (G.stream c) (G.stream (G.tail c))
+  | G.or $ G.zipWith (>=) c (G.tail c)
   = error "Data.Histogram.Bin.BinVar.binVar': cuts not in ascending order"
   | otherwise = BinVarG c
 
@@ -107,10 +106,10 @@ instance (Vector v a, Ord a, Fractional a) => VariableBin (BinVarG v a) where
   binSizeN (BinVarG c) !i = c ! (i+1) - c ! i
 
 -- | Equality is up to 3e-11 (2/3th of digits)
-instance (Vector v a, Ord a, Fractional a) => BinEq (BinVarG v a) where
+instance (Vector v a, Vector v Bool, Ord a, Fractional a) => BinEq (BinVarG v a) where
   binEq (BinVarG c) (BinVarG c')
     =  (G.length c == G.length c')
-    && (S.and (S.zipWith eq (G.stream c) (G.stream c')))
+    && (G.and (G.zipWith eq c c'))
     where
       eq x y = abs (x - y) < eps * (abs x `max` abs y)
       eps    = 3e-11
@@ -118,7 +117,7 @@ instance (Vector v a, Ord a, Fractional a) => BinEq (BinVarG v a) where
 instance (Vector v a, Show a, Fractional a) => Show (BinVarG v a) where
   show (BinVarG c) = "# BinVar\n# cuts = " ++ show (G.toList c) ++ "\n"
 
-instance (Vector v a, Read a, Ord a, Fractional a) => Read (BinVarG v a) where
+instance (Vector v a, Vector v Bool, Read a, Ord a, Fractional a) => Read (BinVarG v a) where
   readPrec = do keyword "BinVar"
                 xs <- value "cuts"
                 return $ binVar $ G.fromList xs
@@ -151,6 +150,7 @@ addCut (BinVarG c) !x = BinVarG (G.concat [G.take i c, G.singleton x, G.drop i c
 
 instance ( Bin1D b
          , Vector v (BinValue b)
+         , Vector v Bool
          , a ~ (BinValue b)
          , Fractional a)
          => ConvertBin b (BinVarG v a) where
