@@ -218,7 +218,7 @@ instance (Functor v) => Functor (Histogram v bin) where
 
 
 -- Parse histogram header
-histHeader :: (Read bin, Read a, Bin bin, Vector v a) => ReadPrec (v a -> Histogram v bin a)
+histHeader :: (Read bin, Read a) => ReadPrec (v a -> Histogram v bin a)
 histHeader = do
   keyword "Histogram"
   u   <- maybeValue "Underflows"
@@ -325,13 +325,13 @@ mapData f (Histogram bin _ v)
 
 -- | Zip two histograms elementwise. Bins of histograms must be equal
 --   otherwise error will be called.
-zip :: (Bin bin, BinEq bin, Vector v a, Vector v b, Vector v c) =>
+zip :: (BinEq bin, Vector v a, Vector v b, Vector v c) =>
        (a -> b -> c) -> Histogram v bin a -> Histogram v bin b -> Histogram v bin c
 zip f ha hb = fromMaybe (error msg) $ zipSafe f ha hb
   where msg = "Data.Histogram.Generic.Histogram.histZip: bins are different"
 
 -- | Zip two histogram elementwise. If bins are not equal return `Nothing`
-zipSafe :: (Bin bin, BinEq bin, Vector v a, Vector v b, Vector v c) =>
+zipSafe :: (BinEq bin, Vector v a, Vector v b, Vector v c) =>
            (a -> b -> c) -> Histogram v bin a -> Histogram v bin b -> Maybe (Histogram v bin c)
 zipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
   | binEq bin bin' = Just $ Histogram bin (f2 <$> uo <*> uo') (G.zipWith f v v')
@@ -360,7 +360,7 @@ convertBinning (Histogram bin uo vec)
 ----------------------------------------------------------------
 
 -- | Strict fold over bin content in index order. Underflows and overflows are ignored.
-foldl :: (Bin bin, Vector v a) => (b -> a -> b) -> b -> Histogram v bin a -> b
+foldl :: (Vector v a) => (b -> a -> b) -> b -> Histogram v bin a -> b
 foldl f x0 (Histogram _ _ vec) =
   G.foldl' f x0 vec
 
@@ -371,41 +371,41 @@ bfoldl f x0 (Histogram bin _ vec) =
   G.ifoldl' (\acc -> f acc . fromIndex bin) x0 vec
 
 -- | Sum contents of all bins
-sum :: (Bin bin, Vector v a, Num a) => Histogram v bin a -> a
+sum :: (Vector v a, Num a) => Histogram v bin a -> a
 sum = foldl (+) 0
 
 
 -- | Minimal bin content.
-minimum :: (Bin bin, Vector v a, Ord a) => Histogram v bin a -> a
+minimum :: (Vector v a, Ord a) => Histogram v bin a -> a
 minimum = G.minimum . histData
 
 -- | Minimal bin content using custom comparison.
-minimumBy :: (Bin bin, Vector v a) => (a -> a -> Ordering) -> Histogram v bin a -> a
+minimumBy :: (Vector v a) => (a -> a -> Ordering) -> Histogram v bin a -> a
 minimumBy f = G.minimumBy f . histData
 
 -- | Maximal bin content
-maximum :: (Bin bin, Vector v a, Ord a) => Histogram v bin a -> a
+maximum :: (Vector v a, Ord a) => Histogram v bin a -> a
 maximum = G.maximum . histData
 
 -- | Maximal bin content using custom comparison.
-maximumBy :: (Bin bin, Vector v a) => (a -> a -> Ordering) -> Histogram v bin a -> a
+maximumBy :: (Vector v a) => (a -> a -> Ordering) -> Histogram v bin a -> a
 maximumBy f = G.maximumBy f . histData
 
 
 -- | Index of a bin with minimal content
-minIndex :: (Bin bin, Ord a, Vector v a) => Histogram v bin a -> Int
+minIndex :: ( Ord a, Vector v a) => Histogram v bin a -> Int
 minIndex = G.minIndex . histData
 
 -- | Index of a bin with minimal content using custom comparison.
-minIndexBy :: (Bin bin, Ord a, Vector v a) => (a -> a -> Ordering) -> Histogram v bin a -> Int
+minIndexBy :: (Vector v a) => (a -> a -> Ordering) -> Histogram v bin a -> Int
 minIndexBy f = G.minIndexBy f . histData
 
 -- | Index of a bin with maximal content
-maxIndex :: (Bin bin, Ord a, Vector v a) => Histogram v bin a -> Int
+maxIndex :: (Ord a, Vector v a) => Histogram v bin a -> Int
 maxIndex = G.maxIndex . histData
 
 -- | Index of a bin with maximal content using custom comparison.
-maxIndexBy :: (Bin bin, Ord a, Vector v a) => (a -> a -> Ordering) -> Histogram v bin a -> Int
+maxIndexBy :: (Vector v a) => (a -> a -> Ordering) -> Histogram v bin a -> Int
 maxIndexBy f = G.maxIndexBy f . histData
 
 
@@ -414,7 +414,7 @@ minBin :: (Bin bin, Ord a, Vector v a) => Histogram v bin a -> BinValue bin
 minBin = minBinBy compare
 
 -- | Value bin with minimal content using custom comparison.
-minBinBy :: (Bin bin, Ord a, Vector v a) => (a -> a -> Ordering) -> Histogram v bin a -> BinValue bin
+minBinBy :: (Bin bin, Vector v a) => (a -> a -> Ordering) -> Histogram v bin a -> BinValue bin
 minBinBy f h = fromIndex (bins h) $ minIndexBy f h
 
 -- | Value of a bin with maximal content
@@ -422,7 +422,7 @@ maxBin :: (Bin bin, Ord a, Vector v a) => Histogram v bin a -> BinValue bin
 maxBin = maxBinBy compare
 
 -- | Value of a bin with maximal content using custom comparison.
-maxBinBy :: (Bin bin, Ord a, Vector v a) => (a -> a -> Ordering) -> Histogram v bin a -> BinValue bin
+maxBinBy :: (Bin bin, Vector v a) => (a -> a -> Ordering) -> Histogram v bin a -> BinValue bin
 maxBinBy f h = fromIndex (bins h) $ maxIndexBy f h
 
 

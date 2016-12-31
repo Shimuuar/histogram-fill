@@ -122,7 +122,7 @@ h <<-| f = fromContainer F.mapM_ h <<- f
 {-# INLINE (<<?) #-}
 
 -- | Apply function which modify builder
-(<<-$) :: HistBuilder h => h a b -> (h a b -> h a' b) -> h a' b
+(<<-$) :: h a b -> (h a b -> h a' b) -> h a' b
 h <<-$ f = f h
 {-# INLINE (<<-$) #-}
 
@@ -243,13 +243,13 @@ instance (Monad m, Monoid b) => Monoid (HBuilderM m a b) where
 
 
 -- | Put one item into histogram
-feedOne :: Monad m => HBuilderM m a b -> a -> m ()
+feedOne :: HBuilderM m a b -> a -> m ()
 feedOne = hbInput
 {-# INLINE feedOne #-}
 
 -- | Extract result from histogram builder. It's safe to call this
 --   function multiple times and mutate builder afterwards.
-freezeHBuilderM :: Monad m => HBuilderM m a b -> m b
+freezeHBuilderM :: HBuilderM m a b -> m b
 freezeHBuilderM = hbOutput
 {-# INLINE freezeHBuilderM #-}
 
@@ -389,8 +389,7 @@ mkFolder a f = HBuilder $ do
 -- | Create stateful histogram builder. Output function should be safe
 --   to call multiple times and builder could be modified afterwards.
 --   So functions like @unsafeFreeze@ from @vector@ couldn't be used.
-mkStatefulBuilder :: Monad m
-                  => (a -> m ()) -- ^ Add value to accumulator
+mkStatefulBuilder :: (a -> m ()) -- ^ Add value to accumulator
                   -> m b         -- ^ Extract result from accumulator
                   -> HBuilderM m a b
 {-# INLINE mkStatefulBuilder #-}

@@ -114,10 +114,10 @@ instance (Vector v a, Vector v Bool, Ord a, Fractional a) => BinEq (BinVarG v a)
       eq x y = abs (x - y) < eps * (abs x `max` abs y)
       eps    = 3e-11
 
-instance (Vector v a, Show a, Fractional a) => Show (BinVarG v a) where
+instance (Vector v a, Show a) => Show (BinVarG v a) where
   show (BinVarG c) = "# BinVar\n# cuts = " ++ show (G.toList c) ++ "\n"
 
-instance (Vector v a, Vector v Bool, Read a, Ord a, Fractional a) => Read (BinVarG v a) where
+instance (Vector v a, Vector v Bool, Read a, Ord a) => Read (BinVarG v a) where
   readPrec = do keyword "BinVar"
                 xs <- value "cuts"
                 return $ binVar $ G.fromList xs
@@ -140,7 +140,7 @@ deleteCut (BinVarG c) !i
   | otherwise = BinVarG (G.take i c G.++ G.drop (i+1) c)
 
 -- | insert a new cut which effectively extends the range of the bins or splits a bin
-addCut :: (Vector v a, Ord a, Fractional a)
+addCut :: (Vector v a, Ord a)
        => BinVarG v a -- bin
        -> a          -- new cut value
        -> BinVarG v a

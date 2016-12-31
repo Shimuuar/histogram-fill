@@ -137,7 +137,7 @@ outOfRange = H.outOfRange
 asList :: (Unbox a, Bin bin) => Histogram bin a -> [(BinValue bin, a)]
 asList = H.asList
 
-asVector :: (Bin bin, Unbox a, Unbox (BinValue bin), Unbox (BinValue bin,a)) 
+asVector :: (Bin bin, Unbox a, Unbox (BinValue bin,a)) 
          => Histogram bin a -> Vector (BinValue bin, a) 
 asVector = H.asVector
 
@@ -168,11 +168,11 @@ mapData :: (Unbox a, Unbox b, Bin bin)
 mapData = H.mapData
 
 
-zip :: (Bin bin, BinEq bin, Unbox a, Unbox b, Unbox c) 
+zip :: (BinEq bin, Unbox a, Unbox b, Unbox c) 
     => (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Histogram bin c
 zip = H.zip
            
-zipSafe :: (Bin bin, BinEq bin, Unbox a, Unbox b, Unbox c)
+zipSafe :: (BinEq bin, Unbox a, Unbox b, Unbox c)
         => (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Maybe (Histogram bin c)
 zipSafe = H.zipSafe
 
@@ -185,52 +185,52 @@ convertBinning = H.convertBinning
 -- Folding
 ----------------------------------------------------------------
 
-foldl :: (Bin bin, Unbox a) => (b -> a -> b) -> b -> Histogram bin a -> b
+foldl :: (Unbox a) => (b -> a -> b) -> b -> Histogram bin a -> b
 foldl = H.foldl
 
 bfoldl :: (Bin bin, Unbox a) => (b -> BinValue bin -> a -> b) -> b -> Histogram bin a -> b
 bfoldl = H.bfoldl
 
-sum :: (Bin bin, Unbox a, Num a) => Histogram bin a -> a
+sum :: (Unbox a, Num a) => Histogram bin a -> a
 sum = H.sum
 
 
-minimum :: (Bin bin, Unbox a, Ord a) => Histogram bin a -> a
+minimum :: (Unbox a, Ord a) => Histogram bin a -> a
 minimum = H.minimum
 
-minimumBy :: (Bin bin, Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> a
+minimumBy :: (Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> a
 minimumBy = H.minimumBy
 
-maximum :: (Bin bin, Unbox a, Ord a) => Histogram bin a -> a
+maximum :: (Unbox a, Ord a) => Histogram bin a -> a
 maximum = H.maximum
 
-maximumBy :: (Bin bin, Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> a
+maximumBy :: (Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> a
 maximumBy = H.maximumBy
 
 
-minIndex :: (Bin bin, Ord a, Unbox a) => Histogram bin a -> Int
+minIndex :: (Ord a, Unbox a) => Histogram bin a -> Int
 minIndex = H.minIndex
 
-minIndexBy :: (Bin bin, Ord a, Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> Int
+minIndexBy :: (Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> Int
 minIndexBy = H.minIndexBy
 
-maxIndex :: (Bin bin, Ord a, Unbox a) => Histogram bin a -> Int
+maxIndex :: (Ord a, Unbox a) => Histogram bin a -> Int
 maxIndex = H.maxIndex
 
-maxIndexBy :: (Bin bin, Ord a, Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> Int
+maxIndexBy :: (Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> Int
 maxIndexBy = H.maxIndexBy
 
 
 minBin :: (Bin bin, Ord a, Unbox a) => Histogram bin a -> BinValue bin
 minBin = H.minBin
 
-minBinBy :: (Bin bin, Ord a, Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> BinValue bin
+minBinBy :: (Bin bin, Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> BinValue bin
 minBinBy = H.minBinBy
 
 maxBin :: (Bin bin, Ord a, Unbox a) => Histogram bin a -> BinValue bin
 maxBin = H.maxBin
 
-maxBinBy :: (Bin bin, Ord a, Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> BinValue bin
+maxBinBy :: (Bin bin, Unbox a) => (a -> a -> Ordering) -> Histogram bin a -> BinValue bin
 maxBinBy = H.maxBinBy
 
 
@@ -317,13 +317,13 @@ breduceY :: (Unbox a, Unbox b, Bin bX, Bin bY)
          -> Histogram bX b
 breduceY = H.breduceY
 
-liftX :: (Bin bX, Bin bY, Bin bX', BinEq bX', Unbox a, Unbox b)
+liftX :: (Bin bX, Bin bY, BinEq bX', Unbox a, Unbox b)
       => (Histogram bX a -> Histogram bX' b)
       -> Histogram (Bin2D bX  bY) a
       -> Histogram (Bin2D bX' bY) b
 liftX = H.liftX
 
-liftY :: (Bin bX, Bin bY, Bin bY', BinEq bY', Unbox a, Unbox b)
+liftY :: (Bin bX, Bin bY, BinEq bY', Unbox a, Unbox b)
       => (Histogram bY a -> Histogram bY' b)
       -> Histogram (Bin2D bX bY ) a
       -> Histogram (Bin2D bX bY') b

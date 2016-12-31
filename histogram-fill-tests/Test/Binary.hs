@@ -31,7 +31,7 @@ tests = testGroup "cereal"
 
 
 
-p_serialize :: (Binary a, Arbitrary a, Eq a) => T a -> a -> Bool
+p_serialize :: (Binary a, Eq a) => T a -> a -> Bool
 p_serialize _ a = a == (decode . encode) a
 
 data T a = T

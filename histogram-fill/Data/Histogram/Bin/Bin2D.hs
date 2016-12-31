@@ -47,7 +47,7 @@ instance (Bin binX, Bin binY) => Bin (Bin2D binX binY) where
   {-# INLINE nBins   #-}
 
 -- | Convert index into pair of indices for X and Y axes
-toIndex2D :: (Bin binX, Bin binY) => Bin2D binX binY -> Int -> (Int,Int)
+toIndex2D :: (Bin binX) => Bin2D binX binY -> Int -> (Int,Int)
 toIndex2D !b !i = let (iy,ix) = divMod i (nBins $ binX b) in (ix,iy)
 {-# INLINE toIndex2D #-}
 

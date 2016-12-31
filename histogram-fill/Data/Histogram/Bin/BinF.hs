@@ -125,7 +125,7 @@ instance Show f => Show (BinF f) where
                                     , "# Step = " ++ show step
                                     , "# N    = " ++ show n
                                     ]
-instance (Read f, RealFrac f) => Read (BinF f) where
+instance (Read f) => Read (BinF f) where
   readPrec = keyword "BinF" >> liftM3 BinF (value "Base") (value "Step") (value "N")
 
 instance NFData f => NFData (BinF f) where
