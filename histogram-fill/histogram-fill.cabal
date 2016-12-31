@@ -27,13 +27,12 @@ source-repository head
 Library
   Ghc-options:          -O2 -Wall
   Ghc-prof-options:     -auto-all
-  Build-Depends:
-    base >=3 && <5,
-    deepseq,
-    primitive,
-    ghc-prim,
-    monad-primitive >= 0.1,
-    vector          >= 0.10.0.1
+  Build-Depends: base            >= 4.6 && <5
+               , deepseq
+               , primitive
+               , ghc-prim
+               , monad-primitive >= 0.1
+               , vector          >= 0.10.0.1
   Exposed-modules:
     Data.Histogram
     Data.Histogram.Generic

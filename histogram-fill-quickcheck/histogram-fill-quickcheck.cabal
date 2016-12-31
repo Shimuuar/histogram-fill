@@ -23,11 +23,10 @@ source-repository head
 Library
   Ghc-options:          -Wall
   Ghc-prof-options:     -auto-all
-  Build-Depends:
-    base           >= 3 && <5,
-    vector         >= 0.7,
-    histogram-fill >= 0.8.5.0,
-    random,
-    QuickCheck     >= 2
+  Build-Depends: base           >= 4.6 && <5
+               , vector         >= 0.7
+               , histogram-fill >= 0.8.5.0
+               , random
+               , QuickCheck     >= 2
   Exposed-modules:
     Data.Histogram.QuickCheck
