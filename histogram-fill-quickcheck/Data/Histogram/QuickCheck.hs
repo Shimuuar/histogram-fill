@@ -77,7 +77,8 @@ instance Arbitrary bin => Arbitrary (MaybeBin bin) where
 instance (Arbitrary bx, Arbitrary by) => Arbitrary (Bin2D bx by) where
   arbitrary = Bin2D <$> arbitrary <*> arbitrary
 
-instance (Arbitrary a, Ord a, G.Vector v a, G.Vector v (a,a)) => Arbitrary (BinVarG v a) where
+instance (Arbitrary a, Ord a, G.Vector v a, G.Vector v Bool, G.Vector v (a,a)
+         ) => Arbitrary (BinVarG v a) where
   arbitrary = do
     n    <- choose (2,333)
     cuts <- vector n `suchThat` (\x -> nub x == x)

@@ -60,7 +60,7 @@ instance (Serialize bX, Serialize bY) => Serialize (Bin2D bX bY) where
 
 deriving instance (Serialize bin) => Serialize (MaybeBin bin)
 
-instance (G.Vector v a, Serialize a, Ord a) => Serialize (BinVarG v a) where
+instance (G.Vector v a, G.Vector v Bool, Serialize a, Ord a) => Serialize (BinVarG v a) where
   get = binVar <$> do n <- get
                       G.replicateM n get
   put b = do let v = cuts b

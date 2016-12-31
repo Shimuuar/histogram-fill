@@ -59,7 +59,7 @@ instance (Binary bX, Binary bY) => Binary (Bin2D bX bY) where
 
 deriving instance (Binary bin) => Binary (MaybeBin bin)
 
-instance (G.Vector v a, Binary a, Ord a) => Binary (BinVarG v a) where
+instance (G.Vector v a, G.Vector v Bool, Binary a, Ord a) => Binary (BinVarG v a) where
   get = binVar <$> do n <- get
                       G.replicateM n get
   put b = do let v = cuts b
