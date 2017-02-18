@@ -1,15 +1,16 @@
-{-# LANGUAGE FlexibleContexts   #-}
+{-# LANGUAGE CPP                #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE DeriveFunctor      #-}
+{-# LANGUAGE FlexibleContexts   #-}
 -- |
 -- Module     : Data.Histogram
 -- Copyright  : Copyright (c) 2009, Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- License    : BSD3
 -- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- Stability  : experimental
--- 
--- Generic immutable histograms. 
-module Data.Histogram.Generic ( 
+--
+-- Generic immutable histograms.
+module Data.Histogram.Generic (
     -- * Immutable histograms
     Histogram
   , module Data.Histogram.Bin
@@ -30,7 +31,7 @@ module Data.Histogram.Generic (
   , overflows
   , outOfRange
     -- ** Indexing
-  , HistIndex(..) 
+  , HistIndex(..)
   , histIndex
   , at
   , atV
@@ -82,9 +83,8 @@ module Data.Histogram.Generic (
   , liftY
   ) where
 
-import Control.Applicative ((<$>),(<*>))
-import Control.Arrow       ((***), (&&&))
-import Control.Monad       (ap)
+import Control.Applicative ((<$>),Applicative(..),liftA2)
+import Control.Arrow       ((&&&))
 import Control.DeepSeq     (NFData(..))
 
 import qualified Data.Vector.Generic         as G
@@ -113,31 +113,47 @@ import Data.Histogram.Bin.Read
 --   [@bin@] binning. It should be instance of 'Bin'. Check that type class description for details.
 --
 --   [@a@] type of bin content.
-data Histogram v bin a = Histogram !bin !(Maybe (a,a)) !(v a)
+data Histogram v bin a = Histogram !bin !(Overflows a) !(v a)
 #if MIN_VERSION_base(4,7,0)
                          deriving (Eq, Typeable)
 #else
                          deriving (Eq)
 #endif
 
+data Overflows a = NoOverflow
+                 | Overflow !a !a
+                 deriving (Eq, Typeable, Functor)
+
+instance NFData a => NFData (Overflows a) where
+  rnf  NoOverflow    = ()
+  rnf (Overflow u o) = rnf u `seq` rnf o `seq` ()
+
+instance Applicative Overflows where
+  pure x = Overflow x x
+  Overflow f g <*> Overflow a b = Overflow (f a) (g b)
+  _            <*> _            = NoOverflow
+
 -- | Create histogram from binning algorithm and vector with
--- data. Overflows are set to Nothing. 
+-- data. Overflows are set to Nothing.
 --
 -- Number of bins and vector size must match.
 histogram :: (Vector v a, Bin bin) => bin -> v a -> Histogram v bin a
 histogram b = histogramUO b Nothing
 
--- | Create histogram from binning algorithm and vector with data. 
+-- | Create histogram from binning algorithm and vector with data.
 --
 -- Number of bins and vector size must match.
 histogramUO :: (Vector v a, Bin bin) => bin -> Maybe (a,a) -> v a -> Histogram v bin a
-histogramUO b uo v 
-  | nBins b == G.length v = Histogram b uo v
+histogramUO b uo v
+  | nBins b == G.length v = Histogram b (toOverflow uo) v
   | otherwise             = error "Data.Histogram.Generic.histogramUO: number of bins and vector size doesn't match"
+  where
+    toOverflow Nothing      = NoOverflow
+    toOverflow (Just (u,o)) = Overflow u o
 
 -- | Convert histogram data to list.
 asList :: (Vector v a, Bin bin) => Histogram v bin a -> [(BinValue bin, a)]
-asList (Histogram bin _ arr) = 
+asList (Histogram bin _ arr) =
   Prelude.zip (fromIndex bin <$> [0..]) (G.toList arr)
 
 -- | Convert histogram data to vector
@@ -149,13 +165,13 @@ asVector (Histogram bin _ arr) =
 
 
 ----------------------------------------------------------------
--- Instances & reading histograms from strings 
+-- Instances & reading histograms from strings
 ----------------------------------------------------------------
 
 -- $serialization
 --
 -- 'Show' instance is abused for serialization and produces human
--- readable data like that: 
+-- readable data like that:
 --
 -- > # Histogram
 -- > # Underflows = 0
@@ -185,10 +201,10 @@ instance (Show a, Show (BinValue bin), Show bin, Bin bin, Vector v a) => Show (H
                                   unlines (fmap showT $ asList h)
         where
           showT (x,y) = show x ++ "\t" ++ show y
-          showUO (Just (u,o)) = "# Underflows = " ++ show u ++ "\n" ++
-                                "# Overflows  = " ++ show o ++ "\n"
-          showUO Nothing      = "# Underflows = \n" ++
-                                "# Overflows  = \n"
+          showUO (Overflow u o) = "# Underflows = " ++ show u ++ "\n" ++
+                                  "# Overflows  = " ++ show o ++ "\n"
+          showUO NoOverflow     = "# Underflows = \n" ++
+                                  "# Overflows  = \n"
 
 
 #if !MIN_VERSION_base(4,7,0)
@@ -208,7 +224,7 @@ instance (NFData a, NFData bin, NFData (v a)) => NFData (Histogram v bin a) wher
 
 -- | If vector is a functor then histogram is functor as well
 instance (Functor v) => Functor (Histogram v bin) where
-  fmap f (Histogram bin uo vec) = Histogram bin (fmap (f *** f) uo) (fmap f vec)
+  fmap f (Histogram bin uo vec) = Histogram bin (fmap f uo) (fmap f vec)
 
 
 -- Parse histogram header
@@ -218,12 +234,15 @@ histHeader = do
   u   <- maybeValue "Underflows"
   o   <- maybeValue "Overflows"
   bin <- readPrec
-  return $ Histogram bin ((,) `fmap` u `ap` o)
+  return $ Histogram bin $ case liftA2 (,) u o of
+                             Nothing      -> NoOverflow
+                             Just (u',o') -> Overflow u' o'
+
 
 -- | Convert String to histogram. Histogram do not have Read instance
 --   because of slowness of ReadP
 readHistogram :: (Read bin, Read a, Bin bin, Vector v a) => String -> Histogram v bin a
-readHistogram str = 
+readHistogram str =
     let (h,rest) = case readPrec_to_S histHeader 0 str of
                      [x] -> x
                      _   -> error "Cannot parse histogram header"
@@ -250,7 +269,7 @@ histData (Histogram _ _ a) = a
 
 -- | Number of underflows
 underflows :: Histogram v bin a -> Maybe a
-underflows h = fst <$> outOfRange  h
+underflows h = fst <$> outOfRange h
 
 -- | Number of overflows
 overflows :: Histogram v bin a -> Maybe a
@@ -258,7 +277,8 @@ overflows h = snd <$> outOfRange h
 
 -- | Underflows and overflows
 outOfRange :: Histogram v bin a -> Maybe (a,a)
-outOfRange (Histogram _ uo _) = uo
+outOfRange (Histogram _ NoOverflow     _) = Nothing
+outOfRange (Histogram _ (Overflow u o) _) = Just (u,o)
 
 
 
@@ -301,20 +321,20 @@ atI h = at h . Index
 -- | fmap lookalike. It's not possible to create Functor instance
 --   because of type class context.
 map :: (Vector v a, Vector v b) => (a -> b) -> Histogram v bin a -> Histogram v bin b
-map f (Histogram bin uo a) = 
-  Histogram bin (fmap (f *** f) uo) (G.map f a)
+map f (Histogram bin uo a) =
+  Histogram bin (fmap f uo) (G.map f a)
 
 -- | Map histogram using bin value and content. Overflows and underflows are set to Nothing.
 bmap :: (Vector v a, Vector v b, Bin bin)
      => (BinValue bin -> a -> b) -> Histogram v bin a -> Histogram v bin b
 bmap f (Histogram bin _ vec) =
-  Histogram bin Nothing $ G.imap (f . fromIndex bin) vec
+  Histogram bin NoOverflow $ G.imap (f . fromIndex bin) vec
 
 mapData :: (Vector v a, Vector u b, Bin bin)
         => (v a -> u b) -> Histogram v bin a -> Histogram u bin b
 mapData f (Histogram bin _ v)
   | G.length v /= G.length v' = error "Data.Histogram.Generic.Histogram.mapData: vector length changed"
-  | otherwise                 = Histogram bin Nothing v'
+  | otherwise                 = Histogram bin NoOverflow v'
   where v' = f v
 
 -- | Zip two histograms elementwise. Bins of histograms must be equal
@@ -328,10 +348,8 @@ zip f ha hb = fromMaybe (error msg) $ zipSafe f ha hb
 zipSafe :: (BinEq bin, Vector v a, Vector v b, Vector v c) =>
            (a -> b -> c) -> Histogram v bin a -> Histogram v bin b -> Maybe (Histogram v bin c)
 zipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
-  | binEq bin bin' = Just $ Histogram bin (f2 <$> uo <*> uo') (G.zipWith f v v')
+  | binEq bin bin' = Just $ Histogram bin (f <$> uo <*> uo') (G.zipWith f v v')
   | otherwise      = Nothing
-  where
-    f2 (x,x') (y,y') = (f x y, f x' y')
 
 -- | Convert between different vector types
 convert :: (Vector v a, Vector w a)
@@ -437,7 +455,7 @@ slice :: (SliceableBin bin, Vector v a)
       -> Histogram v bin a      -- ^ Histogram to slice
       -> Histogram v bin a
 slice a b (Histogram bin _ v) =
-  Histogram (sliceBin i j bin) Nothing (G.slice i (j - i + 1) v)
+  Histogram (sliceBin i j bin) NoOverflow (G.slice i (j - i + 1) v)
   where
     i = max 0 $ histIndex bin a
     j = min n $ histIndex bin b
@@ -473,7 +491,7 @@ rebinWorker :: (MergeableBin bin, Vector v a, Vector v b)
 {-# INLINE rebinWorker #-}
 rebinWorker dir k f (Histogram bin _ vec)
   | G.length vec' /= nBins bin' = error "Data.Histogram.Generic.rebin: wrong MergeableBin instance"
-  | otherwise                   = Histogram bin' Nothing vec'
+  | otherwise                   = Histogram bin' NoOverflow vec'
   where
     bin' = mergeBins dir k bin
     vec' = G.generate n $ \i -> f (G.slice (off + i*k) k vec)
@@ -492,7 +510,7 @@ rebinWorker dir k f (Histogram bin _ vec)
 -- Data in 2D histograms is stored in row major order. This in fact
 -- dictated by implementation of 'Bin2D'. So indices of bin are
 -- arranged in following pattern:
--- 
+--
 -- >  0  1  2  3
 -- >  4  5  6  7
 -- >  8  9 10 11
@@ -509,7 +527,7 @@ sliceAlongX :: (Vector v a, Bin bX, Bin bY)
             -> HistIndex bY                -- ^ Position along Y axis
             -> Histogram v bX a
 sliceAlongX (Histogram (Bin2D bX bY) _ arr) y
-  | iy >= 0 && iy < ny = Histogram bX Nothing $ G.slice (nx * iy) nx arr
+  | iy >= 0 && iy < ny = Histogram bX NoOverflow $ G.slice (nx * iy) nx arr
   | otherwise          = error "Data.Histogram.Generic.Histogram.sliceXatIx: bad index"
   where
     nx = nBins bX
@@ -522,7 +540,7 @@ sliceAlongY :: (Vector v a, Bin bX, Bin bY)
             -> HistIndex bX                -- ^ Position along X axis
             -> Histogram v bY a
 sliceAlongY (Histogram (Bin2D bX bY) _ arr) x
-  | ix >= 0 && ix < nx = Histogram bY Nothing $ G.generate ny (\iy -> arr ! (iy*nx + ix))
+  | ix >= 0 && ix < nx = Histogram bY NoOverflow $ G.generate ny (\iy -> arr ! (iy*nx + ix))
   | otherwise          = error "Data.Histogram.Generic.Histogram.sliceXatIx: bad index"
   where
     nx = nBins bX
@@ -551,7 +569,7 @@ reduceX :: (Vector v a, Vector v b, Bin bX, Bin bY)
         ->  Histogram v (Bin2D bX bY) a -- ^ 2D histogram
         ->  Histogram v bY b
 reduceX f h@(Histogram (Bin2D _ bY) _ _) =
-  Histogram bY Nothing $ G.generate (nBins bY) (f . sliceAlongX h . Index)
+  Histogram bY NoOverflow $ G.generate (nBins bY) (f . sliceAlongX h . Index)
 
 -- | Reduce along X axis. Information about under/overlows is lost.
 breduceX :: (Vector v a, Vector v b, Bin bX, Bin bY)
@@ -559,7 +577,7 @@ breduceX :: (Vector v a, Vector v b, Bin bX, Bin bY)
          ->  Histogram v (Bin2D bX bY) a           -- ^ 2D histogram
          ->  Histogram v bY b
 breduceX f h@(Histogram (Bin2D _ bY) _ _) =
-  Histogram bY Nothing $ G.generate (nBins bY) $ \i -> f (fromIndex bY i) $ sliceAlongX h (Index i)
+  Histogram bY NoOverflow $ G.generate (nBins bY) $ \i -> f (fromIndex bY i) $ sliceAlongX h (Index i)
 
 
 -- | Reduce along Y axis. Information about under/overflows is lost.
@@ -568,7 +586,7 @@ reduceY :: (Vector v a, Vector v b, Bin bX, Bin bY)
         -> Histogram v (Bin2D bX bY) a -- ^ 2D histogram
         -> Histogram v bX b
 reduceY f h@(Histogram (Bin2D bX _) _ _) =
-  Histogram bX Nothing $ G.generate (nBins bX) (f . sliceAlongY h . Index)
+  Histogram bX NoOverflow $ G.generate (nBins bX) (f . sliceAlongY h . Index)
 
 -- | Reduce along Y axis. Information about under/overflows is lost.
 breduceY :: (Vector v a, Vector v b, Bin bX, Bin bY)
@@ -576,7 +594,7 @@ breduceY :: (Vector v a, Vector v b, Bin bX, Bin bY)
          -> Histogram v (Bin2D bX bY) a -- ^ 2D histogram
          -> Histogram v bX b
 breduceY f h@(Histogram (Bin2D bX _) _ _) =
-  Histogram bX Nothing $ G.generate (nBins bX) $ \i -> f (fromIndex bX i) $ sliceAlongY h (Index i)
+  Histogram bX NoOverflow $ G.generate (nBins bX) $ \i -> f (fromIndex bX i) $ sliceAlongY h (Index i)
 
 
 -- | Transform X slices of histogram.
@@ -589,7 +607,7 @@ liftX f hist@(Histogram (Bin2D _ by) _ _) =
     [] -> error "Data.Histogram.Generic.Histogram.liftX: zero size along Y"
     hs -> Histogram
           (Bin2D (bins (head hs)) by)
-           Nothing
+           NoOverflow
           (G.concat (histData <$> hs))
 
 -- | Transform Y slices of histogram.
@@ -602,7 +620,7 @@ liftY f hist@(Histogram (Bin2D bx _) _ _) =
     [] -> error "Data.Histogram.Generic.Histogram.liftY: zero size along X"
     hs -> make hs
  where
-   make hs = Histogram (Bin2D bx by') Nothing
+   make hs = Histogram (Bin2D bx by') NoOverflow
            $ G.backpermute (G.concat (histData <$> hs)) (G.generate (nx*ny) join)
      where
        by'    = bins (head hs)
