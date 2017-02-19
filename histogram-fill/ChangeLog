@@ -1,7 +1,9 @@
 Changes in 0.8.5.0
 
   * BinVar added
-
+  * Redundant constraints on functions removed
+  * Histogram data type now stores overflows/underflows as strict data type
+  * Support for GHC<7.6 is dropped
 
 Changes in 0.8.4.1
 
