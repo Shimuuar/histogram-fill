@@ -63,8 +63,8 @@ floorD x | x < 0     = double2Int x - 1
 instance Bin LogBinD where
   type BinValue LogBinD = Double
   toIndex   (LogBinD base step _) !x = floorD $ logBase step (x / base)
-  fromIndex LogBinD base step _) !i | i >= 0    = base * step ** (fromIntegral i + 0.5)
-                                        | otherwise = -1 / 0
+  fromIndex (LogBinD base step _) !i | i >= 0    = base * step ** (fromIntegral i + 0.5)
+                                     | otherwise = -1 / 0
   nBins     (LogBinD _ _ n) = n
   {-# INLINE toIndex #-}
 
