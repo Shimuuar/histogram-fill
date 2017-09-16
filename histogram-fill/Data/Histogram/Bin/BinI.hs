@@ -1,8 +1,9 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE BangPatterns       #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE LambdaCase         #-}
+{-# LANGUAGE TypeFamilies       #-}
 module Data.Histogram.Bin.BinI (
-    BinI
+    BinI(..)
   , binI
   , binI0
   ) where
@@ -42,31 +43,41 @@ binI0 :: Int                    -- ^ Number of bins.
 binI0 n = binI 0 (n - 1)
 
 instance Bin BinI where
-  type BinValue BinI = Int
-  toIndex   !(BinI base _) !x = x - base
-  fromIndex !(BinI base _) !x = x + base
-  inRange   !(BinI x y) i     = i>=x && i<=y
-  nBins     !(BinI x y) = y - x + 1
-  {-# INLINE toIndex #-}
-
-instance IntervalBin BinI where
-  binInterval b i = (n,n) where n = fromIndex b i
+  type BinValue    BinI = Int
+  type BinIdx      BinI = IndexUO
+  type BinValueSet BinI = Range1D Point Int
+  toIndex (BinI a b) x
+    | x < a     = IdxU
+    | x > b     = IdxO
+    | otherwise = IdxN (x - a)
+  fromIndex (BinI a b) = \case
+    IdxU   -> undefined
+    IdxN i -> undefined
+    IdxO   -> undefined
+  isIndexValid (BinI a b) = \case
+    IdxU   -> True
+    IdxN i -> i >= 0 && i <= (b - a)
+    IdxO   -> True
+  --
+  toBufferIdx (BinI a b) = \case
+    IdxU   -> 0
+    IdxN i -> i + 1
+    IdxO   -> b - a + 2
+  fromBufferIdx (BinI a b) i
+    | i == 0         = IdxU
+    | i == b - a + 2 = IdxO
+    | otherwise      = IdxN (i - 1)
+  totalBinNumber (BinI a b) = b - a + 3
 
 instance Bin1D BinI where
   lowerLimit (BinI i _) = i
   upperLimit (BinI _ i) = i
 
 instance SliceableBin BinI where
-  unsafeSliceBin i j (BinI l _) = BinI (l+i) (l+j)
-
-instance VariableBin BinI where
-  binSizeN _ _ = 1
+  sliceBin i j = undefined
 
 instance UniformBin BinI where
   binSize _ = 1
-
-instance BinEq BinI where
-  binEq = (==)
 
 instance Show BinI where
   show (BinI lo hi) = unlines [ "# BinI"
