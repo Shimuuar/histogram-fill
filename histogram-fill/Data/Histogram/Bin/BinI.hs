@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE BangPatterns       #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE LambdaCase         #-}
@@ -25,8 +26,8 @@ import Data.Histogram.Bin.Read
 --
 -- > b = binI (lowerLimit b) (upperLimit b)
 data BinI = BinI
-            {-# UNPACK #-} !Int -- Lower bound (inclusive)
-            {-# UNPACK #-} !Int -- Upper bound (inclusive)
+            !Int -- Lower bound (inclusive)
+            !Int -- Upper bound (inclusive)
             deriving (Eq,Data,Typeable)
 
 -- | Safe constructor for BinI. It checks that upper bound is
@@ -45,15 +46,15 @@ binI0 n = binI 0 (n - 1)
 instance Bin BinI where
   type BinValue    BinI = Int
   type BinIdx      BinI = IndexUO
-  type BinValueSet BinI = Range1D Point Int
+  type BinValueSet BinI = Range1D 'DomEnumeration Int
   toIndex (BinI a b) x
     | x < a     = IdxU
     | x > b     = IdxO
     | otherwise = IdxN (x - a)
   fromIndex (BinI a b) = \case
-    IdxU   -> undefined
-    IdxN i -> undefined
-    IdxO   -> undefined
+    IdxU   -> LessThan a
+    IdxN i -> Point   (a + i)
+    IdxO   -> GEqThan (b+1)
   isIndexValid (BinI a b) = \case
     IdxU   -> True
     IdxN i -> i >= 0 && i <= (b - a)

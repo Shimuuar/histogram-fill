@@ -1,8 +1,10 @@
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies          #-}
 -- |
 -- Module     : Data.Histogram.Bin
 -- Copyright  : Copyright (c) 2011, Alexey Khudyakov <alexey.skladnoy@gmail.com>
@@ -20,8 +22,10 @@ module Data.Histogram.Bin.Classes (
   , IndexFloatUO(..)
     -- ** Ranges
   , Range1D(..)
-  , Interval(..)
-  , Point(..)
+  , OrderedDomain(..)
+  , IsIEEE754(..)
+  -- , Interval(..)
+  -- , Point(..)
     -- * Other bin type classes
   , Bin1D(..)
   , UniformBin(..)
@@ -78,11 +82,11 @@ class Bin b where
   --   WARNING: this function should only be called with indexes such that:
   --
   -- > isIndexValid b idx == True
-  toBufferIdx   :: b -> BinIdx b -> Int
+  toBufferIdx    :: b -> BinIdx b -> Int
   -- | Convert integer index in the linear buffer to index
-  fromBufferIdx :: b -> Int -> BinIdx b
+  fromBufferIdx  :: b -> Int -> BinIdx b
   -- | Total bin number including overflow/underflow bins (if they exist)
-  totalBinNumber      :: b -> Int
+  totalBinNumber :: b -> Int
 
 
 ----------------------------------------------------------------
@@ -92,32 +96,57 @@ class Bin b where
 -- | Index for bins with overflow bins
 data IndexUO
   = IdxU                -- ^ Underflow bin
-  | IdxN Int            -- ^ Normal bin
+  | IdxN !Int           -- ^ Normal bin
   | IdxO                -- ^ Overflow bin
   deriving (Show,Eq,Ord)
 
--- | Index for bins with overflow bins and special case for NaNs
+-- | Index for bins with overflow bins and special case for
+--   NaNs. Should be used for IEEE754 numbers
 data IndexFloatUO
   = FIdxU                       -- ^ Underflow bin
-  | FIdxN Int                   -- ^ Normal bin
+  | FIdxN !Int                  -- ^ Normal bin
   | FIdxO                       -- ^ Overflow bin
   | FIdxNaN                     -- ^ Bin for NaNs
   deriving (Show,Eq,Ord)
+
+
 
 ----------------------------------------------------------------
 -- Common intervals data types
 ----------------------------------------------------------------
 
--- | Interval on
-data Range1D f a
-  = LessThan    !a
-  | Finite      !(f a)
-  | GreaterThan !a
-  -- deriving (Show,Eq,Ord)
+-- | Data type for ordered domains
+data OrderedDomain
+  = DomEnumeration
+  | DomInterval IsIEEE754
 
-data Interval a = Interval a a
+data IsIEEE754
+  = NormalNumber
+  | IEEE754Number
 
-newtype Point a = Point a
+data Range1D dom a where
+  -- | @LessThan a@ corresponds to \[ x < a \]
+  LessThan :: !a -> Range1D dom a
+  -- | @GEqThan a@  corresponds to \[ x \geq a \]
+  GEqThan  :: !a -> Range1D dom a
+  --
+  Point :: !a -> Range1D 'DomEnumeration a
+  --
+  Interval :: !a -> !a -> Range1D ('DomInterval num) a
+  -- |
+  NaNValue   :: Range1D ('DomInterval 'IEEE754Number) a
+
+
+-- -- | Interval on
+-- data Range1D f a
+--   = LessThan    !a
+--   | Finite      !(f a)
+--   | GreaterThan !a
+--   -- deriving (Show,Eq,Ord)
+
+-- data Interval a = Interval a a
+
+-- newtype Point a = Point a
 
 
 

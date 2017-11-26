@@ -1,6 +1,7 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE BangPatterns       #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE LambdaCase         #-}
+{-# LANGUAGE TypeFamilies       #-}
 module Data.Histogram.Bin.BinInt (
     BinInt(..)
   , binInt
@@ -64,14 +65,38 @@ binIntStep lo step n
   | otherwise = BinInt lo step n
 
 instance Bin BinInt where
-  type BinValue BinInt = Int
-  toIndex   !(BinInt base sz _) !x = (x - base) `div` sz
-  fromIndex !(BinInt base sz _) !x = x * sz + base
-  nBins     !(BinInt _ _ n) = n
-  {-# INLINE toIndex #-}
+  type BinValue    BinInt = Int
+  type BinIdx      BinIdx = IndexUO
+  type BinValueSet BinIdx = Range1D ('DomInterval 'NormalNumber) Int
+  --
+  toIndex   !(BinInt base sz _) !x
+    | x <  base = IdxU
+    | i >= n    = IdxO
+    | otherwise = IdxN i
+    where
+      i = (x - base) `mod` sz
+  fromIndex !(BinInt base sz n) = \case
+    IdxU   -> LessThan base
+    IdxN i -> Interval (base + i*sz) (base + (i+1)*sz)
+    IdxO   -> GEqThan (base + sz*n)
+  isIndexValid (BinInt _ n) = \case
+    IdxU   -> True
+    IdxN i -> i >= 0 && i < n
+    IdxO   -> True
+  --
+  toBufferIdx (BinInt _ _ n) = \case
+    IdxU   -> 0
+    IdxN i -> i + 1
+    IdxO   -> n + 1
+  fromBufferIdx (BinInt _ _ n)
+    | i == 0 = IdxU
+    | i == n+1 = IdxO
+    | otherwise = IdxN (n - 1)
+  totalBinNumber (BinInt _ _ n) = n + 2
 
-instance IntervalBin BinInt where
-  binInterval b i = (n, n + binSize b - 1) where n = fromIndex b i
+
+-- instance IntervalBin BinInt where
+--   binInterval b i = (n, n + binSize b - 1) where n = fromIndex b i
 
 instance Bin1D BinInt where
   lowerLimit (BinInt base _  _) = base
@@ -89,14 +114,11 @@ instance MergeableBin BinInt where
       n = nBins b `div` k
       r = (nBins b - n * k) * step
 
-instance VariableBin BinInt where
-  binSizeN (BinInt _ sz _) _ = sz
+-- instance VariableBin BinInt where
+--   binSizeN (BinInt _ sz _) _ = sz
 
 instance UniformBin BinInt where
   binSize (BinInt _ sz _) = sz
-
-instance BinEq BinInt where
-  binEq = (==)
 
 instance Show BinInt where
   show (BinInt base sz n) =
