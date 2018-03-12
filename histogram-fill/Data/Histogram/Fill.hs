@@ -67,6 +67,7 @@ import Control.Monad.ST
 import Control.Monad.Primitive
 
 import Data.Monoid            (Monoid(..))
+import Data.Semigroup         (Semigroup(..))
 import Data.Vector.Unboxed    (Unbox)
 import Data.Primitive.MutVar
 import qualified Data.Vector.Generic as G
@@ -232,13 +233,18 @@ instance Monad m => Applicative (HBuilderM m a) where
                                         return (a b)
                         }
 
+instance (Monad m, Semigroup b) => Semigroup (HBuilderM m a b) where
+    (<>) = liftA2 (<>)
+    {-# INLINE (<>) #-}
+
 instance (Monad m, Monoid b) => Monoid (HBuilderM m a b) where
     mempty = HBuilderM { hbInput  = \_ -> return ()
                        , hbOutput = return mempty
                        }
-    mappend h1 h2 = mappend <$> h1 <*> h2
+    mappend = liftA2 mappend
     mconcat = fmap mconcat . F.sequenceA
     {-# INLINE mempty  #-}
+    {-# INLINE mappend #-}
     {-# INLINE mconcat #-}
 
 
@@ -289,10 +295,13 @@ instance Functor (HBuilder a) where
 instance Applicative (HBuilder a) where
     pure x  = HBuilder (return $ pure x)
     (HBuilder f) <*> (HBuilder g) = HBuilder $ liftM2 (<*>) f g
+instance Semigroup b => Semigroup (HBuilder a b) where
+    (<>) = liftA2 (<>)
+    {-# INLINE (<>) #-}
 instance Monoid b => Monoid (HBuilder a b) where
-    mempty      = HBuilder (return mempty)
-    mappend h g = mappend <$> h <*> g
-    mconcat     = fmap mconcat . F.sequenceA
+    mempty  = HBuilder (return mempty)
+    mappend = liftA2 mappend
+    mconcat = fmap mconcat . F.sequenceA
     {-# INLINE mempty  #-}
     {-# INLINE mappend #-}
     {-# INLINE mconcat #-}

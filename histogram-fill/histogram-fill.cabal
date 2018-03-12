@@ -32,6 +32,8 @@ Library
                , primitive       >= 0.5
                , ghc-prim
                , vector          >= 0.10.0.1
+  if impl(ghc < 8.0)
+    Build-Depends: semigroups >= 0.18
   Exposed-modules:
     Data.Histogram
     Data.Histogram.Generic
