@@ -1,3 +1,8 @@
+Changes in 0.9.0.0
+
+  * GHC 8.4 compatibility. Semigroup instances added for `HBuilder` and
+    `HBuilderM`. `semigroups` dependency added for older GHCs
+
 Changes in 0.8.5.0
 
   * BinVar added
