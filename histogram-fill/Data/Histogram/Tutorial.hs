@@ -1,0 +1,66 @@
+-- |
+-- Module     : Data.Histogram.Tutorial
+-- Copyright  : Copyright (c) 2009-2018, Alexey Khudyakov <alexey.skladnoy@gmail.com>
+-- License    : BSD3
+-- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
+-- Stability  : experimental
+--
+--
+-- == 1.
+--
+-- The first example illustrates one of the most common use-cases of a histogram, i.e.
+--
+-- * uniformly-spaced, equal-weight bins
+--
+-- * one-dimensional distribuded data
+--
+-- * binning range equal to the data range
+-- 
+-- We can write a helper function that populates a 'Histogram' from a 'Foldable' container (e.g. an array, or a 'Vector', or a tree, etc.) of 'Double's :
+-- 
+-- @
+-- histo :: ('Foldable' v, 'Unbox' a, Num a) =>
+--          Int
+--       -> v Double
+--       -> 'Histogram' 'BinD' a
+-- histo n v = 'fillBuilder' buildr v
+--   where
+--     mi = minimum v
+--     ma = maximum v
+--     bins = 'binD' mi n ma
+--     buildr = 'mkSimple' bins
+-- @
+--
+-- We can now declare our first histogram with 4 bins and a list of data :
+--
+-- > > let h0 = histo 4 [1,2,3,5,1,-10,2,3,50,1,6,7,4,6,34,45,20,120,-80]
+-- 
+-- The @Show@ instance of 'Histogram' lets us see the histogram metadata  :
+--
+-- > > h0
+-- > # Histogram
+-- > # Underflows = 0.0
+-- > # Overflows  = 1.0
+-- > # BinD
+-- > # Base = -80.0
+-- > # Step = 50.0
+-- > # N    = 4
+-- > -55.0	1.0
+-- > -5.0	13.0
+-- > 45.0	4.0
+-- > 95.0	0.0
+--
+-- Note : with this binning algorithm, the bin intervals are closed to the left and open to the right, which is why the 120 element is marked as an overlow.
+--
+-- Note 2 : the output of `show` shouldn't generally be used as a form of data serialization.
+--
+-- The data bin centers and bin counts can be retrieved with 'asList':
+--
+-- > > asList h0
+-- > [(-55.0,1.0),(-5.0,13.0),(45.0,4.0),(95.0,0.0)]
+module Data.Histogram.Tutorial where
+
+import Data.Histogram 
+import Data.Histogram.Bin
+import Data.Histogram.Fill (mkSimple, fillBuilder)
+import Data.Vector.Unboxed (Unbox(..))
