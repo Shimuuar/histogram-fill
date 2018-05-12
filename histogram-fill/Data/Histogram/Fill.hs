@@ -390,8 +390,8 @@ mkFolder :: b -> (a -> b -> b) -> HBuilder a b
 {-# INLINE mkFolder #-}
 mkFolder a f = HBuilder $ do
   ref <- newMutVar a
-  return HBuilderM { hbInput  = \a -> do b <- readMutVar ref
-                                         writeMutVar ref $! f a b
+  return HBuilderM { hbInput  = \aa -> do b <- readMutVar ref
+                                          writeMutVar ref $! f aa b
                    , hbOutput = readMutVar ref
                    }
 
@@ -421,7 +421,7 @@ fillBuilder hb xs =
 -- | Fill histogram builder.
 fillBuilderVec :: G.Vector v a => HBuilder a b -> v a -> b
 {-# INLINE fillBuilderVec #-}
-fillBuilderVec hb = \vec ->
+fillBuilderVec hb vec =
     runST $ do h <- toHBuilderST hb
                G.mapM_ (feedOne h) vec
                freezeHBuilderM h

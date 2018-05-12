@@ -1,3 +1,6 @@
+Changes in 0.9.1.0
+  * Added `Data.Histogram.Tutorial` module	
+
 Changes in 0.9.0.0
 
   * GHC 8.4 compatibility. Semigroup instances added for `HBuilder` and

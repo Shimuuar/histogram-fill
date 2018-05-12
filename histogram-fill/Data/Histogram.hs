@@ -9,9 +9,10 @@
 -- Stability  : experimental
 -- 
 -- Immutable histograms. This module exports the same API as
--- 'Data.Histogram.Generic' but specialized to unboxed vectors. Refer
--- to the aforementioned module for documentation.
-module Data.Histogram ( -- * Immutable histogram
+-- 'Data.Histogram.Generic' but specialized to unboxed vectors. Please refer
+-- to the aforementioned module for detailed documentation.
+    
+module Data.Histogram ( 
     -- * Immutable histograms
     Histogram
   , module Data.Histogram.Bin
@@ -89,7 +90,7 @@ import qualified Data.Histogram.Generic as H
 import Data.Histogram.Generic (HistIndex(..),histIndex)
 import Data.Histogram.Bin
 
-import Prelude hiding (map,zip,foldl,sum,maximum,minimum)
+import Prelude hiding (map, zip, foldl, sum, maximum, minimum)
 
 
 
