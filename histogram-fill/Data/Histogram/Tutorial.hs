@@ -16,7 +16,7 @@
 --
 -- * binning range equal to the data range
 -- 
--- Here we populate a 'Histogram' from a 'Foldable' container (e.g. an array, or a 'Vector', or a tree, etc.) of 'Double's :
+-- We can write a helper function that populates a 'Histogram' from a 'Foldable' container (e.g. an array, or a 'Vector', or a tree, etc.) of 'Double's :
 -- 
 -- @
 -- histo :: ('Foldable' v, 'Unbox' a, Num a) =>
@@ -30,6 +30,32 @@
 --     bins = 'binD' mi n ma
 --     buildr = 'mkSimple' bins
 -- @
+--
+-- We can now declare our first histogram with 4 bins and a list of data :
+--
+-- > > let h0 = histo 4 [1,2,3,5,1,-10,2,3,50,1,6,7,4,6,34,45,20,120,-80]
+-- 
+-- The @Show@ instance of 'Histogram' lets us see the histogram metadata  :
+--
+-- > > h0
+-- > # Histogram
+-- > # Underflows = 0.0
+-- > # Overflows  = 1.0
+-- > # BinD
+-- > # Base = -80.0
+-- > # Step = 50.0
+-- > # N    = 4
+-- > -55.0	1.0
+-- > -5.0	13.0
+-- > 45.0	4.0
+-- > 95.0	0.0
+--
+-- Note : the output of `show` shouldn't generally be used as a form of data serialization.
+--
+-- The data bin centers and bin counts can be retrieved with 'asList':
+--
+-- > > asList h0
+-- > [(-55.0,1.0),(-5.0,13.0),(45.0,4.0),(95.0,0.0)]
 module Data.Histogram.Tutorial where
 
 import Data.Histogram 
