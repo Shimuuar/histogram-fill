@@ -10,7 +10,7 @@
 --
 -- The first example illustrates one of the most common use-cases of a histogram, i.e.
 --
--- * uniform binning
+-- * uniformly-spaced, equal-weight bins
 --
 -- * one-dimensional distribuded data
 --
