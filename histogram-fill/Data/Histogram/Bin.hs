@@ -1,6 +1,6 @@
 -- Required for Bin2D conversions
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverlappingInstances #-}
+-- {-# LANGUAGE OverlappingInstances #-}
 -- Yes, I DO want orphans here
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -- |
