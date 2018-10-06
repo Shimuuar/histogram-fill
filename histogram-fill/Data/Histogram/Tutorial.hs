@@ -16,7 +16,9 @@
 --
 -- * binning range equal to the data range
 -- 
--- We can write a helper function that populates a 'Histogram' from a 'Foldable' container (e.g. an array, or a 'Vector', or a tree, etc.) of 'Double's :
+-- We can write a helper function that populates a 'Histogram' from a
+-- 'Foldable' container (e.g. an array, or a 'Vector', or a tree,
+-- etc.) of 'Double's :
 -- 
 -- @
 -- histo :: ('Foldable' v, 'Unbox' a, Num a) =>
@@ -50,9 +52,12 @@
 -- > 45.0	4.0
 -- > 95.0	0.0
 --
--- Note : with this binning algorithm, the bin intervals are closed to the left and open to the right, which is why the 120 element is marked as an overlow.
+-- Note : with this binning algorithm, the bin intervals are closed to
+-- the left and open to the right, which is why the 120 element is
+-- marked as an overlow.
 --
--- Note 2 : the output of `show` shouldn't generally be used as a form of data serialization.
+-- Note 2 : the output of `show` shouldn't generally be used as a form
+-- of data serialization.
 --
 -- The data bin centers and bin counts can be retrieved with 'asList':
 --
