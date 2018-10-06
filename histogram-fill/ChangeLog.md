@@ -1,5 +1,6 @@
 Changes in 0.9.1.0
   * Added `Data.Histogram.Tutorial` module	
+  * GHC 8.6 Compatibility
 
 Changes in 0.9.0.0
 
