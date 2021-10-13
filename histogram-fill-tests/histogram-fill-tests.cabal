@@ -34,14 +34,17 @@ test-suite tests
     Test.Histogram
     Test.Binary
     Test.Cereal
+    Test.Serialise
   Build-depends: base >=4.6 && < 5
                , histogram-fill            >=0.8.5.0
                , histogram-fill-binary     >=0.8.5.0
                , histogram-fill-cereal     >=0.8.5.0
                , histogram-fill-quickcheck >=0.8.5.0
+               , histogram-fill-serialise  >=0.8.5.0
                , vector
                , cereal
                , binary
+               , serialise
                , QuickCheck >= 2
                , tasty
                , tasty-quickcheck
