@@ -4,7 +4,7 @@ Synopsis:       QuickCheck instances for histogram-fill
 Description:
   QuickCheck instances for histogram-fill package
 
-Cabal-Version:  >= 1.6
+Cabal-Version:  >= 1.10
 License:        BSD3
 License-File:   LICENSE
 Author:         Alexey Khudyakov
@@ -14,15 +14,12 @@ Category:       Data
 Build-Type:     Simple
 
 source-repository head
-  type:     hg
-  location: http://bitbucket.org/Shimuuar/histogram-fill
-source-repository head
   type:     git
   location: http://github.com/Shimuuar/histogram-fill
 
 Library
+  Default-Language: Haskell2010
   Ghc-options:          -Wall
-  Ghc-prof-options:     -auto-all
   Build-Depends: base           >= 4.6 && <5
                , vector         >= 0.7
                , histogram-fill >= 0.8.5.0

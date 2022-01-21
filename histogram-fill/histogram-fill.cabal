@@ -7,7 +7,7 @@ Description:
             .
             To get started, refer to the usage examples in 'Data.Histogram.Tutorial'.
 
-Cabal-Version:  >= 1.8
+Cabal-Version:  >= 1.10
 License:        BSD3
 License-File:   LICENSE
 Author:         Alexey Khudyakov
@@ -20,22 +20,17 @@ extra-source-files:
   ChangeLog.md
 
 source-repository head
-  type:     hg
-  location: http://bitbucket.org/Shimuuar/histogram-fill
-source-repository head
   type:     git
   location: http://github.com/Shimuuar/histogram-fill
 
 Library
+  Default-Language:     Haskell2010
   Ghc-options:          -O2 -Wall
-  Ghc-prof-options:     -auto-all
-  Build-Depends: base            >= 4.6 && <5
+  Build-Depends: base            >= 4.12 && <5
                , deepseq
                , primitive       >= 0.5
                , ghc-prim
                , vector          >= 0.10.0.1
-  if impl(ghc < 8.0)
-    Build-Depends: semigroups >= 0.18
   Exposed-modules:
     Data.Histogram.Tutorial
     Data.Histogram
@@ -56,9 +51,10 @@ Library
     Data.Histogram.ST
 
 Benchmark benchmarks
-  Type:           exitcode-stdio-1.0
-  Main-is:        benchmark.hs
-  hs-source-dirs: benchmarks
+  Default-Language: Haskell2010
+  Type:             exitcode-stdio-1.0
+  Main-is:          benchmark.hs
+  hs-source-dirs:   benchmarks
   build-depends:
     base >=3 && <5,
     histogram-fill,
