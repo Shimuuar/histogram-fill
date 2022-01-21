@@ -216,7 +216,7 @@ infixr 4 -<<
 data HBuilderM m a b = HBuilderM { hbInput  :: a -> m ()
                                  , hbOutput :: m b
                                  }
-instance Monad m => Profunctor (HBuilderM m) where
+instance Functor m => Profunctor (HBuilderM m) where
   lmap f h = h { hbInput  = hbInput h . f }
   rmap f h = h { hbOutput = f <$> hbOutput h }
 
@@ -225,16 +225,14 @@ instance Monad m => HistBuilder (HBuilderM m) where
     addCut        f      h = h { hbInput  = \x -> when (f x) (hbInput h x) }
     fromContainer fmapM_ h = h { hbInput  = fmapM_ (hbInput h) }
 
-instance Monad m => Functor (HBuilderM m a) where
-    fmap = modifyOut
-instance Monad m => Applicative (HBuilderM m a) where
-    pure x = HBuilderM { hbInput  = const $ return ()
-                       , hbOutput = return x
+instance Functor m => Functor (HBuilderM m a) where
+    fmap = rmap
+instance Applicative m => Applicative (HBuilderM m a) where
+    pure x = HBuilderM { hbInput  = const $ pure ()
+                       , hbOutput = pure x
                        }
-    f <*> g = HBuilderM { hbInput  = \a -> hbInput f a >> hbInput g a
-                        , hbOutput = do a <- hbOutput f
-                                        b <- hbOutput g
-                                        return (a b)
+    f <*> g = HBuilderM { hbInput  = \a -> hbInput f a *> hbInput g a
+                        , hbOutput = liftA2 ($) (hbOutput f) (hbOutput g)
                         }
 
 instance (Monad m, Semigroup b) => Semigroup (HBuilderM m a b) where
