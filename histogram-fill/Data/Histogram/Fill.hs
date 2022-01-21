@@ -53,11 +53,6 @@ module Data.Histogram.Fill (
   , forceFloat
     -- * Examples
     -- $examples
-    -- * Deprecated functions
-  , joinHBuilder
-  , joinHBuilderM
-  , treeHBuilderM
-  , treeHBuilder
   ) where
 
 import Control.Applicative
@@ -446,35 +441,3 @@ forceDouble = id
 
 forceFloat :: H.Histogram v bin Float -> H.Histogram v bin Float
 forceFloat = id
-
-
-
-----------------------------------------------------------------
--- Deprecated
-----------------------------------------------------------------
-
--- | Join histogram builders in a container
-joinHBuilderM :: (F.Traversable f, Monad m) => f (HBuilderM m a b) -> HBuilderM m a (f b)
-joinHBuilderM = F.sequenceA
-{-# INLINE     joinHBuilderM #-}
-{-# DEPRECATED joinHBuilderM "Use Data.Traversable.sequenceA instead" #-}
-
--- | Apply functions to the builder
-treeHBuilderM :: (Monad m, F.Traversable f) => f (HBuilderM m a b -> HBuilderM m a' b') -> HBuilderM m a b -> HBuilderM m a' (f b')
-treeHBuilderM fs h = F.traverse ($ h) fs
-{-# INLINE     treeHBuilderM #-}
-{-# DEPRECATED treeHBuilderM
-  "Use Data.Traversable.traverse. treeHBuilderM fs h = F.traverse ($ h) fs" #-}
-
--- | Join histogram builders in a container.
-joinHBuilder :: F.Traversable f => f (HBuilder a b) -> HBuilder a (f b)
-joinHBuilder = F.sequenceA
-{-# INLINE     joinHBuilder #-}
-{-# DEPRECATED joinHBuilder "Use Data.Traversable.sequenceA instead" #-}
-
--- | Apply function to a builder
-treeHBuilder :: F.Traversable f => f (HBuilder a b -> HBuilder a' b') -> HBuilder a b -> HBuilder a' (f b')
-treeHBuilder fs h = F.traverse ($ h) fs
-{-# INLINE     treeHBuilder #-}
-{-# DEPRECATED treeHBuilder
-  "Use Data.Traversable.traverse. treeHBuilderM fs h = F.traverse ($ h) fs" #-}
