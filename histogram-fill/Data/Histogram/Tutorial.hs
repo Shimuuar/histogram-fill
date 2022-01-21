@@ -65,7 +65,7 @@
 -- > [(-55.0,1.0),(-5.0,13.0),(45.0,4.0),(95.0,0.0)]
 module Data.Histogram.Tutorial where
 
-import Data.Histogram 
-import Data.Histogram.Bin
-import Data.Histogram.Fill (mkSimple, fillBuilder)
-import Data.Vector.Unboxed (Unbox(..))
+-- import Data.Histogram 
+-- import Data.Histogram.Bin
+-- import Data.Histogram.Fill (mkSimple, fillBuilder)
+-- import Data.Vector.Unboxed (Unbox(..))
