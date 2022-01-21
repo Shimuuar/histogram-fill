@@ -31,6 +31,7 @@ Library
                , primitive       >= 0.5
                , ghc-prim
                , vector          >= 0.10.0.1
+               , profunctors     >= 5
   Exposed-modules:
     Data.Histogram.Tutorial
     Data.Histogram

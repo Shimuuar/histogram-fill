@@ -66,6 +66,7 @@ import Control.Monad       (when,liftM,liftM2)
 import Control.Monad.ST
 import Control.Monad.Primitive
 
+import Data.Profunctor
 import Data.Vector.Unboxed    (Unbox)
 import Data.Primitive.MutVar
 import qualified Data.Vector.Generic as G
@@ -91,11 +92,7 @@ import Data.Histogram.ST
 --
 --   Every instance of 'HBuilder' should be instance of 'Functor' too
 --   and satisfy 'fmap' == 'modifyOut'.
-class HistBuilder h where
-    -- | Apply function to output of histogram.
-    modifyOut     :: (b -> b') -> h a b -> h a  b'
-    -- | Change input of builder by applying function to it.
-    modifyIn      :: (a' -> a) -> h a b -> h a' b
+class Profunctor h => HistBuilder h where
     -- | Put all values in container into builder 
     fromContainer :: (forall m. Monad m => (a -> m ()) -> f a -> m ())
                      -- ^ @mapM_@ function for container
@@ -103,6 +100,14 @@ class HistBuilder h where
     -- | Add cut to histogram. Value would be putted into histogram
     --   only if condition is true. 
     addCut        :: (a -> Bool) -> h a b -> h a b
+
+-- | Apply function to output of histogram.
+modifyOut :: HistBuilder h => (b -> b') -> h a b -> h a  b'
+modifyOut = rmap
+
+-- | Change input of builder by applying function to it.
+modifyIn :: HistBuilder h => (a' -> a) -> h a b -> h a' b
+modifyIn = lmap
 
 
 -- | Modify input of builder
@@ -211,13 +216,14 @@ infixr 4 -<<
 data HBuilderM m a b = HBuilderM { hbInput  :: a -> m ()
                                  , hbOutput :: m b
                                  }
+instance Monad m => Profunctor (HBuilderM m) where
+  lmap f h = h { hbInput  = hbInput h . f }
+  rmap f h = h { hbOutput = f <$> hbOutput h }
 
 -- | Builders modified using 'HistBuilder' API will share the same buffer.
 instance Monad m => HistBuilder (HBuilderM m) where
-    modifyIn      f      h = h { hbInput  = hbInput h . f }
     addCut        f      h = h { hbInput  = \x -> when (f x) (hbInput h x) }
     fromContainer fmapM_ h = h { hbInput  = fmapM_ (hbInput h) }
-    modifyOut     f      h = h { hbOutput = f `liftM` hbOutput h }
 
 instance Monad m => Functor (HBuilderM m a) where
     fmap = modifyOut
@@ -284,11 +290,13 @@ toHBuilderIO :: HBuilder a b -> IO (HBuilderM IO a b)
 {-# INLINE toHBuilderIO #-}
 toHBuilderIO = toHBuilderM
 
-instance HistBuilder (HBuilder) where
-    modifyIn      f      (HBuilder h) = HBuilder (modifyIn  f `liftM` h)
+instance Profunctor HBuilder where
+  lmap f (HBuilder h) = HBuilder (lmap f <$> h)
+  rmap f (HBuilder h) = HBuilder (rmap f <$> h)
+
+instance HistBuilder HBuilder where
     addCut        f      (HBuilder h) = HBuilder (addCut    f `liftM` h)
     fromContainer fmapM_ (HBuilder h) = HBuilder (fromContainer fmapM_ `liftM` h)
-    modifyOut     f      (HBuilder h) = HBuilder (modifyOut f `liftM` h)
 
 instance Functor (HBuilder a) where
     fmap = modifyOut
