@@ -14,7 +14,6 @@ module Data.Histogram.Fill (
     HistBuilder(..)
     -- ** Operators
   , (<<-)
-  , (<<-|)
   , (<<?)
   , (<<-$)
   , (-<<)
@@ -62,10 +61,11 @@ module Data.Histogram.Fill (
   ) where
 
 import Control.Applicative
-import Control.Monad       (when,liftM,liftM2)
 import Control.Monad.ST
 import Control.Monad.Primitive
+import Control.Lens.Fold
 
+import Data.Monoid
 import Data.Profunctor
 import Data.Vector.Unboxed    (Unbox)
 import Data.Primitive.MutVar
@@ -93,13 +93,7 @@ import Data.Histogram.ST
 --   Every instance of 'HBuilder' should be instance of 'Functor' too
 --   and satisfy 'fmap' == 'modifyOut'.
 class Profunctor h => HistBuilder h where
-    -- | Put all values in container into builder 
-    fromContainer :: (forall m. Monad m => (a -> m ()) -> f a -> m ())
-                     -- ^ @mapM_@ function for container
-                  -> h a b -> h (f a) b
-    -- | Add cut to histogram. Value would be putted into histogram
-    --   only if condition is true. 
-    addCut        :: (a -> Bool) -> h a b -> h a b
+  transformInput :: Fold a b -> h b c -> h a c
 
 -- | Apply function to output of histogram.
 modifyOut :: HistBuilder h => (b -> b') -> h a b -> h a  b'
@@ -115,14 +109,9 @@ modifyIn = lmap
 (<<-) = flip modifyIn
 {-# INLINE (<<-) #-}
 
--- | Modify input of builder to use composite input
-(<<-|) :: (HistBuilder h, F.Foldable f) => h a b -> (a' -> f a) -> h a' b
-h <<-| f = fromContainer F.mapM_ h <<- f
-{-# INLINE (<<-|) #-}
-
 -- | Add cut for input
 (<<?) :: HistBuilder h => h a b -> (a -> Bool) -> h a b
-(<<?) = flip addCut
+h <<? f = transformInput (filtered f) h
 {-# INLINE (<<?) #-}
 
 -- | Apply function which modify builder
@@ -137,7 +126,6 @@ h <<-$ f = f h
 
 -- Fixity of operators
 infixl 5 <<-
-infixl 5 <<-|
 infixl 5 <<?
 infixl 5 <<-$
 infixr 4 -<<
@@ -221,9 +209,12 @@ instance Functor m => Profunctor (HBuilderM m) where
   rmap f h = h { hbOutput = f <$> hbOutput h }
 
 -- | Builders modified using 'HistBuilder' API will share the same buffer.
-instance Monad m => HistBuilder (HBuilderM m) where
-    addCut        f      h = h { hbInput  = \x -> when (f x) (hbInput h x) }
-    fromContainer fmapM_ h = h { hbInput  = fmapM_ (hbInput h) }
+instance Applicative m => HistBuilder (HBuilderM m) where
+  {-# INLINE transformInput #-}
+  transformInput l h = h { hbInput = transformFun l (hbInput h) }
+
+transformFun :: Applicative m => Fold a b -> (b -> m ()) -> (a -> m ())
+transformFun l f = getAp . getConst . l (Const . Ap . f)
 
 instance Functor m => Functor (HBuilderM m a) where
     fmap = rmap
@@ -293,14 +284,14 @@ instance Profunctor HBuilder where
   rmap f (HBuilder h) = HBuilder (rmap f <$> h)
 
 instance HistBuilder HBuilder where
-    addCut        f      (HBuilder h) = HBuilder (addCut    f `liftM` h)
-    fromContainer fmapM_ (HBuilder h) = HBuilder (fromContainer fmapM_ `liftM` h)
+  transformInput l (HBuilder h) = HBuilder (transformInput l <$> h)
+  {-# INLINE transformInput #-}
 
 instance Functor (HBuilder a) where
     fmap = modifyOut
 instance Applicative (HBuilder a) where
     pure x  = HBuilder (return $ pure x)
-    (HBuilder f) <*> (HBuilder g) = HBuilder $ liftM2 (<*>) f g
+    (HBuilder f) <*> (HBuilder g) = HBuilder $ liftA2 (<*>) f g
 instance Semigroup b => Semigroup (HBuilder a b) where
     (<>) = liftA2 (<>)
     {-# INLINE (<>) #-}
