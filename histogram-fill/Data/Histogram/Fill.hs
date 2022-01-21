@@ -209,6 +209,7 @@ instance Applicative m => HistBuilder (HBuilderM m) where
   transformInput l h = h { hbInput = transformFun l (hbInput h) }
 
 transformFun :: Applicative m => Fold a b -> (b -> m ()) -> (a -> m ())
+{-# INLINE transformFun #-}
 transformFun l f = getAp . getConst . l (Const . Ap . f)
 
 instance Functor m => Functor (HBuilderM m a) where
