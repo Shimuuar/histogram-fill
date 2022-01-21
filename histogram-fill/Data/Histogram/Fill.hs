@@ -267,12 +267,14 @@ freezeHBuilderM = hbOutput
 
 -- | Wrapper around the stateful histogram builder. It is much more
 --   convenient to work with this one than with 'HBuilderM'.
-newtype HBuilder a b = HBuilder (forall m. PrimMonad m => m (HBuilderM m a b))
+newtype HBuilder a b = HBuilder (forall s. ST s (HBuilderM (ST s) a b))
 
 -- | Convert the builder to a stateful builder in a primitive monad
 toHBuilderM :: PrimMonad m => HBuilder a b -> m (HBuilderM m a b)
 {-# INLINE toHBuilderM #-}
-toHBuilderM (HBuilder hb) = hb
+toHBuilderM (HBuilder hb) = do
+  HBuilderM inp out <- stToPrim hb
+  pure $ HBuilderM (stToPrim . inp) (stToPrim out)
 
 -- | Convert the builder to stateful builder in the ST monad
 toHBuilderST :: HBuilder a b -> ST s (HBuilderM (ST s) a b)
