@@ -66,8 +66,6 @@ import Control.Monad       (when,liftM,liftM2)
 import Control.Monad.ST
 import Control.Monad.Primitive
 
-import Data.Monoid            (Monoid(..))
-import Data.Semigroup         (Semigroup(..))
 import Data.Vector.Unboxed    (Unbox)
 import Data.Primitive.MutVar
 import qualified Data.Vector.Generic as G
