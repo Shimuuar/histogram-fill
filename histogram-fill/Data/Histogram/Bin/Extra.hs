@@ -21,7 +21,6 @@ module Data.Histogram.Bin.Extra ( Enum2D(..)
                                 , permuteBin
                                 ) where
 
-import Control.Applicative ((<$>), Applicative(..))
 import Control.Monad       (forM_,liftM2, guard)
 import Control.Monad.ST    (ST)
 import Control.DeepSeq     (NFData(..))
