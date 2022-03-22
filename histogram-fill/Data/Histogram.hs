@@ -169,11 +169,11 @@ mapData :: (Unbox a, Unbox b, Bin bin)
 mapData = H.mapData
 
 
-zip :: (BinEq bin, Unbox a, Unbox b, Unbox c) 
+zip :: (Eq bin, Unbox a, Unbox b, Unbox c) 
     => (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Histogram bin c
 zip = H.zip
            
-zipSafe :: (BinEq bin, Unbox a, Unbox b, Unbox c)
+zipSafe :: (Eq bin, Unbox a, Unbox b, Unbox c)
         => (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Maybe (Histogram bin c)
 zipSafe = H.zipSafe
 
@@ -318,13 +318,13 @@ breduceY :: (Unbox a, Unbox b, Bin bX, Bin bY)
          -> Histogram bX b
 breduceY = H.breduceY
 
-liftX :: (Bin bX, Bin bY, BinEq bX', Unbox a, Unbox b)
+liftX :: (Bin bX, Bin bY, Bin bX', Eq bX', Unbox a, Unbox b)
       => (Histogram bX a -> Histogram bX' b)
       -> Histogram (Bin2D bX  bY) a
       -> Histogram (Bin2D bX' bY) b
 liftX = H.liftX
 
-liftY :: (Bin bX, Bin bY, BinEq bY', Unbox a, Unbox b)
+liftY :: (Bin bX, Bin bY, Bin bY', Eq bY', Unbox a, Unbox b)
       => (Histogram bY a -> Histogram bY' b)
       -> Histogram (Bin2D bX bY ) a
       -> Histogram (Bin2D bX bY') b

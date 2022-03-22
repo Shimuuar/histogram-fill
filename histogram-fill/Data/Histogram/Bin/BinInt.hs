@@ -95,9 +95,6 @@ instance VariableBin BinInt where
 instance UniformBin BinInt where
   binSize (BinInt _ sz _) = sz
 
-instance BinEq BinInt where
-  binEq = (==)
-
 instance Show BinInt where
   show (BinInt base sz n) =
     unlines [ "# BinInt"

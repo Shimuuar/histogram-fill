@@ -340,17 +340,17 @@ mapData f (Histogram bin _ v)
 
 -- | Zip two histograms elementwise. Bins of histograms must be equal
 --   otherwise error will be called.
-zip :: (BinEq bin, Vector v a, Vector v b, Vector v c) =>
+zip :: (Eq bin, Vector v a, Vector v b, Vector v c) =>
        (a -> b -> c) -> Histogram v bin a -> Histogram v bin b -> Histogram v bin c
 zip f ha hb = fromMaybe (error msg) $ zipSafe f ha hb
   where msg = "Data.Histogram.Generic.Histogram.histZip: bins are different"
 
 -- | Zip two histograms elementwise. If bins are not equal return `Nothing`
-zipSafe :: (BinEq bin, Vector v a, Vector v b, Vector v c) =>
+zipSafe :: (Eq bin, Vector v a, Vector v b, Vector v c) =>
            (a -> b -> c) -> Histogram v bin a -> Histogram v bin b -> Maybe (Histogram v bin c)
 zipSafe f (Histogram bin uo v) (Histogram bin' uo' v')
-  | binEq bin bin' = Just $ Histogram bin (f <$> uo <*> uo') (G.zipWith f v v')
-  | otherwise      = Nothing
+  | bin == bin' = Just $ Histogram bin (f <$> uo <*> uo') (G.zipWith f v v')
+  | otherwise   = Nothing
 
 -- | Convert between different vector types
 convert :: (Vector v a, Vector w a)
@@ -599,7 +599,7 @@ breduceY f h@(Histogram (Bin2D bX _) _ _) =
 
 
 -- | Transform X slices of histogram.
-liftX :: (Bin bX, Bin bY, Bin bX', BinEq bX', Vector v a, Vector v b)
+liftX :: (Bin bX, Bin bY, Bin bX', Eq bX', Vector v a, Vector v b)
       => (Histogram v bX a -> Histogram v bX' b)
       -> Histogram v (Bin2D bX  bY) a
       -> Histogram v (Bin2D bX' bY) b
@@ -612,7 +612,7 @@ liftX f hist@(Histogram (Bin2D _ by) _ _) =
           (G.concat (histData <$> hs))
 
 -- | Transform Y slices of histogram.
-liftY :: (Bin bX, Bin bY, Bin bY', BinEq bY', Vector v a, Vector v b, Vector v Int)
+liftY :: (Bin bX, Bin bY, Bin bY', Eq bY', Vector v a, Vector v b, Vector v Int)
       => (Histogram v bY a -> Histogram v bY' b)
       -> Histogram v (Bin2D bX bY ) a
       -> Histogram v (Bin2D bX bY') b

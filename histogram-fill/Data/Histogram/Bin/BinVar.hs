@@ -101,15 +101,6 @@ instance (Vector v a, Ord a, Fractional a) => SliceableBin (BinVarG v a) where
 instance (Vector v a, Ord a, Fractional a) => VariableBin (BinVarG v a) where
   binSizeN (BinVarG c) !i = c ! (i+1) - c ! i
 
--- | Equality is up to 3e-11 (2/3th of digits)
-instance (Vector v a, Vector v Bool, Ord a, Fractional a) => BinEq (BinVarG v a) where
-  binEq (BinVarG c) (BinVarG c')
-    =  (G.length c == G.length c')
-    && (G.and (G.zipWith eq c c'))
-    where
-      eq x y = abs (x - y) < eps * (abs x `max` abs y)
-      eps    = 3e-11
-
 instance (Vector v a, Show a) => Show (BinVarG v a) where
   show (BinVarG c) = "# BinVar\n# cuts = " ++ show (G.toList c) ++ "\n"
 

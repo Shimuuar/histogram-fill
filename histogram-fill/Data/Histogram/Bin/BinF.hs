@@ -109,16 +109,6 @@ instance RealFrac f => VariableBin (BinF f) where
 instance RealFrac f => UniformBin (BinF f) where
   binSize (BinF _ step _) = step
 
--- | Equality is up to 2/3th of digits
-instance RealFloat f => BinEq (BinF f) where
-  binEq (BinF lo d n) (BinF lo' d' n')
-    =  n == n'
-    && abs (d  - d' ) < eps * abs d
-    && abs (lo - lo') < dlo
-    where
-      dlo = eps * fromIntegral n * d
-      eps = 2 ** (-0.66 * fromIntegral (floatDigits lo))
-
 instance Show f => Show (BinF f) where
   show (BinF base step n) = unlines [ "# BinF"
                                     , "# Base = " ++ show base
@@ -216,16 +206,6 @@ instance VariableBin BinD where
 
 instance UniformBin BinD where
   binSize (BinD _ step _) = step
-
--- | Equality is up to 3e-11 (2/3th of digits)
-instance BinEq BinD where
-  binEq (BinD lo d n) (BinD lo' d' n')
-    =  n == n'
-    && abs (d  - d' ) < eps * abs d
-    && abs (lo - lo') < dlo
-    where
-      dlo = eps * fromIntegral n * d
-      eps = 3e-11
 
 instance Show BinD where
   show (BinD base step n) = unlines [ "# BinD"

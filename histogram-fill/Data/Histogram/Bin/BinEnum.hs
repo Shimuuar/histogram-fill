@@ -19,7 +19,7 @@ import Data.Histogram.Bin.Read
 -- | Bin for types which are instnaces of Enum type class. Value are
 --   converted to 'Int' using 'fromEnum' first and then binned.
 newtype BinEnum a = BinEnum BinI
-                    deriving (Eq,Data,Typeable,BinEq)
+                    deriving (Eq,Data,Typeable)
 
 -- | Create enum based bin
 binEnum :: Enum a => a -> a -> BinEnum a

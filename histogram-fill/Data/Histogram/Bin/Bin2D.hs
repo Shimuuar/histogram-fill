@@ -73,10 +73,6 @@ fmapBinY f (Bin2D bx by)
     where
       by' = f by
 
-instance (BinEq bx, BinEq by) => BinEq (Bin2D bx by) where
-  binEq (Bin2D bx by) (Bin2D bx' by') =
-    binEq bx bx' && binEq by by'
-
 instance (Show bx, Show by) => Show (Bin2D bx by) where
   show (Bin2D bx by) = concat [ "# Bin2D\n"
                               , "# X\n"

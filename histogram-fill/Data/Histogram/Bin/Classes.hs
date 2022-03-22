@@ -16,8 +16,6 @@ module Data.Histogram.Bin.Classes (
     -- * Bin type class
     Bin(..)
   , binsCenters
-    -- * Approximate equality
-  , BinEq(..)
     -- * 1D bins
   , IntervalBin(..)
   , Bin1D(..)
@@ -70,19 +68,6 @@ class Bin b where
 binsCenters :: (Bin b, Vector v (BinValue b)) => b -> v (BinValue b)
 binsCenters b = G.generate (nBins b) (fromIndex b)
 {-# INLINE binsCenters #-}
-
-
-
----- Equality --------------------------------------------------
-
--- | Approximate equality for bins. It's nessesary to define
---   approximate equality since exact equality is ill defined for bins
---   which work with floating point data. It's not safe to compare
---   floating point numbers for exact equality
-class Bin b => BinEq b where
-  -- | Approximate equality
-  binEq :: b -> b -> Bool
-
 
 
 --- 1D bins ----------------------------------------------------

@@ -20,7 +20,7 @@ import qualified Data.Histogram.Generic as H
 
 -- | This binning algorithms adds special case of no value.
 newtype MaybeBin bin = MaybeBin bin
-                       deriving (BinEq,Eq,Typeable)
+                       deriving (Eq,Typeable)
 
 instance Bin bin => Bin (MaybeBin bin) where
   type BinValue (MaybeBin bin)  = Maybe (BinValue bin)
