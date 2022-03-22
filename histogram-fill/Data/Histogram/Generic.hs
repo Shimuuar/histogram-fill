@@ -331,7 +331,7 @@ bmap :: (Vector v a, Vector v b, Bin bin)
 bmap f (Histogram bin _ vec) =
   Histogram bin NoOverflow $ G.imap (f . fromIndex bin) vec
 
-mapData :: (Vector v a, Vector u b, Bin bin)
+mapData :: (Vector v a, Vector u b)
         => (v a -> u b) -> Histogram v bin a -> Histogram u bin b
 mapData f (Histogram bin _ v)
   | G.length v /= G.length v' = error "Data.Histogram.Generic.Histogram.mapData: vector length changed"
@@ -358,7 +358,7 @@ convert :: (Vector v a, Vector w a)
 convert (Histogram bin uo vec) = Histogram bin uo (G.convert vec)
 
 -- | Convert between binning types using 'ConvertBin' type class.
-convertBinning :: (ConvertBin bin bin', Vector v a)
+convertBinning :: (ConvertBin bin bin')
                => Histogram v bin a -> Histogram v bin' a
 convertBinning (Histogram bin uo vec)
   | nBins bin == nBins bin' = Histogram bin' uo vec
@@ -599,7 +599,7 @@ breduceY f h@(Histogram (Bin2D bX _) _ _) =
 
 
 -- | Transform X slices of histogram.
-liftX :: (Bin bX, Bin bY, Bin bX', Eq bX', Vector v a, Vector v b)
+liftX :: (Bin bX, Bin bY, Vector v a, Vector v b)
       => (Histogram v bX a -> Histogram v bX' b)
       -> Histogram v (Bin2D bX  bY) a
       -> Histogram v (Bin2D bX' bY) b
@@ -612,7 +612,7 @@ liftX f hist@(Histogram (Bin2D _ by) _ _) =
           (G.concat (histData <$> hs))
 
 -- | Transform Y slices of histogram.
-liftY :: (Bin bX, Bin bY, Bin bY', Eq bY', Vector v a, Vector v b, Vector v Int)
+liftY :: (Bin bX, Bin bY, Bin bY', Vector v a, Vector v b, Vector v Int)
       => (Histogram v bY a -> Histogram v bY' b)
       -> Histogram v (Bin2D bX bY ) a
       -> Histogram v (Bin2D bX bY') b

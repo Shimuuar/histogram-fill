@@ -164,7 +164,7 @@ bmap :: (Unbox a, Unbox b, Bin bin)
      => (BinValue bin -> a -> b) -> Histogram bin a -> Histogram bin b
 bmap = H.bmap
 
-mapData :: (Unbox a, Unbox b, Bin bin)
+mapData :: (Unbox a, Unbox b)
         => (Vector a -> Vector b) -> Histogram bin a -> Histogram bin b
 mapData = H.mapData
 
@@ -177,7 +177,7 @@ zipSafe :: (Eq bin, Unbox a, Unbox b, Unbox c)
         => (a -> b -> c) -> Histogram bin a -> Histogram bin b -> Maybe (Histogram bin c)
 zipSafe = H.zipSafe
 
-convertBinning :: (ConvertBin bin bin', Unbox a)
+convertBinning :: (ConvertBin bin bin')
                => Histogram bin a -> Histogram bin' a
 convertBinning = H.convertBinning
 
@@ -318,13 +318,13 @@ breduceY :: (Unbox a, Unbox b, Bin bX, Bin bY)
          -> Histogram bX b
 breduceY = H.breduceY
 
-liftX :: (Bin bX, Bin bY, Bin bX', Eq bX', Unbox a, Unbox b)
+liftX :: (Bin bX, Bin bY, Unbox a, Unbox b)
       => (Histogram bX a -> Histogram bX' b)
       -> Histogram (Bin2D bX  bY) a
       -> Histogram (Bin2D bX' bY) b
 liftX = H.liftX
 
-liftY :: (Bin bX, Bin bY, Bin bY', Eq bY', Unbox a, Unbox b)
+liftY :: (Bin bX, Bin bY, Bin bY', Unbox a, Unbox b)
       => (Histogram bY a -> Histogram bY' b)
       -> Histogram (Bin2D bX bY ) a
       -> Histogram (Bin2D bX bY') b
