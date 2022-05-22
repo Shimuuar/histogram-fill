@@ -59,7 +59,9 @@ import Control.Applicative
 import Control.Monad.ST
 import Control.Monad.Primitive
 import Control.Lens.Fold
+import Control.Lens.Getter
 
+import Data.Coerce
 import Data.Monoid
 import Data.Profunctor
 import Data.Vector.Unboxed    (Unbox)
@@ -208,9 +210,9 @@ instance Applicative m => HistBuilder (HBuilderM m) where
   {-# INLINE transformInput #-}
   transformInput l h = h { hbInput = transformFun l (hbInput h) }
 
-transformFun :: Applicative m => Fold a b -> (b -> m ()) -> (a -> m ())
+transformFun :: (Applicative m) => Getting (Ap m ()) a b -> (b -> m ()) -> (a -> m ())
 {-# INLINE transformFun #-}
-transformFun l f = getAp . getConst . l (Const . Ap . f)
+transformFun l f = coerce $ l (coerce f)
 
 instance Functor m => Functor (HBuilderM m a) where
     fmap = rmap
