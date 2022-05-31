@@ -374,14 +374,27 @@ convertBinning (Histogram bin uo vec)
 
 -- | Strict fold over bin content in index order. Underflows and overflows are ignored.
 foldl :: (Vector v a) => (b -> a -> b) -> b -> Histogram v bin a -> b
+{-# INLINE foldl #-}
 foldl f x0 (Histogram _ _ vec) =
   G.foldl' f x0 vec
 
 -- | Strict fold over bin content in index order. Function is applied
 --   to bin content and bin value. Underflows and overflows are ignored.
 bfoldl :: (Bin bin, Vector v a) => (b -> BinValue bin -> a -> b) -> b -> Histogram v bin a -> b
+{-# INLINE bfoldl #-}
 bfoldl f x0 (Histogram bin _ vec) =
   G.ifoldl' (\acc -> f acc . fromIndex bin) x0 vec
+
+-- | Applicative fold over content of histogram
+foldlM :: (Bin bin, Vector v a, Monad m) => (b -> a -> m b) -> b -> Histogram v bin a -> m b
+{-# INLINE foldlM #-}
+foldlM f b0 (Histogram _ _ vec) = G.foldM f b0 vec
+
+-- | Applicative fold over content of histogram
+bfoldlM :: (Bin bin, Vector v a, Monad m) => (b -> BinValue bin -> a -> m b) -> b -> Histogram v bin a -> m b
+{-# INLINE bfoldlM #-}
+bfoldlM f b0 (Histogram bin _ vec) = G.ifoldM (\acc -> f acc . fromIndex bin) b0 vec
+
 
 -- | Sum contents of all bins
 sum :: (Vector v a, Num a) => Histogram v bin a -> a
