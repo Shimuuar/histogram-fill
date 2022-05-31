@@ -90,7 +90,7 @@ import Data.Histogram.ST
 --   Every instance of 'HBuilder' should be instance of 'Functor' too
 --   and satisfy 'fmap' == 'modifyOut'.
 class Profunctor h => HistBuilder h where
-  transformInput :: Fold a b -> h b c -> h a c
+  transformInput :: (forall m. Monoid m => Getting m a b) -> h b c -> h a c
 
 -- | Apply function to output of histogram.
 modifyOut :: HistBuilder h => (b -> b') -> h a b -> h a  b'
