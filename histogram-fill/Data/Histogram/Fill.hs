@@ -7,9 +7,9 @@
 -- Maintainer : Alexey Khudyakov <alexey.skladnoy@gmail.com>
 -- Stability  : experimental
 --
--- Stateful and pure (still stateful under the hood) accumulators. 
+-- Stateful and pure (still stateful under the hood) accumulators.
 --
-module Data.Histogram.Fill ( 
+module Data.Histogram.Fill (
     -- * Builder type class
     HistBuilder(..)
     -- ** Operators
@@ -165,12 +165,12 @@ infixr 4 -<<
 -- two histograms are filled at the same time. First accept only even
 -- numbers and second only the odd ones. Results are put into the tuple.
 --
--- > (,) <$> 
+-- > (,) <$>
 -- >   (forceInt -<< mkSimple (BinI 0 4) <<? even)
 -- >   (forceInt -<< mkSimple (BinI 0 4) <<? odd)
 --
 -- Another approach is to use 'F.sequenceA' to simultaneously fill
--- a list (or any other 'Traversable'). 
+-- a list (or any other 'Traversable').
 --
 -- > Data.Traversable.sequenceA [
 -- >     forceInt -<< mkSimple (BinI 0 4) <<? even
