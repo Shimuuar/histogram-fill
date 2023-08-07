@@ -204,6 +204,8 @@ data HBuilderM m a b = HBuilderM { hbInput  :: a -> m ()
 instance Functor m => Profunctor (HBuilderM m) where
   lmap f h = h { hbInput  = hbInput h . f }
   rmap f h = h { hbOutput = f <$> hbOutput h }
+  {-# INLINE lmap #-}
+  {-# INLINE rmap #-}
 
 -- | Builders modified using 'HistBuilder' API will share the same buffer.
 instance Applicative m => HistBuilder (HBuilderM m) where
@@ -216,6 +218,7 @@ transformFun l f = coerce $ l (coerce f)
 
 instance Functor m => Functor (HBuilderM m a) where
     fmap = rmap
+
 instance Applicative m => Applicative (HBuilderM m a) where
     pure x = HBuilderM { hbInput  = const $ pure ()
                        , hbOutput = pure x
@@ -223,6 +226,13 @@ instance Applicative m => Applicative (HBuilderM m a) where
     f <*> g = HBuilderM { hbInput  = \a -> hbInput f a *> hbInput g a
                         , hbOutput = liftA2 ($) (hbOutput f) (hbOutput g)
                         }
+    liftA2 f hba hbb = HBuilderM
+      { hbInput  = \a -> hbInput hba a *> hbInput hbb a
+      , hbOutput = liftA2 f (hbOutput hba) (hbOutput hbb)
+      }
+    {-# INLINE pure   #-}
+    {-# INLINE (<*>)  #-}
+    {-# INLINE liftA2 #-}
 
 instance (Monad m, Semigroup b) => Semigroup (HBuilderM m a b) where
     (<>) = liftA2 (<>)
@@ -289,7 +299,12 @@ instance Functor (HBuilder a) where
     fmap = modifyOut
 instance Applicative (HBuilder a) where
     pure x  = HBuilder (return $ pure x)
-    (HBuilder f) <*> (HBuilder g) = HBuilder $ liftA2 (<*>) f g
+    HBuilder f <*> HBuilder g = HBuilder $ liftA2 (<*>) f g
+    liftA2 f (HBuilder hba) (HBuilder hbb) = HBuilder $ (liftA2 . liftA2) f hba hbb
+    {-# INLINE pure   #-}
+    {-# INLINE (<*>)  #-}
+    {-# INLINE liftA2 #-}
+
 instance Semigroup b => Semigroup (HBuilder a b) where
     (<>) = liftA2 (<>)
     {-# INLINE (<>) #-}
