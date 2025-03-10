@@ -4,7 +4,7 @@ Synopsis:       Serialise instances for histogram-fill package
 Description:
   Serialise instances for histogram-fill package
 
-Cabal-Version:  >= 1.6
+Cabal-Version:  >= 1.10
 License:        BSD3
 License-File:   LICENSE
 Author:         Alexey Khudyakov
@@ -20,10 +20,11 @@ source-repository head
   location: http://github.com/Shimuuar/histogram-fill
 
 Library
+  default-language: Haskell2010        
   Build-Depends:        base      >=3 && <5
                       , serialise >=0.2
                       , vector         >= 0.7
                       , histogram-fill >= 0.8.5.0
   Exposed-modules:      Data.Histogram.Serialise
   Ghc-options:          -Wall
-  Ghc-prof-options:     -auto-all
+
