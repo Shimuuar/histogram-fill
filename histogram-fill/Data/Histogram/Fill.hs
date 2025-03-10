@@ -241,7 +241,7 @@ instance (Monad m, Monoid b) => Monoid (HBuilderM m a b) where
     mempty = HBuilderM { hbInput  = \_ -> return ()
                        , hbOutput = return mempty
                        }
-    mappend = liftA2 mappend
+    mappend = (<>)
     mconcat = fmap mconcat . F.sequenceA
     {-# INLINE mempty  #-}
     {-# INLINE mappend #-}
@@ -300,7 +300,7 @@ instance Semigroup b => Semigroup (HBuilder a b) where
     {-# INLINE (<>) #-}
 instance Monoid b => Monoid (HBuilder a b) where
     mempty  = HBuilder (return mempty)
-    mappend = liftA2 mappend
+    mappend = (<>)
     mconcat = fmap mconcat . F.sequenceA
     {-# INLINE mempty  #-}
     {-# INLINE mappend #-}
